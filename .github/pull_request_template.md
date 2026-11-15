@@ -1,4 +1,4 @@
-<!-- PR 제목은 [TYPE] : 설명 형식, 대상 브랜치는 develop. 자세한 규칙은 AGENTS.md의 Git 절을 따른다. -->
+<!-- PR 제목은 [TYPE] 설명 형식, 대상 브랜치는 develop. 자세한 규칙은 AGENTS.md의 Git 절을 따른다. -->
 
 ## 관련 이슈
 

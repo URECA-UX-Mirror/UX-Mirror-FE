@@ -29,7 +29,7 @@
 | GET | `/api/health` | 전체 | `계약 §17.8` |
 | POST | `/api/runs` | 1 | `계약 §17.2`, `§5.1` |
 | GET | `/api/runs/{runId}` | 2, 3 | `계약 §17.3` |
-| GET | `/api/runs/{runId}/steps` | 2, 3 | `계약 §17.4` |
+| GET | `/api/runs/{runId}/steps` | 2, 3, 4 | `계약 §17.4` |
 | GET | `/api/runs/{runId}/issues` | 3 | `계약 §17.5` |
 | GET | `/api/runs/{runId}/screenshots/{stepId}` | 2, 3, 4 | `계약 §17.7` |
 | GET | `/api/comparisons/{experimentKey}` | 4 | `계약 §17.6` |

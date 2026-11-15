@@ -14,9 +14,11 @@
 | # | 화면 | 사용 API | 화면 상태(서버 데이터 아님) |
 | --- | --- | --- | --- |
 | 1 | 새 UX 분석 | `GET /api/presets`, `GET /api/health`, `POST /api/runs` | 선택한 목표·사용자 유형·최대 탐색 횟수, 비교할 두 버전 선택 |
-| 2 | AI 탐색 진행 | `GET /api/runs/{runId}`, `/steps`, `/screenshots/{stepId}` | 열람 중인 stepId(기록 열람 / 최신), 후보 목록 펼침 |
-| 3 | UX 탐색 분석 결과 | `GET /api/runs/{runId}`, `/steps`, `/screenshots/{stepId}`, `/issues` | 선택한 경로 노드, 열린 Issue 상세, 지표 패널 펼침 |
-| 4 | 버전 비교 | `GET /api/comparisons/{experimentKey}`, `/api/runs/{runId}/screenshots/{stepId}` | 지표 표 펼침 |
+| 2 | AI 탐색 진행 | `GET /api/health`, `GET /api/runs/{runId}`, `/steps`, `/screenshots/{stepId}` | 열람 중인 stepId(기록 열람 / 최신), 후보 목록 펼침 |
+| 3 | UX 탐색 분석 결과 | `GET /api/health`, `GET /api/runs/{runId}`, `/steps`, `/screenshots/{stepId}`, `/issues` | 선택한 경로 노드, 열린 Issue 상세, 지표 패널 펼침 |
+| 4 | 버전 비교 | `GET /api/health`, `GET /api/comparisons/{experimentKey}`, `/api/runs/{runId}/steps`, `/api/runs/{runId}/screenshots/{stepId}` | 지표 표 펼침 |
+
+`GET /api/health`는 모든 화면의 공통 영역(엔진 상태 표시)에서 호출한다. 화면 1에서는 시작 가능 여부 판단에도 쓴다. 화면 4는 `CandidateComparison`에 `bbox`가 없으므로 `beforeRunId`·`afterRunId`의 `/steps`에서 해당 Step을 가져온다.
 
 ### 1. 새 UX 분석
 
@@ -51,7 +53,7 @@
   - 화면 지표 비교는 `screenComparisons[].metrics`다.
   - 탐색 경로 비교는 `runComparison`의 `path`다.
   - Issue 비교는 `runComparison`의 `detectedIssueTypes`다.
-- 후보 박스를 겹쳐 그릴 때는 `beforeStepId`·`afterStepId`의 Step에서 `bbox`와 스크린샷을 가져온다.
+- 후보 박스를 겹쳐 그릴 때는 `beforeRunId`·`afterRunId`의 `/steps`에서 `beforeStepId`·`afterStepId`에 해당하는 Step을 찾아 `bbox`와 스크린샷을 가져온다.
 - 비교 계산과 Issue 판정은 하지 않는다([지표와 목표 판정](../contracts/metrics-and-goal.md)).
 
 ## 표시 규칙

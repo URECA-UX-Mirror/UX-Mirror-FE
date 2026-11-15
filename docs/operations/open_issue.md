@@ -22,6 +22,7 @@
 | [OI-6](#oi-6) | 프리셋 응답에 없는 값 | 장근창 | 프론트 상수 |
 | [OI-7](#oi-7) | 저장된 실측 데이터 시연 | 정자비 | 배지만 표시 |
 | [OI-8](#oi-8) | CORS와 다른 PC 주소 | 장근창 | 기본 출처만 가정 |
+| [OI-9](#oi-9) | 계약서와 대조하지 못한 mock·타입 값 | 장근창, 정윤희 | 프론트가 가정한 값 |
 
 ## 항목
 
@@ -88,3 +89,13 @@
 - 계약서에 없다. 프론트는 `http://localhost:5173`, 백엔드는 `http://127.0.0.1:8000`으로 가정한다.
 - 확인할 것: FastAPI의 허용 출처 설정, 다른 PC에서 실행할 때 출처를 추가하는 방법, 응답에 절대 주소를 담지 않기로 할지.
 - 담당: 장근창.
+
+<a id="oi-9"></a>
+### OI-9 계약서와 대조하지 못한 mock·타입 값
+
+- 이 저장소에는 계약서 본문이 없고 문서에 정리된 값만 있다. 아래는 문서에 값이 없어 프론트가 가정한 것이다.
+- `GET /api/health`: `status` 값과 `activeRun`의 필드. 프론트는 `activeRun.runId`만 쓴다(`src/api/dto/misc.ts`).
+- mock 응답에 쓴 코드 문자열: 비교 불가 이유 `PAGE_NOT_VISITED_IN_AFTER`, `CANDIDATE_NOT_IN_BOTH`, 조건 검사 `code`(`SAME_GOAL` 등), 종료 사유 `GOAL_REACHED`, 오류 코드 `SERVICE_UNAVAILABLE`·`INTERNAL_ERROR`·`SCREENSHOT_NOT_FOUND`, Issue `evidence` 키(`normalizedEntropy`, `top2Margin`, `extraSteps`), `schemaVersion`.
+- 임시 결정: 위 값은 `src/mocks/`와 `src/api/dto/misc.ts`에만 있다. 화면 코드는 코드 문자열로 분기하지 않고 모르는 값은 그대로 표시한다.
+- 확인할 것: 각 값의 실제 형식. 계약서와 다르면 mock과 DTO만 고친다.
+- 담당: 장근창(health, 오류 코드), 정윤희(비교 불가 이유, 조건 검사, `evidence`).

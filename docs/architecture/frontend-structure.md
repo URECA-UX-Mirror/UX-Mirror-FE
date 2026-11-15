@@ -89,19 +89,24 @@
 - 서버 데이터(Run, Step, 비교 결과)와 화면 상태(선택한 단계, 펼침 여부)를 섞지 않는다.
 - 값 변환(확률 ×100, 소수점 반올림, 날짜 표기)은 표시 단계에서만 하고 원본 값은 보존한다.
 
-## 폴더 구조(제안, 아직 생성하지 않음)
+## 폴더 구조
 
 ```
 src/
-  config/env.ts            # VITE_API_BASE_URL 등 환경변수 한 곳에서 읽기
+  config/env.ts            # VITE_API_BASE_URL, VITE_USE_MOCK을 한 곳에서 읽기
   api/
-    client.ts              # fetch 래퍼, ErrorDetail 변환
-    runs.ts, presets.ts, comparisons.ts, health.ts
+    client.ts              # fetch 래퍼, ApiError(ErrorDetail 변환), apiUrl
+    runs.ts, presets.ts, comparisons.ts, health.ts   # endpoint 함수, screenshotUrl
     dto/                   # 서버 응답 타입 (계약서 그대로)
   adapters/                # dto -> domain 변환
-  domain/                  # Run, Step, Candidate, Issue, Comparison
-  mocks/                   # 응답 DTO 형식의 fixture
+  domain/                  # types.ts(도메인 모델), runStatus.ts(isTerminalStatus)
+  mocks/                   # MSW. browser.ts, store.ts, errors.ts, fixtures/, handlers/(endpoint별)
   features/
-    new-analysis/, run-progress/, run-result/, comparison/
-  shared/                  # 공용 컴포넌트, 포맷터, 폴링 훅
+    new-analysis/, run-progress/, run-result/, comparison/   # 화면별. 라우트는 App.tsx
+  shared/                  # Layout, EngineStatus, ErrorNotice, ResultOriginBadge, useHealth
+public/
+  mockServiceWorker.js     # MSW 생성 파일
+  mock/screenshot.png      # mock 스크린샷(1440×900)
 ```
+
+화면 라우트는 `/`(새 UX 분석), `/runs/:runId`(AI 탐색 진행), `/runs/:runId/result`(분석 결과), `/comparisons/:experimentKey`(버전 비교)다. 경로는 프론트가 정한 값이며 계약서 대상이 아니다. 좌표 변환 함수, 폴링 훅 같은 화면 공용 코드는 `shared/` 아래에 추가한다.

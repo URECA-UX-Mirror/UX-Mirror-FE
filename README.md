@@ -19,17 +19,16 @@ npm run build      # 배포용 빌드 (dist/)
 
 `.env`는 Git에 올리지 않는다 (공개 저장소).
 
-## 만들 화면 (`역할 분담.md` 5번)
+## 화면
 
 | 화면 | 데이터 (백엔드 API) |
 | --- | --- |
-| ① 설정·실행 | `GET /api/presets`, `POST /api/runs` |
-| ② 진행 상황 | `GET /api/runs/{runId}` |
-| ③ 단계 재생 (스크린샷 + 확률 배지) | `GET /api/runs/{runId}/steps`, `/screenshots/{stepId}` |
-| ④ Before/After 비교 | `GET /api/comparisons/{experimentKey}` |
-| ⑤ UX 문제 목록 | `GET /api/runs/{runId}/issues` |
+| ① 새 UX 분석 | `GET /api/presets`, `GET /api/health`, `POST /api/runs` |
+| ② AI 탐색 진행 | `GET /api/health`, `GET /api/runs/{runId}`, `/steps`, `/screenshots/{stepId}` |
+| ③ UX 탐색 분석 결과 | `GET /api/health`, `GET /api/runs/{runId}`, `/steps`, `/screenshots/{stepId}`, `/issues` |
+| ④ 버전 비교 | `GET /api/health`, `GET /api/comparisons/{experimentKey}`, `/api/runs/{runId}/steps`, `/api/runs/{runId}/screenshots/{stepId}` |
 
-확률 배지는 Step의 `bbox`(스크린샷 왼쪽 위 기준 CSS 픽셀, 뷰포트 1440×900)로 그린다.
+화면별 상태 관리, 요청·응답 형식, bbox 변환은 [docs/README.md](docs/README.md)의 문서를 따른다.
 
 ## 브랜치
 

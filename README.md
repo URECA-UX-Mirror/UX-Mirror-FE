@@ -33,4 +33,4 @@ npm run build      # 배포용 빌드 (dist/)
 
 ## 브랜치
 
-`main`(제출용) ← `develop`(통합) ← `feature/*`(각자 작업). PR은 1명 승인 후 머지.
+`main`(제출용) ← `develop`(통합) ← `유형/이슈번호-간단한 내용`(각자 작업). PR은 1명 승인 후 머지. 브랜치·커밋·Issue·PR 규칙은 [AGENTS.md](AGENTS.md)를 따른다.

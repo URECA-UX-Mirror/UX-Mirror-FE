@@ -35,8 +35,27 @@ export interface Timing {
   finishedAtMs: number
 }
 
+/** 이 Run에서 실제로 실행되는 Step 수. 시나리오 단계 수와 `maxSteps` 중 작은 값이다. */
+export function stepLimit(rec: RunRecord): number {
+  return Math.min(STEP_PAGES[rec.variant].length, Math.max(1, rec.maxSteps))
+}
+
+/** `maxSteps`에 먼저 도달해 목표 화면에 도착하지 못하고 끝나는 Run인지 */
+export function isMaxStepsStopped(rec: RunRecord): boolean {
+  return rec.maxSteps < STEP_PAGES[rec.variant].length
+}
+
+/** 마지막 Step 뒤에 도착하는 화면. 목표에 도달했으면 `refund`다. Step이 없는 화면이다(OI-3). */
+function arrivalPage(rec: RunRecord): PageKey {
+  if (!isMaxStepsStopped(rec)) return 'refund'
+  const lastPage = STEP_PAGES[rec.variant][stepLimit(rec) - 1]
+  const choices = getChoices(rec.variant, lastPage)
+  return choices.candidates.find((c) => c.optionId === choices.selectedOptionId)!
+    .leadsTo
+}
+
 export function getTiming(rec: RunRecord, nowMs: number): Timing {
-  const totalSteps = STEP_PAGES[rec.variant].length
+  const totalSteps = stepLimit(rec)
   const elapsed = nowMs - rec.createdAtMs
   const finishedElapsed = START_MS + totalSteps * STEP_MS
   const done = Math.floor((elapsed - START_MS) / STEP_MS)
@@ -75,7 +94,7 @@ function normalize(probabilities: number[]): number[] {
 // ---- Step ----
 
 export function buildSteps(rec: RunRecord, count: number): StepDto[] {
-  const pages = STEP_PAGES[rec.variant]
+  const pages = STEP_PAGES[rec.variant].slice(0, stepLimit(rec))
   const steps: StepDto[] = []
   for (let i = 0; i < Math.min(count, pages.length); i += 1) {
     const stepId = i + 1
@@ -89,11 +108,12 @@ export function buildSteps(rec: RunRecord, count: number): StepDto[] {
       choices.goBackProbability === null
         ? clickProbabilities
         : [...clickProbabilities, choices.goBackProbability]
-    const goalPathProbability = round(
-      choices.candidates
-        .filter((c) => c.onGoalPath)
-        .reduce((sum, c) => sum + c.probability, 0),
-    )
+    // 허용 경로로 이어지는 후보가 없으면 null이다. 0으로 바꾸지 않는다(metrics-and-goal.md).
+    const goalPathCandidates = choices.candidates.filter((c) => c.onGoalPath)
+    const goalPathProbability =
+      goalPathCandidates.length === 0
+        ? null
+        : round(goalPathCandidates.reduce((sum, c) => sum + c.probability, 0))
     const startedMs = rec.createdAtMs + START_MS + i * STEP_MS
     const nextPath = PAGES[selected.leadsTo].path
 
@@ -164,7 +184,12 @@ export function buildSteps(rec: RunRecord, count: number): StepDto[] {
         finishedAt: iso(startedMs + STEP_MS),
         error: null,
       },
-      statusAfterStep: i === pages.length - 1 ? 'SUCCESS' : 'RUNNING',
+      statusAfterStep:
+        i === pages.length - 1
+          ? isMaxStepsStopped(rec)
+            ? 'MAX_STEPS'
+            : 'SUCCESS'
+          : 'RUNNING',
       error: null,
     })
   }
@@ -174,8 +199,8 @@ export function buildSteps(rec: RunRecord, count: number): StepDto[] {
 // ---- Run ----
 
 function buildPath(rec: RunRecord): PathVisitDto[] {
-  const pages = STEP_PAGES[rec.variant]
-  const visited: PageKey[] = [...pages, 'refund']
+  const pages = STEP_PAGES[rec.variant].slice(0, stepLimit(rec))
+  const visited: PageKey[] = [...pages, arrivalPage(rec)]
   return visited.map((pageKey, sequence) => ({
     sequence,
     pageKey,
@@ -183,16 +208,17 @@ function buildPath(rec: RunRecord): PathVisitDto[] {
     path: PAGES[pageKey].path,
     enteredBy: sequence === 0 ? null : 'CLICK',
     visitCause: sequence === 0 ? 'RUN_START' : 'MODEL_NAVIGATION',
-    // 도착 화면(refund)에는 Step이 없다(OI-3)
+    // 도착 화면에는 Step이 없다(OI-3)
     stepId: sequence < pages.length ? sequence + 1 : null,
   }))
 }
 
 export function buildSummary(rec: RunRecord): RunSummaryDto {
-  const stepCount = STEP_PAGES[rec.variant].length
+  const stepCount = stepLimit(rec)
+  const stopped = isMaxStepsStopped(rec)
   const extra = rec.variant === 'before' ? 1 : 0
   return {
-    goalReached: true,
+    goalReached: !stopped,
     stepCount,
     stepRecordCount: stepCount,
     modelCallCount: stepCount,
@@ -204,13 +230,15 @@ export function buildSummary(rec: RunRecord): RunSummaryDto {
     revisitCount: 0,
     referencePathDeviationCount: extra,
     navigationCost: stepCount,
-    extraSteps: extra,
-    extraNavigationCost: extra,
-    attemptedExtraSteps: extra,
+    // 목표에 도달하지 못하면 extraSteps 계열은 null이다(계약 §6.4)
+    extraSteps: stopped ? null : extra,
+    extraNavigationCost: stopped ? null : extra,
+    attemptedExtraSteps: stopped ? null : extra,
     executionTimeMs: stepCount * STEP_MS,
     path: buildPath(rec),
-    detectedIssueTypes:
-      rec.variant === 'before'
+    detectedIssueTypes: stopped
+      ? ['GOAL_NOT_REACHED']
+      : rec.variant === 'before'
         ? ['CHOICE_AMBIGUITY', 'EXTRA_STEPS']
         : [],
   }
@@ -221,13 +249,16 @@ export function buildRun(rec: RunRecord, nowMs: number): RunDto {
   const persona =
     PERSONAS.find((p) => p.personaId === rec.personaId) ?? PERSONAS[0]
   const pages = STEP_PAGES[rec.variant]
+  const stopped = isMaxStepsStopped(rec)
   const status = timing.terminal
-    ? 'SUCCESS'
+    ? stopped
+      ? 'MAX_STEPS'
+      : 'SUCCESS'
     : timing.started
       ? 'RUNNING'
       : 'READY'
   const currentPageKey = timing.terminal
-    ? 'refund'
+    ? arrivalPage(rec)
     : timing.started
       ? pages[timing.doneSteps]
       : null
@@ -257,7 +288,11 @@ export function buildRun(rec: RunRecord, nowMs: number): RunDto {
     createdAt: iso(rec.createdAtMs),
     startedAt: timing.started ? iso(rec.createdAtMs + START_MS) : null,
     finishedAt: timing.terminal ? iso(timing.finishedAtMs) : null,
-    terminationReason: timing.terminal ? 'GOAL_REACHED' : null,
+    terminationReason: timing.terminal
+      ? stopped
+        ? 'MAX_STEPS_REACHED' // 가정한 코드(OI-9)
+        : 'GOAL_REACHED'
+      : null,
     progress: {
       stepRecordCount: timing.doneSteps,
       stepCount: timing.doneSteps,
@@ -282,6 +317,33 @@ export function buildIssues(rec: RunRecord, nowMs: number): IssueListDto {
   const ready = timing.terminal && nowMs >= timing.finishedAtMs + ISSUE_DELAY_MS
   if (!ready) {
     return { runId: rec.runId, analysisStatus: 'PENDING', items: [] }
+  }
+  if (isMaxStepsStopped(rec) && !rec.invalid) {
+    const createdAt = iso(timing.finishedAtMs + ISSUE_DELAY_MS)
+    const lastStepId = stepLimit(rec)
+    return {
+      runId: rec.runId,
+      analysisStatus: 'COMPLETED',
+      items: [
+        {
+          schemaVersion: SCHEMA_VERSION,
+          issueId: `issue_${rec.runId}_1`,
+          runId: rec.runId,
+          issueType: 'GOAL_NOT_REACHED',
+          stepId: lastStepId,
+          relatedStepIds: [lastStepId],
+          pagePath: null,
+          pageKey: null,
+          pageSignature: null,
+          title: '최대 탐색 횟수 안에 목표에 도달하지 못함',
+          description: '정해진 횟수 안에 목표 화면에 도착하지 못했습니다.',
+          evidence: { maxSteps: rec.maxSteps },
+          reviewPriority: 'PRIORITY_REVIEW',
+          occurrenceCount: 1,
+          createdAt,
+        },
+      ],
+    }
   }
   if (rec.variant === 'after' || rec.invalid) {
     // 검토 후보 0건(INVALID Run도 같다. 계약 §14.2)

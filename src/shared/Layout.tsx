@@ -1,9 +1,11 @@
-import { Link, Outlet } from 'react-router'
+import { Link, Outlet, useLocation } from 'react-router'
 import { useMock } from '../config/env.ts'
 import { EngineStatus } from './EngineStatus.tsx'
 
 /** 모든 화면의 공통 영역. 엔진 상태는 여기서만 표시한다. */
 export function Layout() {
+  // 라우트가 바뀔 때마다 엔진 상태(activeRun)를 다시 조회한다.
+  const { pathname } = useLocation()
   return (
     <div className="layout">
       <header className="layout-header">
@@ -12,7 +14,7 @@ export function Layout() {
         </Link>
         <div className="layout-status">
           {useMock ? <span className="mock-flag">MOCK 데이터</span> : null}
-          <EngineStatus />
+          <EngineStatus refreshKey={pathname} />
         </div>
       </header>
       <main className="layout-main">

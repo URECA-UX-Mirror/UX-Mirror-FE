@@ -59,6 +59,20 @@ export const runsHandlers = [
       )
     }
 
+    // maxSteps는 1~15 정수만 허용한다(계약 §5.1)
+    if (
+      body.maxSteps !== undefined &&
+      (!Number.isInteger(body.maxSteps) ||
+        body.maxSteps < 1 ||
+        body.maxSteps > 15)
+    ) {
+      return errorResponse(
+        422,
+        'CONTRACT_VALIDATION_ERROR',
+        '최대 탐색 횟수는 1~15 사이여야 합니다',
+      )
+    }
+
     const now = Date.now()
     const active = allRuns().find((run) => !getTiming(run, now).terminal)
     if (active) {

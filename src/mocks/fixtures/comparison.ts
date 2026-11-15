@@ -7,8 +7,7 @@ import type {
   StepDto,
 } from '../../api/dto/index.ts'
 import type { RunRecord } from '../store.ts'
-import { buildSteps, buildSummary } from './run.ts'
-import { STEP_PAGES } from './scenario.ts'
+import { buildSteps, buildSummary, isMaxStepsStopped } from './run.ts'
 
 export type ComparisonMode = 'COMPLETED' | 'PARTIAL' | 'MISMATCH'
 
@@ -82,8 +81,10 @@ function outcome(rec: RunRecord): RunOutcomeDto {
   const s = buildSummary(rec)
   return {
     goalReached: s.goalReached,
-    status: 'SUCCESS',
-    terminationReason: 'GOAL_REACHED',
+    status: isMaxStepsStopped(rec) ? 'MAX_STEPS' : 'SUCCESS',
+    terminationReason: isMaxStepsStopped(rec)
+      ? 'MAX_STEPS_REACHED'
+      : 'GOAL_REACHED',
     stepCount: s.stepCount,
     successfulNavigationClickCount: s.successfulNavigationClickCount,
     modelBackCount: s.modelBackCount,
@@ -109,11 +110,9 @@ export function buildComparison(
   const afterSteps = buildSteps(after, 99)
 
   const screens: ScreenComparisonDto[] = []
-  const afterPages = STEP_PAGES.after
-  STEP_PAGES.before.forEach((pageKey, index) => {
-    const b = beforeSteps[index]
-    const afterIndex = afterPages.indexOf(pageKey)
-    const a = afterIndex >= 0 ? afterSteps[afterIndex] : undefined
+  beforeSteps.forEach((b) => {
+    const pageKey = b.page.pageKey
+    const a = afterSteps.find((step) => step.page.pageKey === pageKey)
     if (!a) {
       // 한쪽만 방문한 화면. PARTIAL 응답에서만 보여 준다.
       if (mode === 'PARTIAL') {

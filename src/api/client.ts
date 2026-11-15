@@ -65,7 +65,9 @@ async function toApiError(response: Response): Promise<ApiError> {
         })
       }
     }
-  } catch {
+  } catch (error) {
+    // 본문을 읽는 도중 취소된 요청은 오류로 바꾸지 않고 그대로 전파한다.
+    if (isAbortError(error)) throw error
     // 본문이 JSON이 아니면 아래 일반 오류로 처리한다.
   }
   return new ApiError({
@@ -113,7 +115,8 @@ export async function request<T>(
 
   try {
     return (await response.json()) as T
-  } catch {
+  } catch (error) {
+    if (isAbortError(error)) throw error
     throw new ApiError({
       status: response.status,
       code: null,

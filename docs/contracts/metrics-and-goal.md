@@ -31,7 +31,12 @@
 | `top2Margin` | 1순위 확률 − 2순위 확률(전체 행동 기준) | 0~1, `null` 가능 |
 | `clickOnlyTop2Margin` | CLICK 후보만 재정규화한 Top-2 격차 | 0~1, `null` 가능 |
 | `goBackProbability` | GO_BACK 후보의 확률 | 0~1, GO_BACK 후보가 없으면 `null` |
-| `probabilityByDestination` | 같은 목적지(경로)로 가는 후보 확률의 합. 값이 큰 순서로 정렬 | 경로 → 0~1 |
+
+위 다섯 필드는 `Step.metrics`(`StepMetrics`) 안에 있다. 아래 값은 `Step.metrics`가 아니라 `Step` 직속 필드다.
+
+| 필드 | 의미 | 범위·null |
+| --- | --- | --- |
+| `probabilityByDestination` | 같은 목적지(경로)로 가는 후보 확률의 합. 값이 큰 순서로 정렬 | 경로 → 0~1, 모델 판단 전 `null` |
 
 - 표시 규칙: 비율은 소수 둘째 자리(예 `0.74`), `top2Margin`은 `%p`(`0.12` → `12.0%p`), 확률은 `%`로 표시한다. 값을 반올림하는 것은 표시 단계에서만 한다.
 - 디자인 시안의 `Conditional Entropy (bit)`와 `Model Latency (ms)`는 백엔드 지표에 같은 정의가 없다. 시안의 단위 `bit`는 쓰지 않고 `clickOnlyNormalizedEntropy`(단위 없음)로 대체한다. `Model Latency`는 `decision.timingMs`(`BE 확인`: 응답의 `timing_ms`)로 표시한다. [OI-11](../operations/open_issue.md#oi-11)

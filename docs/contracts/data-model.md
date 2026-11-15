@@ -97,11 +97,19 @@ interface ScreenshotRef {
   scrollX: number;
   scrollY: number;
 }
+interface StepMetrics {          // 모두 0~1 비율, 계산할 수 없으면 null
+  normalizedEntropy: number | null;
+  top2Margin: number | null;
+  goBackProbability: number | null;          // GO_BACK 후보가 없으면 null
+  clickOnlyNormalizedEntropy: number | null;
+  clickOnlyTop2Margin: number | null;
+}
 ```
 
 - **모델의 선택과 실제 행동은 별개다.** `decision`은 모델의 확률 분포와 선택이고 `action`은 Playwright가 실제로 수행한 결과다. `decision`이 있어도 `action.result`가 `FAILED`일 수 있다.
 - `confidence`는 모델 응답의 별도 값이다. 결과 파일 예(`b5_20261115_153652.jsonl`)에서 선택 후보의 확률은 0.602, `confidence`는 0.5025로 서로 다르다. 후보별 확률 표시에는 `probabilities`만 쓴다.
 - `page.title`은 `BE 확인`(`MORO MARKET`)이며 "메인 홈" 같은 화면 이름은 서버 값에 없다. 프론트는 `page.path`(예 `/shop/home`)에서 이름을 만든다(`임시`, [OI-17](../operations/open_issue.md#oi-17)).
+- `metrics`와 `probabilityByDestination`은 `Step` 직속의 별개 필드다. 백엔드 결과 파일에서도 같은 레벨에 있으므로 `StepMetrics` 안에 넣지 않는다. 지표 의미는 [지표와 목표 판정](metrics-and-goal.md#지표)에 있다.
 - Step 필드 중 `status`, `startedAt`, `action.*`, `screenshot`은 `임시`다. `page`, `candidates`, `decision`, `metrics`, `probabilityByDestination`의 값은 `BE 확인`이다.
 
 ## Candidate
@@ -115,7 +123,7 @@ interface Candidate {
   text: string;                  // 백엔드 필드명은 label
   region: string;                // "상단 메뉴" | "본문"
   href: string | null;           // BE 확인: 후보의 이동 경로
-  bbox: Bbox;
+  bbox: Bbox | null;             // GO_BACK 후보는 null (임시)
   probability: number | null;    // decision이 없으면 null
   selected: boolean;
 }
@@ -125,7 +133,7 @@ interface Bbox { x: number; y: number; width: number; height: number; }
 | 필드 | 설명 | 출처 |
 | --- | --- | --- |
 | `text` | 화면에 보이는 후보 문구. 백엔드 이름은 `label`이라 Adapter가 변환한다 | `BE 확인`(이름 차이) |
-| `bbox` | 스크린샷 왼쪽 위 기준 CSS 픽셀(`x`,`y`,`width`,`height`) | `BE 확인` |
+| `bbox` | 스크린샷 왼쪽 위 기준 CSS 픽셀(`x`,`y`,`width`,`height`). CLICK 후보는 `BE 확인`, GO_BACK 후보의 `null`은 `임시` | `BE 확인`·`임시` |
 | `probability` | `decision.probabilities[optionId]`를 합친 값 | `임시`(합쳐서 내려줄지 [OI-12](../operations/open_issue.md#oi-12)) |
 | `selected` | `decision.choice === optionId` | `임시` |
 | `semanticKey` | 버전 간 같은 의미의 후보를 대응시키는 키. 모델 입력에는 들어가지 않는다 | `BE 확인` |

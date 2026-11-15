@@ -1,51 +1,49 @@
 # 지표와 목표 판정
 
-프론트는 백엔드가 계산한 값을 표시한다. 이 문서는 표시할 값의 의미와 프론트의 책임 범위를 정한다. 지표 정의는 `UX-Mirror-BE`의 `uxm/metrics.py`와 `uxm/goal.py`를 확인한 내용이다.
+프론트는 백엔드가 계산한 값을 표시한다. 이 문서는 표시할 값의 의미와 프론트의 책임 범위를 정한다. 정의의 정본은 계약서 §12.3(지표), §2.3·§10.2(목표 판정)다.
 
 ## 목표 도달 판정
 
-`BE 확인`(`uxm/goal.py`):
-
-- 판정 방식은 `DOM_ONLY`다. 모델에 YES/NO를 묻지 않고(`modelGoalReached = null`) Playwright가 보는 화면만으로 판정한다. 모델 YES/NO 판정(`MODEL_AND_DOM`)은 `P1`이다.
-- 성공 조건은 목표마다 정한다. 현재 목표 `refund`(환불 신청 화면 찾기)는 **주소 경로가 `/shop/refund`이고, 화면에 `환불 / 반품 신청` 글자가 실제로 보일 때** 성공이다. 주소만 맞아서는 성공이 아니다.
-- 성공 조건은 채점용이며 모델 입력에는 목표 문구만 들어간다.
-- `goalReached`는 언제나 화면 판정 결과와 같다. 백엔드 판정 기록에는 `pathMatched`, `textVisible`, `successCondition`이 있다.
-- 과거 방식(쇼핑몰의 `data-test-goal` 마커)은 제거됐다. 디자인 시안의 "DOM 마커 검증" 문구는 현재 구현과 다르므로 화면 문구는 "목표 화면 도달"로 쓴다. [OI-18](../operations/open_issue.md#oi-18)
-
-프론트는 `Run.summary.goalReached`를 표시할 뿐 도달 여부를 직접 판정하지 않는다. 판정 근거(`pathMatched`, `textVisible`)를 화면에 보여 줄지는 [OI-18](../operations/open_issue.md#oi-18)에서 정한다.
+- 판정 방식은 `DOM_ONLY`다. 모델에 목표 YES/NO를 묻지 않고(`modelGoalReached = null`) 브라우저에서 확인한 경로와 화면에 보이는 글자만 쓴다. 모델 판정(`MODEL_AND_DOM`)은 `P1`이다. `계약 §4.4`
+- 성공 조건은 목표마다 정하며 현재 `refund`(환불 신청 화면 찾기)는 경로가 `/shop/refund`이고 `환불 / 반품 신청` 글자가 화면에 보일 때 성공이다. 주소만 맞거나 글자만 보이는 것은 도착이 아니다. `계약 §2.3`
+- 성공 조건(`verification`)은 백엔드 전용이며 프론트에는 전달되지 않는다. `계약 §19`
+- 프론트는 `Run.summary.goalReached`를 표시할 뿐 도달 여부를 판정하지 않는다. `goalReached`는 항상 화면 판정(`verifiedGoalReached`)과 같다. `계약 §10.2`
+- 화면 문구는 "목표 화면 도달"을 쓴다. "DOM 마커 검증" 같은 표현은 쓰지 않는다. 마커 방식은 폐기됐다.
 
 ## 선택 확률과 실제 행동
 
-- **선택 확률**은 모델이 후보마다 부여한 정규화 값이다(합계 1). 실제 사용자가 클릭할 확률이 아니다.
-- **실제 행동**은 Playwright가 수행한 결과(`Step.action`)다. 확률이 가장 높은 후보를 고르는 것이 기본이지만 모델의 선택(`decision.choice`)과 실제 행동은 구분해서 표시한다.
-- 같은 목적지로 가는 후보는 모델에는 그대로 보내고, 분석에서만 합친다(`probabilityByDestination`).
+- **선택 확률**은 모델이 후보마다 부여한 정규화 값이다. 실제 사용자의 클릭 확률이 아니다.
+- **실제 행동**은 Playwright가 수행한 결과(`Step.action`)다. 모델의 선택(`decision.selectedOptionId`)과 실행한 후보(`action.executedOptionId`)를 구분해 표시한다. `selectedOptionId`가 최대 확률 후보와 같다고 가정하지 않는다. `계약 §10.1`
+- 같은 목적지로 가는 후보는 모델에 그대로 보내고, 분석에서만 합친다. 합친 값은 프론트에 `goalPathProbability`로만 온다.
 
-## 지표
+## 지표 (Step 단위, `StepDecision`)
 
-`BE 확인`(`uxm/metrics.py`). 모든 값은 Step 단위이며 단위 없는 소수(비율)다.
+모든 지표는 단위 없는 비율(0~1)이며 계산할 수 없으면 `null`이다. `계약 §12.3`
 
-| 필드 | 의미 | 범위·null |
+| 필드 | 의미 | `null` 조건 |
 | --- | --- | --- |
-| `normalizedEntropy` | 전체 행동(GO_BACK 포함) 확률의 정규화 엔트로피 `H / ln(N)`. 클수록 선택이 분산돼 있다 | 0~1, 계산할 수 없으면 `null` |
-| `clickOnlyNormalizedEntropy` | GO_BACK을 제외하고 CLICK 후보만 다시 정규화한 엔트로피 | 0~1, 계산할 수 없으면 `null` |
-| `top2Margin` | 1순위 확률 − 2순위 확률(전체 행동 기준) | 0~1, `null` 가능 |
-| `clickOnlyTop2Margin` | CLICK 후보만 재정규화한 Top-2 격차 | 0~1, `null` 가능 |
-| `goBackProbability` | GO_BACK 후보의 확률 | 0~1, GO_BACK 후보가 없으면 `null` |
+| `normalizedEntropy` | 전체 선택지(클릭 후보 + GO_BACK) 확률 분포의 엔트로피 ÷ ln(선택지 수). 클수록 선택이 분산돼 있다 | 선택지가 2개 미만 |
+| `clickOnlyNormalizedEntropy` | GO_BACK을 뺀 클릭 후보 확률을 합계로 나눠 다시 정규화한 엔트로피 | 클릭 후보 2개 미만, 또는 클릭 후보 확률 합이 `1e-12` 이하 |
+| `top2Margin` | 전체 선택지의 1위 확률 − 2위 확률 | 선택지가 2개 미만 |
+| `clickOnlyTop2Margin` | 클릭 후보만 재정규화한 분포의 1위 − 2위 | `clickOnlyNormalizedEntropy`와 같음 |
+| `goBackProbability` | GO_BACK 선택지의 확률 | GO_BACK이 선택지에 없음 |
+| `goalPathProbability` | 허용 경로에서 다음 화면으로 이어지는 클릭 후보들의 확률 합(같은 목적지는 합산) | 그런 후보가 없음 |
+| `modelLatencyMs` | 모델 판단 소요 시간, 정수 밀리초 | 값이 없음 |
+| `metricWarnings` | 지표 계산 경고. 없으면 `[]` | — |
 
-위 다섯 필드는 `Step.metrics`(`StepMetrics`) 안에 있다. 아래 값은 `Step.metrics`가 아니라 `Step` 직속 필드다.
-
-| 필드 | 의미 | 범위·null |
-| --- | --- | --- |
-| `probabilityByDestination` | 같은 목적지(경로)로 가는 후보 확률의 합. 값이 큰 순서로 정렬 | 경로 → 0~1, 모델 판단 전 `null` |
-
-- 표시 규칙: 비율은 소수 둘째 자리(예 `0.74`), `top2Margin`은 `%p`(`0.12` → `12.0%p`), 확률은 `%`로 표시한다. 값을 반올림하는 것은 표시 단계에서만 한다.
-- 디자인 시안의 `Conditional Entropy (bit)`와 `Model Latency (ms)`는 백엔드 지표에 같은 정의가 없다. 시안의 단위 `bit`는 쓰지 않고 `clickOnlyNormalizedEntropy`(단위 없음)로 대체한다. `Model Latency`는 `decision.timingMs`(`BE 확인`: 응답의 `timing_ms`)로 표시한다. [OI-11](../operations/open_issue.md#oi-11)
-- 비교 화면의 `pathCost`(탐색 이동 비용)와 `goalPathProbability`(시작 화면에서 목표 경로로 이어지는 후보 확률 합)는 백엔드 정의가 없는 `임시` 지표다. 정의가 정해지기 전에는 값만 표시하고 계산식은 쓰지 않는다.
+- `metricWarnings`에 `NO_CLICK_PROBABILITY_MASS`가 있으면 클릭 조건부 지표가 `null`이며 해당 Step의 `CHOICE_AMBIGUITY` Issue는 만들어지지 않는다. 프론트는 `message`를 표시하고 지표 칸에 "계산 불가"를 표시한다.
+- `confidence`는 `Step`에 전달되지 않는다. 모델 응답의 `confidence`는 확률과 같은 값이 아니다(`계약 §10.1`).
+- 표시 형식: 비율은 소수 둘째 자리, `top2Margin` 계열은 `%p`(`0.12` → `12.0%p`), 확률은 `%`다. 엔트로피에는 단위(`bit`)를 붙이지 않는다. 반올림은 표시 단계에서만 한다.
+- 화면 지표 비교(`ScreenMetricComparison`)의 `delta`는 서버가 계산한 `after - before`다. 프론트가 다시 계산하지 않는다.
 
 ## 프론트의 책임 범위
 
-- 프론트는 지표를 계산하거나 보정하지 않는다. 비교 값(`delta`, `verdict`)과 Issue 판정은 백엔드 결과를 사용한다.
-- 허용되는 가공은 단위 변환(×100), 반올림, 정렬, `null` 표시(`-`)뿐이다.
-- Issue와 비교 결과는 "AI 탐색 기록 기반의 검토 후보"이며 UX 결함의 확정이나 사용자 행동의 단정이 아니다. 화면에 이 점을 안내하는 문구를 둔다.
-- 값이 `null`이면 0으로 바꾸지 않고 "측정 불가" 또는 `-`로 표시한다.
+- 지표를 계산하거나 보정하지 않는다. 비교 값과 Issue 판정은 백엔드 결과를 쓴다.
+- 허용되는 가공은 단위 변환(×100), 반올림, 서버 순서 유지, `null` 표시(`-` 또는 "계산 불가")뿐이다.
+- **서버가 주지 않는 판정 문구를 만들지 않는다.** "개선", "단축", "소멸", "해소됨", "~배", "~% 절감" 같은 해석을 표시하지 않는다. before와 after 값을 나란히 보이고, 서버가 준 `delta`가 있으면 증감만 표시한다. `계약 §15.5`
+- Issue는 "AI 탐색 기록 기반의 검토 후보"이며 실제 사용자 결함이 아니다. `reviewPriority`는 표시 순서이며 심각도가 아니다(`계약 §4.13`). 우선순위는 "우선 검토"와 "일반 검토" 두 단계로만 표시하고 "높음/낮음" 같은 심각도 표현을 쓰지 않는다.
+- 비교 결과는 모델의 관찰값이다. 실제 사용자 행동 변화를 단정하는 문구를 쓰지 않는다.
+- Issue 비교는 두 Run의 `detectedIssueTypes`를 나란히 "탐지됨 / 탐지되지 않음"으로 표시하고 "해소됨" 판정을 만들지 않는다.
+- Run 단위 값(`navigationCost`, `stepCount`, `backCount` 등)의 증감은 서버가 주지 않으므로 before/after만 표시한다. [OI-5](../operations/open_issue.md#oi-5)
+- 값이 `null`이면 0으로 바꾸지 않는다.
 - 모델 확률이 1에 가까워도 목표 도달 여부는 `goalReached`로만 표시한다.

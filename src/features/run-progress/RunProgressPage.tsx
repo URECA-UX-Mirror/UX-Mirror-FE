@@ -54,7 +54,7 @@ function RunProgress({ runId }: { runId: string }) {
         <h1>AI 탐색 진행</h1>
         <ResultOriginBadge origin={run.resultOrigin} />
       </header>
-      <ReplayNotice experimentKey={run.experimentKey} />
+      <ReplayNotice experimentKey={run.experimentKey} origins={[run.resultOrigin]} />
       <p>
         <span className="run-id">{run.runId}</span> · {run.goal}
       </p>

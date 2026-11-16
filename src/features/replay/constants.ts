@@ -5,4 +5,8 @@
  */
 export const REPLAY_EXPERIMENT_KEY = 'mock-done'
 
+/** 실제 모델 실행(`LIVE`) 결과를 재생할 때의 표시 */
 export const REPLAY_LABEL = '저장된 실측 결과 재생'
+
+/** `resultOrigin`에 `MOCK`이 섞인 재생에는 실측이라고 표시하지 않는다 */
+export const REPLAY_MOCK_LABEL = 'MOCK 재생 테스트'

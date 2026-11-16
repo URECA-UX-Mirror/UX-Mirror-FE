@@ -75,7 +75,12 @@ export function ComparisonPage() {
           />
         ) : null}
       </header>
-      <ReplayNotice experimentKey={experimentKey} />
+      {comparison ? (
+        <ReplayNotice
+          experimentKey={experimentKey}
+          origins={[comparison.beforeResultOrigin, comparison.afterResultOrigin]}
+        />
+      ) : null}
       <p className="muted">experimentKey: {experimentKey}</p>
 
       {loading ? <p role="status">비교 결과를 불러오는 중</p> : null}

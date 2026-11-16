@@ -4,7 +4,9 @@ import { VERSIONS } from '../new-analysis/constants.ts'
 import { ErrorNotice } from '../../shared/ErrorNotice.tsx'
 import { usePolling } from '../../shared/polling/usePolling.ts'
 import { ResultOriginBadge } from '../../shared/ResultOriginBadge.tsx'
-import { REPLAY_EXPERIMENT_KEY, REPLAY_LABEL } from './constants.ts'
+import { isTerminalStatus } from '../../domain/runStatus.ts'
+import { REPLAY_EXPERIMENT_KEY } from './constants.ts'
+import { ReplayNotice } from './ReplayNotice.tsx'
 
 /**
  * 저장된 실측 결과 재생(OI-7). 고정 `experimentKey`의 Run 목록을 조회하기만 하고
@@ -17,13 +19,27 @@ export function ReplayPage() {
     resetKey: REPLAY_EXPERIMENT_KEY,
   })
   const key = encodeURIComponent(REPLAY_EXPERIMENT_KEY)
+  // 목록만으로 알 수 있는 최소 조건: 두 버전 모두 종료된 VALID Run이 있어야 비교할 수 있다.
+  // Issue 분석 완료 여부는 목록에 없으므로 `COMPARISON_NOT_READY`는 비교 화면의 오류 안내가 맡는다.
+  const comparable = VERSIONS.every(({ variant }) =>
+    runs.data?.some(
+      (run) =>
+        run.variant === variant &&
+        run.validity === 'VALID' &&
+        isTerminalStatus(run.status),
+    ),
+  )
 
   return (
     <section className="replay-page">
-      <h1>{REPLAY_LABEL}</h1>
-      <p className="replay-notice" role="note">
-        {REPLAY_LABEL} · 과거에 실행한 결과를 읽기만 하며 새 실행을 만들지 않습니다.
-      </p>
+      <h1>저장된 결과 재생</h1>
+      {runs.data && runs.data.length > 0 ? (
+        <ReplayNotice
+          experimentKey={REPLAY_EXPERIMENT_KEY}
+          origins={runs.data.map((run) => run.resultOrigin)}
+        />
+      ) : null}
+      <p>과거에 실행한 결과를 읽기만 하며 새 실행을 만들지 않습니다.</p>
       <p className="muted">experimentKey: {REPLAY_EXPERIMENT_KEY}</p>
 
       {runs.status === 'failed' ? (
@@ -51,7 +67,7 @@ export function ReplayPage() {
         </ul>
       )}
 
-      {runs.data && runs.data.length > 0 ? (
+      {comparable ? (
         <Link to={`/comparisons/${key}`}>버전 비교 보기</Link>
       ) : null}
     </section>

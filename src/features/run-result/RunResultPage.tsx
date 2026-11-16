@@ -98,7 +98,7 @@ function ResultBody({ run }: { run: Run }) {
         <div>
           <span>{run.runId}</span> <ResultOriginBadge origin={run.resultOrigin} />
         </div>
-        <ReplayNotice experimentKey={run.experimentKey} />
+        <ReplayNotice experimentKey={run.experimentKey} origins={[run.resultOrigin]} />
         <p>
           {run.goal} · {run.persona}
         </p>

@@ -8,6 +8,8 @@ interface IssuePanelProps {
   issues: IssueList | null
   pollingStatus: PollingStatus
   error: unknown
+  /** 자동 재시도(backoff) 중 */
+  retrying: boolean
   onRetry: () => void
 }
 
@@ -16,13 +18,14 @@ export function IssuePanel({
   issues,
   pollingStatus,
   error,
+  retrying,
   onRetry,
 }: IssuePanelProps) {
   const [openId, setOpenId] = useState<string | null>(null)
 
   let body: ReactNode
   if (!issues) {
-    body = error ? (
+    body = error && pollingStatus === 'failed' ? (
       <p role="alert">
         검토 후보를 불러오지 못했습니다
         {isApiError(error) ? ` (${error.message})` : ''}.{' '}
@@ -31,7 +34,9 @@ export function IssuePanel({
         </button>
       </p>
     ) : (
-      <p role="status">검토 후보를 불러오는 중</p>
+      <p role="status">
+        {retrying ? '연결 재시도 중' : '검토 후보를 불러오는 중'}
+      </p>
     )
   } else if (issues.analysisStatus === 'PENDING') {
     body = (

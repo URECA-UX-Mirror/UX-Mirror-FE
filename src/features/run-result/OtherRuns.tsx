@@ -7,6 +7,8 @@ interface OtherRunsProps {
   currentRunId: string
   items: RunListItem[] | null
   error: unknown
+  /** 자동 재시도가 끝나 멈춘 상태 */
+  failed: boolean
   onRetry: () => void
 }
 
@@ -15,13 +17,14 @@ export function OtherRuns({
   currentRunId,
   items,
   error,
+  failed,
   onRetry,
 }: OtherRunsProps) {
   return (
     <section className="result-section" aria-label="다른 실행 보기">
       <h2>다른 실행 보기</h2>
       {items === null ? (
-        error ? (
+        error && failed ? (
           <p role="status">
             실행 목록을 불러오지 못했습니다
             {isApiError(error) ? ` (${error.message})` : ''}.{' '}
@@ -30,7 +33,9 @@ export function OtherRuns({
             </button>
           </p>
         ) : (
-          <p role="status">실행 목록을 불러오는 중</p>
+          <p role="status">
+            {error ? '연결 재시도 중' : '실행 목록을 불러오는 중'}
+          </p>
         )
       ) : (
         <ul className="run-list">

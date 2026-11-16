@@ -26,7 +26,7 @@ export function RunResultPage() {
   const run = runQuery.data
 
   if (!run) {
-    if (runQuery.error) {
+    if (runQuery.status === 'failed' && runQuery.error) {
       if (isApiError(runQuery.error) && runQuery.error.status === 404) {
         return (
           <section>
@@ -46,7 +46,9 @@ export function RunResultPage() {
     return (
       <section>
         <h1>UX 탐색 분석 결과</h1>
-        <p role="status">결과를 불러오는 중</p>
+        <p role="status">
+          {runQuery.error ? '연결 재시도 중' : '결과를 불러오는 중'}
+        </p>
       </section>
     )
   }
@@ -117,6 +119,7 @@ function ResultBody({ run }: { run: Run }) {
         issues={issues.data}
         pollingStatus={issues.status}
         error={issues.error}
+        retrying={issues.retrying}
         onRetry={issues.retry}
       />
 
@@ -124,6 +127,7 @@ function ResultBody({ run }: { run: Run }) {
         currentRunId={run.runId}
         items={runs.data}
         error={runs.error}
+        failed={runs.status === 'failed'}
         onRetry={runs.retry}
       />
     </section>

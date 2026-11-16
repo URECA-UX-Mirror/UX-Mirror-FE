@@ -41,6 +41,12 @@ export function RunSummaryPanel({ run, issues }: RunSummaryPanelProps) {
           ) : null}
         </div>
       ) : null}
+      {run.error ? (
+        <div role="alert" className="invalid-notice">
+          <strong>실행 오류</strong>
+          <p>{run.error.message}</p>
+        </div>
+      ) : null}
       {summary ? (
         <dl className="summary-grid">
           <dt>종료 상태</dt>

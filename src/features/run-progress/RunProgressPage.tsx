@@ -64,6 +64,17 @@ function RunProgress({ runId }: { runId: string }) {
       ) : polling.retrying ? (
         <p role="status">연결 재시도 중</p>
       ) : null}
+      {snapshot.stepsError === null ? null : polling.status === 'done' ? (
+        // 종료 뒤에도 `/steps`를 받지 못했다. Run 상태는 그대로 두고 단계 기록만 다시 조회한다.
+        <div role="alert" className="error-notice">
+          <p>단계 기록을 불러오지 못했습니다</p>
+          <button type="button" onClick={polling.retry}>
+            다시 시도
+          </button>
+        </div>
+      ) : (
+        <p role="status">단계 기록 재시도 중</p>
+      )}
 
       <ProgressCells run={run} steps={steps} terminal={terminal} />
       <StepViewer run={run} steps={steps} terminal={terminal} />

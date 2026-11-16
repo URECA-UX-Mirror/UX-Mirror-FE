@@ -50,3 +50,17 @@
   margin: 0;
   padding-left: 20px;
 }
+
+.comparison-table-scroll {
+  overflow-x: auto;
+}
+
+.comparison-table-scroll table {
+  min-width: 480px;
+}
+
+@media (max-width: 720px) {
+  .comparison-panes {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

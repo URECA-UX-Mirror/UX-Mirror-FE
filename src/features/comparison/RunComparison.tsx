@@ -67,6 +67,7 @@ export function RunComparison({ before, after }: RunComparisonProps) {
   return (
     <section className="comparison-run">
       <h2>Run 단위 비교</h2>
+      <div className="comparison-table-scroll">
       <table>
         <thead>
           <tr>
@@ -100,6 +101,7 @@ export function RunComparison({ before, after }: RunComparisonProps) {
           ))}
         </tbody>
       </table>
+      </div>
     </section>
   )
 }

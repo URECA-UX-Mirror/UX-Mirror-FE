@@ -108,6 +108,7 @@ function ScreenshotPane({
 
 function MetricsTable({ metrics }: { metrics: ScreenMetrics }) {
   return (
+    <div className="comparison-table-scroll">
     <table className="comparison-metrics">
       <thead>
         <tr>
@@ -128,6 +129,7 @@ function MetricsTable({ metrics }: { metrics: ScreenMetrics }) {
         ))}
       </tbody>
     </table>
+    </div>
   )
 }
 
@@ -186,6 +188,7 @@ export function ScreenComparisonCard({
       {screen.candidateComparisons.length > 0 ? (
         <>
           <h4>후보 대응</h4>
+          <div className="comparison-table-scroll">
           <table className="comparison-candidates">
             <thead>
               <tr>
@@ -216,6 +219,7 @@ export function ScreenComparisonCard({
               ))}
             </tbody>
           </table>
+          </div>
         </>
       ) : null}
 

@@ -77,7 +77,13 @@ export function ComparisonPage() {
       <p className="muted">experimentKey: {experimentKey}</p>
 
       {loading ? <p role="status">비교 결과를 불러오는 중</p> : null}
-      {error ? <ComparisonError error={error} onRetry={reload} /> : null}
+      {error ? (
+        <ComparisonError
+          experimentKey={experimentKey}
+          error={error}
+          onRetry={reload}
+        />
+      ) : null}
       {comparison ? <ComparisonBody comparison={comparison} /> : null}
     </section>
   )

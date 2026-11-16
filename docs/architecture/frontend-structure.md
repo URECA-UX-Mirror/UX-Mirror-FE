@@ -55,6 +55,13 @@
   - Issue 비교는 `runComparison`의 `detectedIssueTypes`다.
 - 후보 박스를 겹쳐 그릴 때는 `beforeRunId`·`afterRunId`의 `/steps`에서 `beforeStepId`·`afterStepId`에 해당하는 Step을 찾아 `bbox`와 스크린샷을 가져온다.
 - 비교 계산과 Issue 판정은 하지 않는다([지표와 목표 판정](../contracts/metrics-and-goal.md)).
+- 구현(`features/comparison/`): `ComparisonPage`가 비교 응답을 한 번 조회하고(폴링 없음, 오류 안내의 버튼으로만 다시 조회) `useRunSteps`로 `beforeRunId`·`afterRunId`의 `/steps`를 각각 받는다. `/steps` 조회가 실패해도 비교 값은 계속 표시하고 이미지 자리에 안내만 보인다.
+- 오류 안내(`ComparisonError`)는 `error.code`로 구분한다. `RUN_NOT_FOUND`(잘못된 주소), `COMPARISON_NOT_READY`(기다리면 해결, 다시 확인 버튼), `COMPARISON_RUN_INVALID`(재분석 링크 `/`), `ANALYSIS_ERROR`(다시 시도). 그 밖의 오류는 `ErrorNotice`를 쓴다.
+- `conditionsMatched = false`이면 `matched = false`인 `conditionChecks`를 서버 순서대로 보인다. `code` 값으로 분기하지 않는다.
+- 화면별 카드는 `pageKey`마다 Before·After 스크린샷과 각 Run의 Step bbox를 따로 그린다. `beforeStepId`/`afterStepId`가 `null`이거나 Step을 못 찾으면 이미지 없이 안내를 보인다. 후보 대응 표는 `semanticKey` 순서 그대로이고 `deltaProbability`가 `null`이면 "계산 불가"로 보인다. 지표 표 펼침 여부는 카드의 화면 상태이며 기본은 접힘이다.
+- Run 단위 비교(`RunComparison`)는 before/after를 나란히만 보이고 증감을 만들지 않는다. Issue 유형은 "탐지됨 / 탐지되지 않음"이다.
+- 지표 표기: 엔트로피는 소수 둘째 자리(단위 없음), margin·확률은 `%`·`%p`, `null`은 "계산 불가"다(`features/comparison/format.ts`). 증감은 서버 값에 부호만 붙인다.
+- 출처 배지(`OriginBadges`)는 `beforeResultOrigin`과 `afterResultOrigin`이 같으면 하나, 다르면 둘 다 보인다.
 
 ## 표시 규칙
 

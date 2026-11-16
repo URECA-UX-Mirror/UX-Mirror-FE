@@ -49,6 +49,7 @@
 - 모델 GO_BACK으로 돌아온 노드(`enteredBy = GO_BACK`)는 "이전 화면 복귀"로 구분한다. 선택한 Step의 스크린샷·후보 확률은 공용 뷰어와 `CandidateProbabilityList`를 쓰고, 지표 패널(`decision` 값, `null`은 "계산 불가")은 접힘이 기본이다.
 - 요약의 `extraSteps` 계열은 목표 미도달이면 `null`이라 "해당 없음"으로 표시한다. `validity = INVALID`이면 "무효 처리된 실행"과 `invalidReason`을 보이고 `replacementRunId`가 있으면 그 Run의 결과 화면 링크를 둔다.
 - "다른 실행 보기"는 `GET /api/runs?experimentKey=`의 목록이다. 조회에 실패해도 화면의 나머지는 동작한다.
+- Issue 상세에서는 `relatedStepIds`를 선택해 해당 Step의 스크린샷과 후보 확률을 확인한다. 경로 노드에 나타나지 않는 화면 변화 없는 Step도 확인할 수 있다. Step 조회 실패 시 재시도한다.
 - Issue는 `GET /api/runs/{runId}/issues`의 서버 순서를 그대로 쓰고 프론트가 다시 정렬하지 않는다. `PENDING`이면 이 응답만 최대 5회 다시 조회하고 멈춘 뒤 수동 재시도 버튼을 보인다. `evidence` 키의 표시 이름은 `features/run-result/issueLabels.ts`의 상수이며 표에 없는 키는 키 이름 그대로 보인다(`임시`).
 - Run이 종료 전이면 결과 대신 진행 화면(`/runs/:runId`) 링크를 보이고, `404`이면 "실행을 찾을 수 없습니다"와 새 분석 링크를 보인다.
 

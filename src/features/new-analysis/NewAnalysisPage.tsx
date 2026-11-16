@@ -158,7 +158,7 @@ function NewAnalysisContent() {
         const run = runs[0]
         const validRun = variant === 'before' ? validBefore : validAfter
         const canCreate = runs.every((item) => item.validity === 'INVALID')
-        return <article key={variant}><h3>{name}</h3><p>{change}</p>{listState[variant] === 'loading' ? <p>실행 기록 조회 중</p> : listState[variant] === 'error' ? <p>실행 기록: 확인 불가</p> : run ? <><p>마지막 Run: <Link to={`/runs/${encodeURIComponent(run.runId)}`}>{run.runId}</Link> <ResultOriginBadge origin={run.resultOrigin} /></p><p>분석 상태: {run.status}</p><p>실행 유효성: {run.validity ?? '확인 중'}</p><p>목표 화면 도달: {run.goalReached === null ? '확인 불가' : run.goalReached ? '도달' : '미도달'}</p></> : <p>실행 기록 없음</p>}{run?.validity === 'INVALID' && (validRun ? <p>이전 유효 Run: <Link to={`/runs/${encodeURIComponent(validRun.runId)}/result`}>{validRun.runId}</Link></p> : <p>유효한 실행이 없습니다. 재분석해 주세요.</p>)}<button type="button" disabled={!ready || (variant === 'after' && !validBefore) || !canCreate} onClick={() => void start(variant)}>분석 시작</button></article>
+        return <article key={variant}><h3>{name}</h3><p>{change}</p>{listState[variant] === 'loading' ? <p>실행 기록 조회 중</p> : listState[variant] === 'error' ? <p>실행 기록: 확인 불가</p> : run ? <><p>마지막 Run: <Link to={`/runs/${encodeURIComponent(run.runId)}`}>{run.runId}</Link> <ResultOriginBadge origin={run.resultOrigin} /></p><p>분석 상태: {run.status}</p><p>실행 유효성: {run.validity ?? '확인 중'}</p><p>목표 화면 도달: {run.goalReached === null ? '확인 불가' : run.goalReached ? '도달' : '미도달'}</p></> : <p>실행 기록 없음</p>}{run?.validity === 'INVALID' && (validRun ? <p>이전 유효 Run: <Link to={`/runs/${encodeURIComponent(validRun.runId)}/result`}>{validRun.runId}</Link></p> : <p>유효한 실행이 없습니다. 재분석해 주세요.</p>)}<button type="button" className="primary" disabled={!ready || (variant === 'after' && !validBefore) || !canCreate} onClick={() => void start(variant)}>분석 시작</button></article>
       })}</div>
       {listFailed && validKey && <button type="button" onClick={() => setListVersion((v) => v + 1)}>실행 기록 다시 조회</button>}
       <button type="button" disabled>+ 버전 추가</button> <span>v3 (준비 중)</span>
@@ -166,7 +166,7 @@ function NewAnalysisContent() {
       <label>첫 번째 버전 <select value={compareA} onChange={(e) => setCompareA(e.target.value as Variant)}>{VERSIONS.map((v) => <option value={v.variant} key={v.variant}>{v.name}</option>)}</select></label>
       <label>두 번째 버전 <select value={compareB} onChange={(e) => setCompareB(e.target.value as Variant)}>{VERSIONS.map((v) => <option value={v.variant} key={v.variant}>{v.name}</option>)}</select></label>
       {compareA === compareB && <p role="alert">서로 다른 버전을 선택해 주세요.</p>}
-      <button type="button" disabled={!bothFinished || compareA === compareB || !experimentKey || keyInput !== experimentKey} onClick={() => navigate(`/comparisons/${encodeURIComponent(experimentKey)}`)}>비교하기</button>
+      <button type="button" className="primary" disabled={!bothFinished || compareA === compareB || !experimentKey || keyInput !== experimentKey} onClick={() => navigate(`/comparisons/${encodeURIComponent(experimentKey)}`)}>비교하기</button>
     </section>
   )
 }

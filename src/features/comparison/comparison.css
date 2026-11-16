@@ -1,54 +1,86 @@
+.comparison-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--um-space-4);
+}
+
+.comparison-page > * {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
 .comparison-page .muted {
-  color: var(--muted);
+  color: var(--um-text-muted);
 }
 
 .comparison-header {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 12px;
+  gap: var(--um-space-3);
+}
+
+.comparison-header h1 {
+  margin: 0;
 }
 
 .comparison-conditions {
-  margin: 16px 0;
-  padding: 12px 16px;
-  border: 1px solid #e5484d;
-  border-radius: 8px;
+  margin: 0;
+  padding: var(--um-space-4) var(--um-space-6);
+  border: 1px solid var(--um-danger-border);
+  border-radius: var(--um-radius-card);
+  color: var(--um-danger-text);
+  background: var(--um-danger-bg);
 }
 
-.comparison-screen {
-  margin: 16px 0;
-  padding: 16px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
+.comparison-screen,
+.comparison-run {
+  margin: 0;
 }
 
 .comparison-panes {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
+  gap: var(--um-space-4);
 }
 
 .comparison-pane {
   margin: 0;
 }
 
+.comparison-pane figcaption {
+  margin-bottom: var(--um-space-2);
+  font-weight: 600;
+}
+
 .comparison-page table {
   width: 100%;
   border-collapse: collapse;
-  margin: 8px 0;
+  margin: var(--um-space-2) 0;
+}
+
+.comparison-page th {
+  color: var(--um-text-muted);
+  background: var(--um-canvas);
+  font-size: 12px;
+  font-weight: 600;
 }
 
 .comparison-page th,
 .comparison-page td {
-  padding: 4px 8px;
-  border-bottom: 1px solid var(--border);
+  padding: var(--um-space-2) var(--um-space-3);
+  border-bottom: 1px solid var(--um-border);
   text-align: left;
   vertical-align: top;
 }
 
+.comparison-page tbody tr:hover {
+  background: var(--um-canvas);
+}
+
 .path-list {
   margin: 0;
-  padding-left: 20px;
+  padding-left: var(--um-space-6);
 }
 
 .comparison-table-scroll {

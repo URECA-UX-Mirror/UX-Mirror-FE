@@ -9,7 +9,7 @@
 
 ## 화면별 사용 API
 
-화면은 네 개다. 디자인·레이아웃은 이 문서 범위 밖이다.
+화면은 네 개다. 화면 배치와 시각 규칙은 아래 "스타일" 절을 따른다.
 
 | # | 화면 | 사용 API | 화면 상태(서버 데이터 아님) |
 | --- | --- | --- | --- |
@@ -116,6 +116,7 @@
 ```
 src/
   config/env.ts            # VITE_API_BASE_URL, VITE_USE_MOCK을 한 곳에서 읽기
+  styles/tokens.css        # 디자인 토큰(CSS 변수), Pretendard 로딩, 포커스·모션 기본값
   api/
     client.ts              # fetch 래퍼, ApiError(ErrorDetail 변환), apiUrl
     runs.ts, presets.ts, comparisons.ts, health.ts   # endpoint 함수, screenshotUrl
@@ -125,7 +126,7 @@ src/
   mocks/                   # MSW. browser.ts, store.ts, errors.ts, fixtures/(run, scenario, runResult, comparison), handlers/(endpoint별)
   features/
     new-analysis/, run-progress/, run-result/, comparison/, replay/   # 화면별. 라우트는 App.tsx
-  shared/                  # Layout, EngineStatus, ErrorNotice, ResultOriginBadge, useHealth
+  shared/                  # Layout(사이드바·헤더), EngineStatus, ErrorNotice, ResultOriginBadge, useHealth
     screenshot/            # boxStyle.ts(좌표 변환), ScreenshotViewer, CandidateProbabilityList
     polling/               # poller.ts(간격·backoff 규칙), usePolling(범용 폴링 훅)
 public/
@@ -134,3 +135,12 @@ public/
 ```
 
 화면 라우트는 `/`(새 UX 분석), `/runs/:runId`(AI 탐색 진행), `/runs/:runId/result`(분석 결과), `/comparisons/:experimentKey`(버전 비교), `/replay`(저장된 결과 재생)다. 경로는 프론트가 정한 값이며 계약서 대상이 아니다. 좌표 변환 함수, 폴링 훅 같은 화면 공용 코드는 `shared/` 아래에 둔다.
+
+## 스타일
+
+- 디자인 토큰은 `src/styles/tokens.css`의 CSS 변수(`--um-*`)이며 `src/index.css`가 가져온다. 색·간격·라운딩은 이 변수로만 참조하고 컴포넌트 CSS에 색 값을 새로 쓰지 않는다. 값의 출처는 Stitch 시안 v5의 `DESIGN.md`(팀 확정 전 안)다.
+- 글꼴은 영문·한글 모두 Pretendard(`pretendard` 패키지)이고 코드·ID·배지에만 모노스페이스 스택을 쓴다. 모노스페이스는 `JetBrains Mono`를 우선하지만 패키지로 넣지 않아 설치된 환경에서만 적용된다.
+- 레이아웃은 좌측 사이드바(`Layout`)와 상단 헤더다. 사이드바 메뉴는 주소 인자 없이 열 수 있는 화면(새 UX 분석, 저장된 결과 재생)만 두고, 진행·결과·비교 화면은 화면 안의 링크로 들어간다. 767px 이하에서는 사이드바가 위쪽 띠가 된다.
+- 기본 버튼은 보조 스타일이고, 화면의 주 행동(`분석 시작`, `비교하기`, `분석 결과 보기`)에만 `primary`를 쓴다.
+- `[role='alert']`는 오류 스타일, `data-origin`(`LIVE`, `MOCK`, `SAVED_MEASURED`)과 `data-status`는 배지 색을 정한다. 색만으로 뜻을 전하지 않도록 배지에는 항상 글자를 함께 둔다.
+- 시안에 있어도 계약서·현재 API에 없는 요소(자유 URL 입력, 버전 추가 동작, 실행 이벤트 로그 등)는 화면에 만들지 않는다.

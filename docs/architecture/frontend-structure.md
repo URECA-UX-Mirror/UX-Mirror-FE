@@ -104,9 +104,11 @@ src/
   features/
     new-analysis/, run-progress/, run-result/, comparison/   # 화면별. 라우트는 App.tsx
   shared/                  # Layout, EngineStatus, ErrorNotice, ResultOriginBadge, useHealth
+    screenshot/            # boxStyle.ts(좌표 변환), ScreenshotViewer, CandidateProbabilityList
+    polling/               # poller.ts(간격·backoff 규칙), usePolling(범용 폴링 훅)
 public/
   mockServiceWorker.js     # MSW 생성 파일
   mock/screenshot.png      # mock 스크린샷(1440×900)
 ```
 
-화면 라우트는 `/`(새 UX 분석), `/runs/:runId`(AI 탐색 진행), `/runs/:runId/result`(분석 결과), `/comparisons/:experimentKey`(버전 비교)다. 경로는 프론트가 정한 값이며 계약서 대상이 아니다. 좌표 변환 함수, 폴링 훅 같은 화면 공용 코드는 `shared/` 아래에 추가한다.
+화면 라우트는 `/`(새 UX 분석), `/runs/:runId`(AI 탐색 진행), `/runs/:runId/result`(분석 결과), `/comparisons/:experimentKey`(버전 비교)다. 경로는 프론트가 정한 값이며 계약서 대상이 아니다. 좌표 변환 함수, 폴링 훅 같은 화면 공용 코드는 `shared/` 아래에 둔다.

@@ -8,12 +8,12 @@ import type { Preset, Run, RunListItem, Variant } from '../../domain/types.ts'
 import { ErrorNotice } from '../../shared/ErrorNotice.tsx'
 import { ResultOriginBadge } from '../../shared/ResultOriginBadge.tsx'
 import { useHealth } from '../../shared/useHealth.ts'
-import { createExperimentKey, isSupportedUrl, SITE, STEPS, VERSIONS } from './constants.ts'
+import { createExperimentKey, SITE, STEPS, VERSIONS } from './constants.ts'
 import './new-analysis.css'
 
-type Results = Record<Variant, RunListItem | null>
+type Results = Record<Variant, RunListItem[]>
 type LoadState = 'loading' | 'ready' | 'error'
-type ListResult = { token: string; status: 'ready' | 'error'; run: RunListItem | null }
+type ListResult = { token: string; status: 'ready' | 'error'; runs: RunListItem[] }
 const KEY_PATTERN = /^[A-Za-z0-9_-]{1,64}$/
 
 export function NewAnalysisPage() {
@@ -29,7 +29,6 @@ function NewAnalysisContent() {
   const [keyDraft, setKeyDraft] = useState({ locationKey: location.key, value: experimentKey })
   const keyInput = keyDraft.locationKey === location.key ? keyDraft.value : experimentKey
   const setKeyInput = (value: string) => setKeyDraft({ locationKey: location.key, value })
-  const [siteUrl, setSiteUrl] = useState<string>(SITE.urls[0])
   const [preset, setPreset] = useState<Preset | null>(null)
   const [presetError, setPresetError] = useState<unknown>(null)
   const [presetVersion, setPresetVersion] = useState(0)
@@ -63,9 +62,9 @@ function NewAnalysisContent() {
     if (!experimentKey || !KEY_PATTERN.test(experimentKey)) return () => controller.abort()
     for (const { variant } of VERSIONS) {
       listRuns({ experimentKey, variant }, controller.signal).then((items) => {
-        if (!controller.signal.aborted) setListResults((prev) => ({ ...prev, [variant]: { token: listToken, status: 'ready', run: items[0] ?? null } }))
+        if (!controller.signal.aborted) setListResults((prev) => ({ ...prev, [variant]: { token: listToken, status: 'ready', runs: items } }))
       }).catch((error: unknown) => {
-        if (!controller.signal.aborted && !isAbortError(error)) setListResults((prev) => ({ ...prev, [variant]: { token: listToken, status: 'error', run: null } }))
+        if (!controller.signal.aborted && !isAbortError(error)) setListResults((prev) => ({ ...prev, [variant]: { token: listToken, status: 'error', runs: [] } }))
       })
     }
     return () => controller.abort()
@@ -75,9 +74,11 @@ function NewAnalysisContent() {
     !experimentKey ? 'ready' : !validKey ? 'error' : listResults[variant]?.token === listToken ? listResults[variant].status : 'loading',
   ])) as Record<Variant, LoadState>
   const results = Object.fromEntries(VERSIONS.map(({ variant }) => [variant,
-    listState[variant] === 'ready' && experimentKey ? listResults[variant]?.run ?? null : null,
+    listState[variant] === 'ready' && experimentKey ? listResults[variant]?.runs ?? [] : [],
   ])) as Results
-  const firstId = results.before?.runId ?? results.after?.runId
+  const validBefore = results.before.find((run) => run.validity === 'VALID')
+  const validAfter = results.after.find((run) => run.validity === 'VALID')
+  const firstId = (validBefore ?? results.before[0] ?? validAfter ?? results.after[0])?.runId
   const runToken = JSON.stringify([listToken, firstId])
   useEffect(() => {
     const controller = new AbortController()
@@ -92,7 +93,6 @@ function NewAnalysisContent() {
 
   const firstRun = runResult?.token === runToken ? runResult.run : null
   const firstRunState: LoadState = !firstId ? 'ready' : runResult?.token !== runToken ? 'loading' : runResult.error ? 'error' : 'ready'
-  const validSite = isSupportedUrl(siteUrl)
   const effectiveSteps = firstRun?.maxSteps ?? maxSteps
   const validSteps = typeof effectiveSteps === 'number' && Number.isInteger(effectiveSteps) && effectiveSteps >= STEPS.min && effectiveSteps <= STEPS.max
   const anyLoading = listState.before === 'loading' || listState.after === 'loading'
@@ -100,9 +100,9 @@ function NewAnalysisContent() {
   const activeRun = health.health?.activeRunId
   const engineNotReady = health.health !== null && health.health.status !== 'READY'
   const firstPending = !!firstId && firstRunState !== 'ready'
-  const anyRunning = Object.values(results).some((run) => run && !isTerminalStatus(run.status))
-  const ready = !!preset && !!goalId && !!personaId && validSite && validSteps && validKey && keyInput === experimentKey && !submitting && !health.loading && !engineNotReady && !activeRun && !anyLoading && !listFailed && !firstPending && !anyRunning
-  const bothFinished = !anyLoading && !listFailed && !!results.before && !!results.after && isTerminalStatus(results.before.status) && isTerminalStatus(results.after.status)
+  const anyRunning = Object.values(results).some((runs) => runs.some((run) => !isTerminalStatus(run.status)))
+  const ready = !!preset && !!goalId && !!personaId && validSteps && validKey && keyInput === experimentKey && !submitting && !health.loading && health.health?.status === 'READY' && !activeRun && !anyLoading && !listFailed && !firstPending && !anyRunning
+  const bothFinished = !anyLoading && !listFailed && !!validBefore && !!validAfter && isTerminalStatus(validBefore.status) && isTerminalStatus(validAfter.status)
 
   function selectExperiment(key: string) {
     setKeyInput(key)
@@ -131,9 +131,7 @@ function NewAnalysisContent() {
     <section className="new-analysis">
       <h1>새 UX 분석</h1>
       <p>{SITE.name}의 두 버전을 같은 조건으로 분석합니다.</p>
-      <label>웹사이트 주소 <input value={siteUrl} onChange={(e) => setSiteUrl(e.target.value)} /></label>
-      {!validSite && <p role="alert">지원하지 않는 웹사이트</p>}
-      <p>지원 주소: {SITE.urls.join(', ')}</p>
+      <p>분석 사이트: {SITE.name}. 각 버전의 분석을 시작하면 해당 버전의 사이트가 사용됩니다.</p>
       <label>실험 키 <input value={keyInput} placeholder="새 실험은 비워 두세요" onChange={(e) => setKeyInput(e.target.value)} /></label>
       <button type="button" disabled={!KEY_PATTERN.test(keyInput)} onClick={() => selectExperiment(keyInput)}>조회</button>
       {!!keyInput && !KEY_PATTERN.test(keyInput) && <p role="alert">실험 키는 영문, 숫자, 밑줄, 하이픈으로 1~64자 입력해 주세요.</p>}
@@ -152,11 +150,14 @@ function NewAnalysisContent() {
       {engineNotReady && !health.loading && <p role="alert">엔진이 준비되지 않아 분석을 시작할 수 없습니다. <button type="button" onClick={health.reload}>다시 확인</button></p>}
       {activeRun && <p role="alert">다른 분석이 실행 중입니다. <Link to={`/runs/${encodeURIComponent(activeRun)}`}>진행 중인 Run 보기</Link></p>}
       {!!health.error && <p>엔진 상태를 확인할 수 없습니다. <button type="button" onClick={health.reload}>다시 확인</button></p>}
-      {submitError ? <div role="alert">{code === 'RUN_ALREADY_ACTIVE' ? <p>다른 분석이 실행 중입니다. {activeRun && <Link to={`/runs/${encodeURIComponent(activeRun)}`}>진행 중인 Run 보기</Link>}</p> : code === 'EXPERIMENT_RUN_EXISTS' ? <p>같은 버전의 실행이 이미 있습니다. {Object.values(results).filter((r): r is RunListItem => !!r).map((r) => <Link key={r.runId} to={`/runs/${encodeURIComponent(r.runId)}/result`}>{r.runId} 결과 보기 </Link>)}</p> : code === 'CONTRACT_VALIDATION_ERROR' ? <p>입력한 분석 조건을 확인해 주세요.</p> : isApiError(submitError) && submitError.status === 503 ? <p>실행 환경을 준비하지 못했습니다. 다시 시도해 주세요.</p> : <ErrorNotice error={submitError} />}</div> : null}
+      {submitError ? <div role="alert">{code === 'RUN_ALREADY_ACTIVE' ? <p>다른 분석이 실행 중입니다. {activeRun && <Link to={`/runs/${encodeURIComponent(activeRun)}`}>진행 중인 Run 보기</Link>}</p> : code === 'EXPERIMENT_RUN_EXISTS' ? <p>같은 버전의 실행이 이미 있습니다. {Object.values(results).flat().filter((r) => r.validity === 'VALID').map((r) => <Link key={r.runId} to={`/runs/${encodeURIComponent(r.runId)}/result`}>{r.runId} 결과 보기 </Link>)}</p> : code === 'CONTRACT_VALIDATION_ERROR' ? <p>입력한 분석 조건을 확인해 주세요.</p> : isApiError(submitError) && submitError.status === 503 ? <p>실행 환경을 준비하지 못했습니다. 다시 시도해 주세요.</p> : <ErrorNotice error={submitError} />}</div> : null}
       <h2>버전</h2>
       <div className="version-list">{VERSIONS.map(({ variant, name, change }) => {
-        const run = results[variant]
-        return <article key={variant}><h3>{name}</h3><p>{change}</p>{listState[variant] === 'loading' ? <p>실행 기록 조회 중</p> : listState[variant] === 'error' ? <p>실행 기록: 확인 불가</p> : run ? <><p>마지막 Run: <Link to={`/runs/${encodeURIComponent(run.runId)}`}>{run.runId}</Link> <ResultOriginBadge origin={run.resultOrigin} /></p><p>분석 상태: {run.status}</p><p>목표 화면 도달: {run.goalReached === null ? '확인 불가' : run.goalReached ? '도달' : '미도달'}</p></> : <p>실행 기록 없음</p>}<button type="button" disabled={!ready || (variant === 'after' && !results.before) || (!!run && run.validity !== 'INVALID')} onClick={() => void start(variant)}>분석 시작</button></article>
+        const runs = results[variant]
+        const run = runs[0]
+        const validRun = variant === 'before' ? validBefore : validAfter
+        const canCreate = runs.every((item) => item.validity === 'INVALID')
+        return <article key={variant}><h3>{name}</h3><p>{change}</p>{listState[variant] === 'loading' ? <p>실행 기록 조회 중</p> : listState[variant] === 'error' ? <p>실행 기록: 확인 불가</p> : run ? <><p>마지막 Run: <Link to={`/runs/${encodeURIComponent(run.runId)}`}>{run.runId}</Link> <ResultOriginBadge origin={run.resultOrigin} /></p><p>분석 상태: {run.status}</p><p>실행 유효성: {run.validity ?? '확인 중'}</p><p>목표 화면 도달: {run.goalReached === null ? '확인 불가' : run.goalReached ? '도달' : '미도달'}</p></> : <p>실행 기록 없음</p>}{run?.validity === 'INVALID' && (validRun ? <p>이전 유효 Run: <Link to={`/runs/${encodeURIComponent(validRun.runId)}/result`}>{validRun.runId}</Link></p> : <p>유효한 실행이 없습니다. 재분석해 주세요.</p>)}<button type="button" disabled={!ready || (variant === 'after' && !validBefore) || !canCreate} onClick={() => void start(variant)}>분석 시작</button></article>
       })}</div>
       {listFailed && validKey && <button type="button" onClick={() => setListVersion((v) => v + 1)}>실행 기록 다시 조회</button>}
       <button type="button" disabled>+ 버전 추가</button> <span>v3 (준비 중)</span>

@@ -14,7 +14,7 @@
 | # | 화면 | 사용 API | 화면 상태(서버 데이터 아님) |
 | --- | --- | --- | --- |
 | 1 | 새 UX 분석 | `GET /api/presets`, `GET /api/health`, `GET /api/runs`, `POST /api/runs` | 선택한 목표·사용자 유형·최대 탐색 횟수, 비교할 두 버전 선택 |
-| 2 | AI 탐색 진행 | `GET /api/health`, `GET /api/runs/{runId}`, `/steps`, `/screenshots/{stepId}` | 열람 중인 stepId(기록 열람 / 최신), 후보 목록 펼침 |
+| 2 | AI 탐색 진행 | `GET /api/health`, `GET /api/runs/{runId}`, `/steps`, `/screenshots/{stepId}` | 열람 중인 stepId(기록 열람 / 최신) |
 | 3 | UX 탐색 분석 결과 | `GET /api/health`, `GET /api/runs`, `GET /api/runs/{runId}`, `/steps`, `/screenshots/{stepId}`, `/issues` | 선택한 경로 노드, 열린 Issue 상세, 지표 패널 펼침 |
 | 4 | 버전 비교 | `GET /api/health`, `GET /api/comparisons/{experimentKey}`, `/api/runs/{runId}/steps`, `/api/runs/{runId}/screenshots/{stepId}` | 지표 표 펼침 |
 
@@ -34,9 +34,11 @@
 
 - `runId`를 URL에 담아 새로고침 뒤에도 복원한다. 폴링 규칙은 [실행 상태와 폴링](../contracts/run-lifecycle.md)을 따른다.
 - 탐색 화면은 원본 스크린샷 위에 후보 bbox와 확률을 겹쳐 그린다([스크린샷과 bbox](../contracts/screenshot-bbox.md)). 열람 중인 단계가 최신이 아니면 "기록 열람 중" 안내와 최신 단계 이동 버튼을 보인다.
-- 아직 실행되지 않은 단계는 서버 데이터가 없으므로 `maxSteps`로 대기 칸을 만든다. 진행도는 `Run.progress`를 쓴다.
+- 아직 실행되지 않은 단계는 서버 데이터가 없으므로 `maxSteps`로 대기 칸을 만들고, 종료된 Run은 대기 칸을 만들지 않는다. 진행도는 `Run.progress`를 쓴다.
 - 실행 이벤트 로그와 Playwright 상태는 `/events`가 `P1`이라 표시하지 않는다.
 - 분석 결과 보기는 Run이 종료 상태일 때만 활성화한다.
+- 구현은 `features/run-progress/`다. `useRunProgress`가 폴링마다 Run → `/steps` 순서로 조회해(종료 응답 뒤 `/steps`가 마지막 조회가 된다) `usePolling`에 넘기고, `/steps`는 서버 순서를 유지하되 같은 `stepId`는 덮어쓴다. 열람 중인 단계는 직접 고른 `stepId`만 기억하고(없으면 최신을 따라간다), 최신 단계를 다시 고르면 따라가기로 돌아간다. 상태 문구는 `statusLabel.ts`다.
+- `404`는 "실행을 찾을 수 없음"과 `/` 링크, 연속 실패는 `ErrorNotice`의 재시도 버튼, 재시도 중에는 "연결 재시도 중"을 보인다. 단계가 아직 없으면 "첫 단계 준비 중"을 보인다.
 
 ### 3. UX 탐색 분석 결과
 

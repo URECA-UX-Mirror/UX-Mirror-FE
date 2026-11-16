@@ -13,6 +13,7 @@ import {
   buildSteps,
   getTiming,
 } from '../fixtures/run.ts'
+import { issueOverride } from '../fixtures/runResult.ts'
 import {
   addRun,
   allRuns,
@@ -27,6 +28,7 @@ import {
 // 시드 Run(종료 상태로 시작):
 //   run_mock_done_*(mock-done), run_mock_partial_*(mock-partial), run_mock_goback(모델 GO_BACK),
 //   run_mock_invalid → run_mock_invalid_retry(mock-invalid), run_mock_invalid_only(mock-invalid-run)
+//   run_mock_maxsteps(목표 미도달), run_mock_issue_pending|failed|empty(/issues 상태 고정) — fixtures/runResult.ts
 
 const ERROR_RUN_ID = 'run_mock_error'
 const EXPERIMENT_KEY_PATTERN = /^[A-Za-z0-9_-]{1,64}$/
@@ -184,7 +186,11 @@ export const runsHandlers = [
     if (runId === ERROR_RUN_ID) return brokenRun()
     const record = findRun(runId)
     if (!record) return runNotFound()
-    return HttpResponse.json(buildIssues(record, Date.now()))
+    const now = Date.now()
+    const override = getTiming(record, now).terminal
+      ? issueOverride(runId)
+      : null
+    return HttpResponse.json(override ?? buildIssues(record, now))
   }),
 
   // 정적 PNG(1440×900)를 돌려준다. 저장된 Step이 아니면 404(서버도 RUN_NOT_FOUND를 쓴다).

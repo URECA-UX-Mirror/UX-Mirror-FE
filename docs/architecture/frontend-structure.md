@@ -23,12 +23,13 @@
 ### 1. 새 UX 분석
 
 - 사이트(MORO MARKET)·버전 이름·변경 내용(Before `이용정보` → After `주문·환불`, 상단 메뉴 라벨 한 곳)·최대 탐색 횟수 범위(1~15, 기본 8)는 프리셋 응답에 없으므로 프론트 상수다. 목표·사용자 유형은 `GET /api/presets`에서 받는다.
-- 프리셋과 일치하지 않는 주소는 입력 단계에서 막고 "지원하지 않는 웹사이트" 안내를 보인다. 검증은 상수 기준이며 별도 API는 호출하지 않는다.
+- 분석 사이트는 MORO MARKET으로 고정해 표시하며 실행할 버전에 따라 백엔드가 대상을 정한다.
 - 버전 표의 행은 `variant`(`before`, `after`)에 대응한다. 표시 이름은 `v1 (변경 전)`, `v2 (변경 후)`다. 두 Run은 같은 `experimentKey`로 묶고 `goalId`·`personaId`·`maxSteps`를 같게 보낸다.
 - 행의 "마지막 Run ID·분석 상태·목표 달성 상태"는 `GET /api/runs?experimentKey=&variant=`의 첫 항목(최신 Run)으로 채운다.
+- 기존 실험 키를 입력하고 조회 버튼을 눌러 서버의 실행 기록을 조회하고 첫 Run의 조건을 다음 Run에 재사용한다. 시작 후 진행 화면 주소에도 실험 키를 남긴다.
 - `+ 버전 추가`와 `v3` 행은 `P1`이라 비활성으로 둔다.
-- 비교 버튼은 두 버전의 Run이 모두 종료 상태일 때만 활성화하고, 같은 버전을 두 번 고르면 오류를 보인다.
-- 엔진 상태는 `GET /api/health`로 표시한다. `activeRun`이 있으면 새 분석 시작을 막는다.
+- 비교 버튼은 두 버전에 종료된 유효 Run이 있을 때만 활성화하고, 같은 버전을 두 번 고르면 오류를 보인다. 최신 Run이 무효여도 이전 유효 Run을 비교 대상으로 쓴다. 재실행은 해당 버전의 모든 Run이 무효일 때만 허용한다.
+- 엔진 상태는 `GET /api/health`로 표시한다. 상태가 `READY`가 아니거나 `activeRun`이 있으면 새 분석 시작을 막는다. 상태 조회에 실패하면 시작을 막고 확인 불가를 안내하며 재확인을 제공한다.
 
 ### 2. AI 탐색 진행
 
@@ -44,8 +45,11 @@
 
 - 요약(종료 상태, 목표 달성, 탐색 단계, CLICK·GO_BACK 횟수, 검토 후보 수)은 `Run.summary`를 그대로 쓴다.
 - 탐색 경로의 노드는 `summary.path`(`PathVisit`)다. `PathVisit.stepId`는 그 노드에 **들어오게 만든** Step이다(시작 화면과 시스템 BACK은 `null`, `계약 §6.4`). 한 노드의 화면에서 모델이 판단한 Step은 **다음 노드의 `stepId`**이므로, 노드를 고르면 다음 노드의 `stepId`로 Step·스크린샷·확률·지표를 찾는다. 다음 노드가 없거나(도착 화면) 그 `stepId`가 `null`이면 이미지 없이 표시한다. [OI-3](../operations/open_issue.md#oi-3)
-- "다른 실행 보기"는 `GET /api/runs?experimentKey=`의 목록이다.
-- Issue는 `GET /api/runs/{runId}/issues`의 서버 순서를 그대로 쓰고 프론트가 다시 정렬하지 않는다.
+- 모델 GO_BACK으로 돌아온 노드(`enteredBy = GO_BACK`)는 "이전 화면 복귀"로 구분한다. 선택한 Step의 스크린샷·후보 확률은 공용 뷰어와 `CandidateProbabilityList`를 쓰고, 지표 패널(`decision` 값, `null`은 "계산 불가")은 접힘이 기본이다.
+- 요약의 `extraSteps` 계열은 목표 미도달이면 `null`이라 "해당 없음"으로 표시한다. `validity = INVALID`이면 "무효 처리된 실행"과 `invalidReason`을 보이고 `replacementRunId`가 있으면 그 Run의 결과 화면 링크를 둔다.
+- "다른 실행 보기"는 `GET /api/runs?experimentKey=`의 목록이다. 조회에 실패해도 화면의 나머지는 동작한다.
+- Issue는 `GET /api/runs/{runId}/issues`의 서버 순서를 그대로 쓰고 프론트가 다시 정렬하지 않는다. `PENDING`이면 이 응답만 최대 5회 다시 조회하고 멈춘 뒤 수동 재시도 버튼을 보인다. `evidence` 키의 표시 이름은 `features/run-result/issueLabels.ts`의 상수이며 표에 없는 키는 키 이름 그대로 보인다(`임시`).
+- Run이 종료 전이면 결과 대신 진행 화면(`/runs/:runId`) 링크를 보이고, `404`이면 "실행을 찾을 수 없습니다"와 새 분석 링크를 보인다.
 
 ### 4. 버전 비교
 
@@ -57,6 +61,13 @@
   - Issue 비교는 `runComparison`의 `detectedIssueTypes`다.
 - 후보 박스를 겹쳐 그릴 때는 `beforeRunId`·`afterRunId`의 `/steps`에서 `beforeStepId`·`afterStepId`에 해당하는 Step을 찾아 `bbox`와 스크린샷을 가져온다.
 - 비교 계산과 Issue 판정은 하지 않는다([지표와 목표 판정](../contracts/metrics-and-goal.md)).
+- 구현(`features/comparison/`): `ComparisonPage`가 비교 응답을 한 번 조회하고(폴링 없음, 오류 안내의 버튼으로만 다시 조회) `useRunSteps`로 `beforeRunId`·`afterRunId`의 `/steps`를 각각 받는다. `/steps` 조회가 실패해도 비교 값은 계속 표시하고 이미지 자리에 안내만 보인다.
+- 오류 안내(`ComparisonError`)는 `error.code`로 구분한다. `RUN_NOT_FOUND`(잘못된 주소), `COMPARISON_NOT_READY`(기다리면 해결, 다시 확인 버튼), `COMPARISON_RUN_INVALID`(재분석 링크 `/?experimentKey=…`), `ANALYSIS_ERROR`(다시 시도). 그 밖의 오류는 `ErrorNotice`를 쓴다.
+- `conditionsMatched = false`이면 `matched = false`인 `conditionChecks`를 서버 순서대로 보인다. `code` 값으로 분기하지 않는다.
+- 화면별 카드는 `pageKey`마다 Before·After 스크린샷과 각 Run의 Step bbox를 따로 그린다. `beforeStepId`/`afterStepId`가 `null`이거나 Step을 못 찾으면 이미지 없이 안내를 보인다. 후보 대응 표는 `semanticKey` 순서 그대로이고 `deltaProbability`가 `null`이면 "계산 불가"로 보인다. 지표 표 펼침 여부는 카드의 화면 상태이며 기본은 접힘이다.
+- Run 단위 비교(`RunComparison`)는 before/after를 나란히만 보이고 증감을 만들지 않는다. Issue 유형은 "탐지됨 / 탐지되지 않음"이다.
+- 지표 표기: 엔트로피는 소수 둘째 자리(단위 없음), margin·확률은 `%`·`%p`, `null`은 "계산 불가"다(`features/comparison/format.ts`). 증감은 서버 값에 부호만 붙인다.
+- 출처 배지(`OriginBadges`)는 `beforeResultOrigin`과 `afterResultOrigin`이 같으면 하나, 다르면 둘 다 보인다.
 
 ## 표시 규칙
 
@@ -102,7 +113,7 @@ src/
     dto/                   # 서버 응답 타입 (계약서 그대로)
   adapters/                # dto -> domain 변환
   domain/                  # types.ts(도메인 모델), runStatus.ts(isTerminalStatus)
-  mocks/                   # MSW. browser.ts, store.ts, errors.ts, fixtures/, handlers/(endpoint별)
+  mocks/                   # MSW. browser.ts, store.ts, errors.ts, fixtures/(run, scenario, runResult, comparison), handlers/(endpoint별)
   features/
     new-analysis/, run-progress/, run-result/, comparison/   # 화면별. 라우트는 App.tsx
   shared/                  # Layout, EngineStatus, ErrorNotice, ResultOriginBadge, useHealth

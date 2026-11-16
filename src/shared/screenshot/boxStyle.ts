@@ -15,6 +15,7 @@ export interface BoxStyle {
   height: number
 }
 
+/** 두 크기를 같은 비율로 볼 상대 오차. 문서에 없는 값이다(`임시`). */
 const RATIO_TOLERANCE = 0.01
 
 /**

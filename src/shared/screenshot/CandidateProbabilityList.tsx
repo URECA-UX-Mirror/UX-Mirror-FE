@@ -39,7 +39,7 @@ export function CandidateProbabilityList({
         )}
       </ul>
       <p className="probability-note">
-        모델의 선택 확률이며 실제 사용자의 클릭 확률이 아니다
+        모델의 선택 확률이며 실제 사용자의 클릭 확률이 아닙니다
       </p>
     </div>
   )

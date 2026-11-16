@@ -15,7 +15,7 @@ export interface UsePollingOptions<T> {
   isDone: (data: T) => boolean
   /** 조회 대상이 바뀌면(예: `runId`) 바꾼다. 값이 바뀌면 기존 루프를 취소하고 새로 시작한다 */
   resetKey: string
-  /** `false`이면 조회하지 않는다 */
+  /** `false`이면 조회하지 않고 `status`는 `'idle'`이다 */
   enabled?: boolean
   intervalMs?: number
   /** 첫 조회 뒤에 다시 조회할 최대 횟수(응답을 받은 재조회만 센다). 이슈 `PENDING` 재조회는 5. 없으면 제한하지 않는다 */
@@ -97,6 +97,10 @@ export function usePolling<T>(
   if (tagged?.token === token) state = tagged.state
   else if (tagged?.resetKey === resetKey) {
     state = { ...INITIAL, data: tagged.state.data }
+  }
+  // 꺼져 있으면 조회 중이 아니다. 마지막 오류·재시도 표시를 지우고 `data`만 남긴다.
+  if (!enabled) {
+    state = { status: 'idle', data: state.data, error: null, retrying: false }
   }
   return { ...state, retry }
 }

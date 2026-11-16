@@ -9,6 +9,8 @@ export const MAX_BACKOFF_MS = 8000
 export const MAX_CONSECUTIVE_FAILURES = 5
 
 export type PollingStatus =
+  /** 조회하지 않는 상태(`usePolling`의 `enabled`가 `false`). 엔진은 이 값을 내보내지 않는다 */
+  | 'idle'
   /** 조회 중이거나 다음 조회를 기다린다 */
   | 'polling'
   /** `isDone`이 참이라 멈췄다 */

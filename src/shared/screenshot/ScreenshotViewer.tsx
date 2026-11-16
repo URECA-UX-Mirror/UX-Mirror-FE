@@ -41,9 +41,15 @@ export function ScreenshotViewer({
   boxes,
   runInProgress,
 }: ScreenshotViewerProps) {
-  const [failedSrc, setFailedSrc] = useState<string | null>(null)
+  // 실패한 주소와 그때의 진행 여부를 함께 기억한다. 진행 중에 실패한 뒤 실행이 종료되면
+  // 실패로 보지 않아 이미지를 한 번 다시 불러온다.
+  const [failed, setFailed] = useState<{
+    src: string
+    runInProgress: boolean
+  } | null>(null)
   const base = pickBaseSize(viewport, screenshotSize)
-  const missing = failedSrc === src
+  const missing =
+    failed?.src === src && failed.runInProgress === runInProgress
 
   return (
     <div
@@ -60,7 +66,7 @@ export function ScreenshotViewer({
             className="screenshot-image"
             src={src}
             alt={alt}
-            onError={() => setFailedSrc(src)}
+            onError={() => setFailed({ src, runInProgress })}
           />
           {boxes.map((box) => {
             const style = toBoxStyle(box.bbox, scroll, base)

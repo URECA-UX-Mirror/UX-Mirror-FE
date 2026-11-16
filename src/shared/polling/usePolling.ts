@@ -42,7 +42,10 @@ const INITIAL: PollingState<never> = {
 }
 
 interface Tagged<T> {
+  /** 어느 시도(`retry` 포함)의 결과인지 */
   token: string
+  /** 어느 조회 대상의 결과인지. 같은 대상이면 `retry` 뒤에도 `data`를 이어 쓴다 */
+  resetKey: string
   state: PollingState<T>
 }
 
@@ -70,14 +73,30 @@ export function usePolling<T>(
       fetch: (signal) => latest.current.fetch(signal),
       isDone: (data) => latest.current.isDone(data),
       classifyError,
-      onUpdate: (state) => setTagged({ token, state }),
+      onUpdate: (state) =>
+        setTagged((prev) => ({
+          token,
+          resetKey,
+          state: {
+            ...state,
+            // 새로 시작한 루프는 `data`가 비어 있으므로 같은 대상의 직전 성공 응답을 이어 붙인다.
+            data:
+              state.data ??
+              (prev?.resetKey === resetKey ? prev.state.data : null),
+          },
+        })),
       intervalMs,
       maxRefetches,
     })
-  }, [token, enabled, intervalMs, maxRefetches])
+  }, [token, resetKey, enabled, intervalMs, maxRefetches])
 
   const retry = useCallback(() => setAttempt((n) => n + 1), [])
-  // 다른 대상·다른 시도의 결과는 보이지 않게 한다.
-  const state = tagged?.token === token ? tagged.state : INITIAL
+  // 다른 대상의 결과는 보이지 않게 한다. 같은 대상에서 `retry`로 다시 시작했을 때는
+  // 새 응답이 오기 전까지 상태·오류는 초기화하고 직전 `data`만 유지한다.
+  let state: PollingState<T> = INITIAL
+  if (tagged?.token === token) state = tagged.state
+  else if (tagged?.resetKey === resetKey) {
+    state = { ...INITIAL, data: tagged.state.data }
+  }
   return { ...state, retry }
 }

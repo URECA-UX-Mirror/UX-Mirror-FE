@@ -1,0 +1,7 @@
+.new-analysis { max-width: 960px; margin: 0 auto; }
+.new-analysis label { display: inline-flex; flex-direction: column; gap: 4px; margin: 8px 16px 8px 0; }
+.new-analysis input, .new-analysis select, .new-analysis button { font: inherit; padding: 6px 10px; }
+.new-analysis fieldset { margin: 20px 0; border: 1px solid var(--border); }
+.version-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin-bottom: 16px; }
+.version-list article { border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
+.version-list h3 { margin-top: 0; }

@@ -9,6 +9,7 @@ npm install
 copy .env.example .env
 npm run dev        # http://localhost:5173
 npm run build      # 배포용 빌드 (dist/)
+npm test           # 자동 테스트 1회 실행
 ```
 
 ## 설정
@@ -28,6 +29,8 @@ npm run build      # 배포용 빌드 (dist/)
 | ② AI 탐색 진행 | `GET /api/health`, `GET /api/runs/{runId}`, `/steps`, `/screenshots/{stepId}` |
 | ③ UX 탐색 분석 결과 | `GET /api/health`, `GET /api/runs`, `GET /api/runs/{runId}`, `/steps`, `/screenshots/{stepId}`, `/issues` |
 | ④ 버전 비교 | `GET /api/health`, `GET /api/comparisons/{experimentKey}`, `/api/runs/{runId}/steps`, `/api/runs/{runId}/screenshots/{stepId}` |
+
+새 UX 분석은 고정 사이트 MORO MARKET의 버전별 실행을 지원한다. 엔진 상태가 `READY`로 확인된 경우에만 시작할 수 있다. 기존 실험 키를 입력하고 조회하면 서버에서 실행 기록과 분석 조건을 불러온다. 실행 시작 후 진행 화면 주소의 `experimentKey`로 같은 실험을 다시 열 수 있다.
 
 화면별 상태 관리, 요청·응답 형식, bbox 변환은 [docs/README.md](docs/README.md)의 문서를 따른다.
 

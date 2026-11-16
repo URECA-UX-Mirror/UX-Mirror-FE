@@ -18,6 +18,8 @@ jobs:
           node-version: '22'
           cache: npm
       - run: npm ci
+      - name: 테스트
+        run: npm test
       - name: 린트
         run: npm run lint
       - name: 타입 검사와 빌드

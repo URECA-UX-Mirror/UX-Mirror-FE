@@ -355,6 +355,16 @@ select:focus {
   color: var(--um-danger-text);
 }
 
+.error-notice[role='status'] {
+  border-color: var(--um-info-border);
+  color: var(--um-info-text);
+  background: var(--um-info-bg);
+}
+
+.error-notice[role='status'] .muted {
+  color: var(--um-info-text);
+}
+
 .invalid-notice {
   margin-bottom: var(--um-space-3);
   border-color: var(--um-warning-border);

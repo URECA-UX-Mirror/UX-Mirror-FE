@@ -33,7 +33,7 @@ function ComparisonBody({ comparison }: { comparison: Comparison }) {
         <ConditionChecks checks={comparison.conditionChecks} />
       )}
 
-      <section>
+      <section className="comparison-screens">
         <h2>화면별 비교</h2>
         {comparison.screenComparisons.length === 0 ? (
           <p className="muted">비교할 화면이 없습니다</p>

@@ -70,6 +70,14 @@
 - 지표 표기: 엔트로피는 소수 둘째 자리(단위 없음), margin·확률은 `%`·`%p`, `null`은 "계산 불가"다(`features/comparison/format.ts`). 증감은 서버 값에 부호만 붙인다.
 - 출처 배지(`OriginBadges`)는 `beforeResultOrigin`과 `afterResultOrigin`이 같으면 하나, 다르면 둘 다 보인다.
 
+### 저장된 실측 결과 재생
+
+- 진입은 새 UX 분석 화면의 "저장된 결과 보기" 링크이며 경로는 `/replay`다. 구현은 `features/replay/`다.
+- `ReplayPage`가 고정 `experimentKey`(`constants.ts`의 `REPLAY_EXPERIMENT_KEY`)로 `GET /api/runs?experimentKey=`를 한 번 조회해 Run마다 진행·결과 화면 링크를 둔다. 새 API는 없고 `POST /api/runs` 등 Run을 만들거나 바꾸는 요청은 보내지 않는다. 조회 재시도 중에는 "연결 재시도 중"을 보인다.
+- 같은 키의 비교 화면(`/comparisons/{experimentKey}`) 링크는 Before·After 각각 종료된 `VALID` Run이 목록에 있을 때만 보인다. Issue 분석 완료 여부는 목록에 없으므로 `COMPARISON_NOT_READY`는 비교 화면의 오류 안내가 맡는다.
+- 재생 표시(`ReplayNotice`)는 `resultOrigin` 배지와 별개이며 원본 값은 그대로 표시한다. 진행·결과·비교 화면에서 `experimentKey`가 고정 키와 같을 때만 보이고, 화면의 모든 `resultOrigin`이 `LIVE`·`SAVED_MEASURED`이면 "저장된 실측 결과 재생", 하나라도 그 밖(`MOCK`)이면 "MOCK 재생 테스트"다.
+- 고정 키 값은 [OI-7](../operations/open_issue.md#oi-7)의 임시 값이다. 서버 없는 시연은 P0에서 하지 않는다. 테스트는 `tests/replay.test.tsx`다.
+
 ## 표시 규칙
 
 계약서 기준으로 화면에 쓰지 않는 표현이다.
@@ -93,7 +101,7 @@
 | --- | --- |
 | `LIVE` | 현재 실행에서 실제 Zoro-1을 호출해 얻은 결과 |
 | `MOCK` | 테스트를 위해 고정하거나 생성한 모델 응답. 백엔드의 Mock 실행과 프론트 fixture가 모두 이 값을 쓴다 |
-| `SAVED_MEASURED` | 과거 실제 호출 결과를 저장한 뒤 재생한 결과. 시연 방법은 [OI-7](../operations/open_issue.md#oi-7) |
+| `SAVED_MEASURED` | 과거 실제 호출 결과를 저장한 뒤 재생한 결과. 재생 방법은 위 "저장된 실측 결과 재생"과 [OI-7](../operations/open_issue.md#oi-7) |
 
 ## 계층 분리 원칙
 
@@ -116,7 +124,7 @@ src/
   domain/                  # types.ts(도메인 모델), runStatus.ts(isTerminalStatus)
   mocks/                   # MSW. browser.ts, store.ts, errors.ts, fixtures/(run, scenario, runResult, comparison), handlers/(endpoint별)
   features/
-    new-analysis/, run-progress/, run-result/, comparison/   # 화면별. 라우트는 App.tsx
+    new-analysis/, run-progress/, run-result/, comparison/, replay/   # 화면별. 라우트는 App.tsx
   shared/                  # Layout, EngineStatus, ErrorNotice, ResultOriginBadge, useHealth
     screenshot/            # boxStyle.ts(좌표 변환), ScreenshotViewer, CandidateProbabilityList
     polling/               # poller.ts(간격·backoff 규칙), usePolling(범용 폴링 훅)
@@ -125,4 +133,4 @@ public/
   mock/screenshot.png      # mock 스크린샷(1440×900)
 ```
 
-화면 라우트는 `/`(새 UX 분석), `/runs/:runId`(AI 탐색 진행), `/runs/:runId/result`(분석 결과), `/comparisons/:experimentKey`(버전 비교)다. 경로는 프론트가 정한 값이며 계약서 대상이 아니다. 좌표 변환 함수, 폴링 훅 같은 화면 공용 코드는 `shared/` 아래에 둔다.
+화면 라우트는 `/`(새 UX 분석), `/runs/:runId`(AI 탐색 진행), `/runs/:runId/result`(분석 결과), `/comparisons/:experimentKey`(버전 비교), `/replay`(저장된 결과 재생)다. 경로는 프론트가 정한 값이며 계약서 대상이 아니다. 좌표 변환 함수, 폴링 훅 같은 화면 공용 코드는 `shared/` 아래에 둔다.

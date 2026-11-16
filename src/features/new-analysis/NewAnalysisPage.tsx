@@ -131,6 +131,7 @@ function NewAnalysisContent() {
     <section className="new-analysis">
       <h1>새 UX 분석</h1>
       <p>{SITE.name}의 두 버전을 같은 조건으로 분석합니다.</p>
+      <p><Link to="/replay">저장된 결과 보기</Link></p>
       <p>분석 사이트: {SITE.name}. 각 버전의 분석을 시작하면 해당 버전의 사이트가 사용됩니다.</p>
       <label>실험 키 <input value={keyInput} placeholder="새 실험은 비워 두세요" onChange={(e) => setKeyInput(e.target.value)} /></label>
       <button type="button" disabled={!KEY_PATTERN.test(keyInput)} onClick={() => selectExperiment(keyInput)}>조회</button>

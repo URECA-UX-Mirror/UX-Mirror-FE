@@ -15,7 +15,7 @@
 | ID | 항목 | 담당 | 임시 결정 |
 | --- | --- | --- | --- |
 | [OI-3](#oi-3) | 도착 화면 스크린샷 조회 | 정자비, 장근창 | 이미지 없이 표시 |
-| [OI-7](#oi-7) | 저장된 실측 데이터 시연 | 정자비 | 원본 `LIVE` Run을 조회해 재생 |
+| [OI-7](#oi-7) | 저장된 실측 데이터 시연 | 정자비 | `/replay`에서 원본 `LIVE` Run을 조회해 재생, 서버 없는 시연은 P0 제외 |
 
 ## 항목
 
@@ -34,6 +34,6 @@
 - 계약서: `SAVED_MEASURED`는 과거 실제 호출 결과를 저장한 뒤 재생한 결과다(`§2.1`).
 - 백엔드 결정: P0에서는 `SAVED_MEASURED` Run을 만들지 않는다. 시연은 원본 `LIVE` Run을 기존 조회 API(`GET /api/runs`, `/api/runs/{runId}`, `/steps`, `/screenshots`, `/api/comparisons/{experimentKey}`)로 읽기만 해서 재생한다. 새 API는 없고 원본 데이터의 `resultOrigin`은 `LIVE` 그대로다. 복사본이 필요하면 별도 `runId`·`experimentKey`로 복사하고 복사본만 `SAVED_MEASURED`로 저장한다.
 - 시연 Run 고정: 백엔드 `results/final_execution_plan.json`의 `experimentKey`로 고정한다(제안). 재생 중 `LIVE` 실행은 다른 `experimentKey`로만 하며, 같은 키에 `VALID` Run이 있으면 `409 EXPERIMENT_RUN_EXISTS`로 원본이 보호된다.
-- 임시 결정: 지금은 화면 배지로 `resultOrigin`만 표시한다. 재생 화면의 "저장된 실측 결과 재생" 표시와 재생 모드는 이슈 #13에서 구현한다.
-- 확인할 것: "서버가 꺼져도 저장된 결과로 시연 가능"(역할 분담 5번 완료 기준)을 P0에서 할지. 한다면 결과 폴더를 정적 파일로 읽는 방식이 추가로 필요하다. 고정할 `experimentKey` 값.
+- 임시 결정: 재생 모드는 `/replay`에서 고정 `experimentKey`의 Run 목록을 읽어 기존 화면으로 연결한다. 고정 키는 `src/features/replay/constants.ts`의 `REPLAY_EXPERIMENT_KEY`이며 지금은 mock 시드 `mock-done`인 **임시 값**이다. 서버 없는 시연(정적 결과 파일 읽기)은 P0에서 하지 않는다. 기획안이 복잡한 리플레이를 P0 밖에 두고 이 요구를 찾지 못했기 때문이다.
+- 확인할 것: 고정할 실제 `experimentKey` 값(정자비). 받으면 상수를 바꾼다. "서버가 꺼져도 시연 가능"(역할 분담 5번 완료 기준)을 P0에 넣을지는 기획 확인 후 최종 결정한다.
 - 담당: 정자비.

@@ -1,6 +1,7 @@
 import { BrowserRouter, Route, Routes } from 'react-router'
 import { ComparisonPage } from './features/comparison/ComparisonPage.tsx'
 import { NewAnalysisPage } from './features/new-analysis/NewAnalysisPage.tsx'
+import { ReplayPage } from './features/replay/ReplayPage.tsx'
 import { RunProgressPage } from './features/run-progress/RunProgressPage.tsx'
 import { RunResultPage } from './features/run-result/RunResultPage.tsx'
 import { Layout } from './shared/Layout.tsx'
@@ -14,6 +15,7 @@ function App() {
           <Route path="/" element={<NewAnalysisPage />} />
           <Route path="/runs/:runId" element={<RunProgressPage />} />
           <Route path="/runs/:runId/result" element={<RunResultPage />} />
+          <Route path="/replay" element={<ReplayPage />} />
           <Route
             path="/comparisons/:experimentKey"
             element={<ComparisonPage />}

@@ -2,6 +2,7 @@ import { useParams } from 'react-router'
 import './comparison.css'
 import type { Comparison } from '../../domain/types.ts'
 import { ComparisonError } from './ComparisonError.tsx'
+import { ReplayNotice } from '../replay/ReplayNotice.tsx'
 import { ConditionChecks } from './ConditionChecks.tsx'
 import { OriginBadges } from './OriginBadges.tsx'
 import { RunComparison } from './RunComparison.tsx'
@@ -74,6 +75,12 @@ export function ComparisonPage() {
           />
         ) : null}
       </header>
+      {comparison ? (
+        <ReplayNotice
+          experimentKey={experimentKey}
+          origins={[comparison.beforeResultOrigin, comparison.afterResultOrigin]}
+        />
+      ) : null}
       <p className="muted">experimentKey: {experimentKey}</p>
 
       {loading ? <p role="status">비교 결과를 불러오는 중</p> : null}

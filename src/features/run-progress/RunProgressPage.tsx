@@ -8,6 +8,7 @@ import { ErrorNotice } from '../../shared/ErrorNotice.tsx'
 import { ResultOriginBadge } from '../../shared/ResultOriginBadge.tsx'
 import { CandidateProbabilityList } from '../../shared/screenshot/CandidateProbabilityList.tsx'
 import { ScreenshotViewer } from '../../shared/screenshot/ScreenshotViewer.tsx'
+import { ReplayNotice } from '../replay/ReplayNotice.tsx'
 import { statusLabel } from './statusLabel.ts'
 import { useRunProgress } from './useRunProgress.ts'
 
@@ -53,6 +54,7 @@ function RunProgress({ runId }: { runId: string }) {
         <h1>AI 탐색 진행</h1>
         <ResultOriginBadge origin={run.resultOrigin} />
       </header>
+      <ReplayNotice experimentKey={run.experimentKey} origins={[run.resultOrigin]} />
       <p>
         <span className="run-id">{run.runId}</span> · {run.goal}
       </p>

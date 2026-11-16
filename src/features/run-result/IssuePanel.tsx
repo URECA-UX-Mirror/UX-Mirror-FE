@@ -114,7 +114,8 @@ export function IssuePanel({
                       ) : null}
                     </div>
                   ) : null}
-                  <dl className="summary-grid">
+                  <p>Issue 근거 (일부 값은 최초 관찰 기준)</p>
+                  <dl className="summary-grid" aria-label="Issue 근거">
                     {Object.entries(issue.evidence).map(([key, value]) => (
                       <div key={key} className="evidence-row">
                         <dt>{evidenceLabel(key)}</dt>
@@ -157,7 +158,7 @@ function StepEvidence({ runId, stepId, steps, failed, onRetry }: {
   }
   return (
     <div aria-label={`Step ${step.stepId} 근거`}>
-      <ScreenshotViewer src={screenshotUrl(runId, step.stepId)}
+      <ScreenshotViewer key={`${runId}:${step.stepId}`} src={screenshotUrl(runId, step.stepId)}
         alt={`Step ${step.stepId} 근거 화면`} viewport={step.page.viewport}
         screenshotSize={step.page.screenshotSize} scroll={step.page.scroll}
         boxes={step.candidates.map((candidate) => ({

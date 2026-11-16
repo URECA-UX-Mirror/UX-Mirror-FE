@@ -14,7 +14,13 @@ const issueList: IssueList = {
 const step = (stepId: number): Step => ({
   stepId, timestamp: '', page: { pageKey: 'mypage', path: '/shop/mypage', title: '',
     viewport: { width: 1440, height: 900 }, screenshotSize: { width: 1440, height: 900 }, scroll: { x: 0, y: 0 } },
-  candidates: [], backOptionId: null,
+  candidates: [{
+    optionId: 'a', label: stepId === 2 ? '쿠폰함' : '주문 내역', region: '본문', context: null,
+    href: '/shop/orders', semanticKey: '본문>/shop/orders#1',
+    bbox: stepId === 2 ? { x: 144, y: 90, width: 288, height: 90 }
+      : { x: 720, y: 180, width: 144, height: 180 },
+    probability: stepId === 2 ? 0.7 : 0.25, selected: stepId === 2,
+  }], backOptionId: null,
   decision: { selectedOptionId: 'a', selectedActionType: 'CLICK', resultOrigin: 'MOCK',
     goalJudgmentMode: 'DOM_ONLY', modelGoalReached: null, modelGoalYesProb: null,
     verifiedGoalReached: false, goalJudgmentMismatch: false, normalizedEntropy: null,
@@ -33,9 +39,39 @@ it('경로에 없는 NO_CHANGE Step과 같은 Issue의 다른 Step 근거를 각
   fireEvent.click(screen.getByRole('button', { name: /메뉴 선택 확률 분산/ }))
   let image = screen.getByRole('img', { name: 'Step 2 근거 화면' }) as HTMLImageElement
   expect(image.src).toContain('/api/runs/run_test/screenshots/2?kind=original')
+  const evidence = screen.getByLabelText('Step 2 근거')
+  const firstRow = within(evidence).getByText('쿠폰함').closest('li') as HTMLElement
+  expect(within(firstRow).getByText('70.0%')).toBeTruthy()
+  expect(firstRow.classList.contains('candidate-selected')).toBe(true)
+  const firstBox = evidence.querySelector('.screenshot-box') as HTMLElement
+  expect(firstBox.classList.contains('screenshot-box-selected')).toBe(true)
+  expect(firstBox.style.left).toBe('10%')
+  expect(firstBox.style.width).toBe('20%')
   fireEvent.click(screen.getByRole('button', { name: 'Step 3 보기' }))
   image = screen.getByRole('img', { name: 'Step 3 근거 화면' }) as HTMLImageElement
   expect(image.src).toContain('/api/runs/run_test/screenshots/3?kind=original')
+  const nextEvidence = screen.getByLabelText('Step 3 근거')
+  const nextRow = within(nextEvidence).getByText('주문 내역').closest('li') as HTMLElement
+  expect(within(nextRow).getByText('25.0%')).toBeTruthy()
+  expect(nextRow.classList.contains('candidate-selected')).toBe(false)
+  const nextBox = nextEvidence.querySelector('.screenshot-box') as HTMLElement
+  expect(nextBox.classList.contains('screenshot-box-selected')).toBe(false)
+  expect(nextBox.style.left).toBe('50%')
+  expect(nextBox.style.width).toBe('10%')
+  expect(screen.getByText('Issue 근거 (일부 값은 최초 관찰 기준)')).toBeTruthy()
+  expect(within(screen.getByLabelText('Issue 근거')).getByText('2')).toBeTruthy()
+})
+
+it('이미지 로딩에 실패한 Step을 다시 선택하면 다시 시도한다', () => {
+  panel([step(2), step(3)])
+  fireEvent.click(screen.getByRole('button', { name: /메뉴 선택 확률 분산/ }))
+  fireEvent.error(screen.getByRole('img', { name: 'Step 2 근거 화면' }))
+  expect(screen.getByText('화면 없음')).toBeTruthy()
+  fireEvent.click(screen.getByRole('button', { name: 'Step 3 보기' }))
+  expect(screen.getByRole('img', { name: 'Step 3 근거 화면' })).toBeTruthy()
+  fireEvent.click(screen.getByRole('button', { name: 'Step 2 보기' }))
+  expect(screen.getByRole('img', { name: 'Step 2 근거 화면' })).toBeTruthy()
+  expect(screen.queryByText('화면 없음')).toBeNull()
 })
 it('관련 Step 로딩 중·누락을 구분하고 Run 전체 Issue에는 Step을 만들지 않는다', () => {
   const { rerender } = panel(null)

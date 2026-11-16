@@ -41,7 +41,11 @@ export function IssuePanel({
   } else if (issues.analysisStatus === 'PENDING') {
     body = (
       <p role="status">
-        분석 대기 중
+        {pollingStatus === 'failed' && error
+          ? `분석 대기 중 (조회 실패${isApiError(error) ? `: ${error.message}` : ''})`
+          : retrying
+            ? '분석 대기 중 · 연결 재시도 중'
+            : '분석 대기 중'}
         {pollingStatus === 'exhausted' || pollingStatus === 'failed' ? (
           <>
             {' '}

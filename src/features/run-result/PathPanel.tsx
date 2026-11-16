@@ -10,6 +10,9 @@ interface PathPanelProps {
   /** `null`이면 아직 조회 중이거나 실패했다 */
   steps: Step[] | null
   stepsFailed: boolean
+  /** 자동 재시도(backoff) 중 */
+  stepsRetrying: boolean
+  onRetrySteps: () => void
   selected: number
   onSelect: (index: number) => void
 }
@@ -32,6 +35,8 @@ export function PathPanel({
   path,
   steps,
   stepsFailed,
+  stepsRetrying,
+  onRetrySteps,
   selected,
   onSelect,
 }: PathPanelProps) {
@@ -53,7 +58,7 @@ export function PathPanel({
   return (
     <section className="result-section" aria-label="탐색 경로">
       <h2>탐색 경로</h2>
-      <ol className="path-list">
+      <ol className="result-path-list">
         {path.map((node, i) => (
           <li key={node.sequence}>
             <button
@@ -89,8 +94,18 @@ export function PathPanel({
             {stepsFailed
               ? 'Step 정보를 불러오지 못했습니다'
               : steps === null
-                ? 'Step 정보를 불러오는 중'
+                ? stepsRetrying
+                  ? '연결 재시도 중'
+                  : 'Step 정보를 불러오는 중'
                 : `Step ${stepId} 정보를 찾을 수 없습니다`}
+            {stepsFailed ? (
+              <>
+                {' '}
+                <button type="button" onClick={onRetrySteps}>
+                  다시 시도
+                </button>
+              </>
+            ) : null}
           </p>
         ) : (
           <>

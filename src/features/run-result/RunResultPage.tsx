@@ -110,6 +110,8 @@ function ResultBody({ run }: { run: Run }) {
           path={run.summary.path}
           steps={steps.data}
           stepsFailed={steps.status === 'failed'}
+          stepsRetrying={steps.retrying}
+          onRetrySteps={steps.retry}
           selected={selected}
           onSelect={setSelected}
         />

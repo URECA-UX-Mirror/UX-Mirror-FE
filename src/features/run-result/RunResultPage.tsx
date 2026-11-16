@@ -7,6 +7,7 @@ import type { Run } from '../../domain/types.ts'
 import { usePolling } from '../../shared/polling/usePolling.ts'
 import { ErrorNotice } from '../../shared/ErrorNotice.tsx'
 import { ResultOriginBadge } from '../../shared/ResultOriginBadge.tsx'
+import { ReplayNotice } from '../replay/ReplayNotice.tsx'
 import { IssuePanel } from './IssuePanel.tsx'
 import { OtherRuns } from './OtherRuns.tsx'
 import { PathPanel } from './PathPanel.tsx'
@@ -97,6 +98,7 @@ function ResultBody({ run }: { run: Run }) {
         <div>
           <span>{run.runId}</span> <ResultOriginBadge origin={run.resultOrigin} />
         </div>
+        <ReplayNotice experimentKey={run.experimentKey} />
         <p>
           {run.goal} · {run.persona}
         </p>

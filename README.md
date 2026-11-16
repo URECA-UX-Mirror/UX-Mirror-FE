@@ -30,6 +30,8 @@ npm test           # 자동 테스트 1회 실행
 | ③ UX 탐색 분석 결과 | `GET /api/health`, `GET /api/runs`, `GET /api/runs/{runId}`, `/steps`, `/screenshots/{stepId}`, `/issues` |
 | ④ 버전 비교 | `GET /api/health`, `GET /api/comparisons/{experimentKey}`, `/api/runs/{runId}/steps`, `/api/runs/{runId}/screenshots/{stepId}` |
 
+`/replay`는 고정 `experimentKey`의 저장된 Run을 조회만 해서 위 화면들로 연결하는 재생 모드다(`GET /api/runs?experimentKey=`만 호출하고 Run을 만들지 않는다). 고정 키는 아직 임시 값이다([미결정 항목](docs/operations/open_issue.md) OI-7).
+
 mock 모드에서 ③ 결과 화면(`/runs/:runId/result`)은 시드 Run으로 확인한다: `run_mock_done_before`(정상), `run_mock_goback`(모델 GO_BACK), `run_mock_maxsteps`(목표 미도달), `run_mock_invalid`·`run_mock_invalid_only`(무효 처리), `run_mock_issue_pending`·`run_mock_issue_failed`·`run_mock_issue_empty`(Issue 분석 상태).
 
 새 UX 분석은 고정 사이트 MORO MARKET의 버전별 실행을 지원한다. 엔진 상태가 `READY`로 확인된 경우에만 시작할 수 있다. 기존 실험 키를 입력하고 조회하면 서버에서 실행 기록과 분석 조건을 불러온다. 실행 시작 후 진행 화면 주소의 `experimentKey`로 같은 실험을 다시 열 수 있다.

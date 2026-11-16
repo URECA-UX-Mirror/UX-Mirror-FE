@@ -68,7 +68,7 @@ it('conditionsMatched=false는 실패 항목과 Run 단위 결과를 보이고 �
   }
 })
 
-it('beforeStepId가 null인 화면은 스크린샷 없이 안내를 보인다', async () => {
+it('afterStepId가 null인 화면은 스크린샷 없이 안내를 보인다', async () => {
   renderPage('mock-partial')
   await screen.findByText(/비교할 수 있는 부분만 표시합니다/)
   const card = screenCard('mypage')

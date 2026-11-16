@@ -20,13 +20,18 @@ const step = (stepId: number): Step => ({
     bbox: stepId === 2 ? { x: 144, y: 90, width: 288, height: 90 }
       : { x: 720, y: 180, width: 144, height: 180 },
     probability: stepId === 2 ? 0.7 : 0.25, selected: stepId === 2,
+  }, {
+    optionId: 'b', label: '고객센터', region: '본문', context: null,
+    href: '/shop/support', semanticKey: '본문>/shop/support#1',
+    bbox: { x: 360, y: 270, width: 144, height: 90 },
+    probability: stepId === 2 ? 0.3 : 0.75, selected: stepId === 3,
   }], backOptionId: null,
-  decision: { selectedOptionId: 'a', selectedActionType: 'CLICK', resultOrigin: 'MOCK',
+  decision: { selectedOptionId: stepId === 2 ? 'a' : 'b', selectedActionType: 'CLICK', resultOrigin: 'MOCK',
     goalJudgmentMode: 'DOM_ONLY', modelGoalReached: null, modelGoalYesProb: null,
     verifiedGoalReached: false, goalJudgmentMismatch: false, normalizedEntropy: null,
     clickOnlyNormalizedEntropy: null, goBackProbability: null, top2Margin: null,
     clickOnlyTop2Margin: null, goalPathProbability: null, modelLatencyMs: null, metricWarnings: [] },
-  action: { selectedOptionId: 'a', executedOptionId: 'a', actionType: 'CLICK', result: 'NO_CHANGE',
+  action: { selectedOptionId: stepId === 2 ? 'a' : 'b', executedOptionId: stepId === 2 ? 'a' : 'b', actionType: 'CLICK', result: 'NO_CHANGE',
     reason: null, executed: true, fromPath: '/shop/mypage', toPath: '/shop/mypage' },
   statusAfterStep: 'RUNNING', error: null,
 })
@@ -58,6 +63,10 @@ it('경로에 없는 NO_CHANGE Step과 같은 Issue의 다른 Step 근거를 각
   expect(nextBox.classList.contains('screenshot-box-selected')).toBe(false)
   expect(nextBox.style.left).toBe('50%')
   expect(nextBox.style.width).toBe('10%')
+  const selectedRow = within(nextEvidence).getByText('고객센터').closest('li') as HTMLElement
+  expect(within(selectedRow).getByText('75.0%')).toBeTruthy()
+  expect(selectedRow.classList.contains('candidate-selected')).toBe(true)
+  expect(nextEvidence.querySelectorAll('.screenshot-box-selected')).toHaveLength(1)
   expect(screen.getByText('Issue 근거 (일부 값은 최초 관찰 기준)')).toBeTruthy()
   expect(within(screen.getByLabelText('Issue 근거')).getByText('2')).toBeTruthy()
 })

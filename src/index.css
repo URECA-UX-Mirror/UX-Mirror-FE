@@ -518,10 +518,31 @@ select:focus {
   margin: 0;
 }
 
+/* 헤더 띠가 있는 카드 */
+.card,
 .result-section,
-.step-viewer,
-.comparison-screen,
 .comparison-run {
+  margin: 0;
+  padding: 0 var(--um-space-6) var(--um-space-4);
+  border: 1px solid var(--um-border);
+  border-radius: var(--um-radius-card);
+  background: var(--um-surface);
+  box-shadow: var(--um-shadow-card);
+}
+
+.card > h2,
+.result-section > h2,
+.comparison-run > h2 {
+  margin: 0 calc(var(--um-space-6) * -1) var(--um-space-4);
+  padding: var(--um-space-3) var(--um-space-6);
+  border-bottom: 1px solid var(--um-surface-subtle);
+  font-size: 16px;
+  line-height: 24px;
+}
+
+/* 본문만 있는 카드 */
+.step-viewer,
+.comparison-screen {
   padding: var(--um-space-6);
   border: 1px solid var(--um-border);
   border-radius: var(--um-radius-card);
@@ -529,14 +550,69 @@ select:focus {
   box-shadow: var(--um-shadow-card);
 }
 
-.result-section {
+.page-header {
+  margin-bottom: var(--um-space-2);
+}
+
+.page-header h1 {
+  margin-bottom: var(--um-space-1);
+}
+
+.page-lead {
   margin: 0;
+  color: var(--um-text-secondary);
+}
+
+/* 배지가 세로 정렬 컨테이너에서 한 줄 전체로 늘어나지 않게 한다 */
+.run-progress > .run-status,
+.run-progress > .replay-notice,
+.result-page .replay-notice,
+.replay-page > .replay-notice,
+.comparison-page > .replay-notice {
+  align-self: flex-start;
+}
+
+/* 스크린샷은 넓게, 후보 확률·지표는 오른쪽 열에 둔다 */
+.step-viewer,
+.path-detail {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: var(--um-space-3) var(--um-space-6);
+  align-items: start;
+}
+
+.step-viewer > *,
+.path-detail > * {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+
+.step-viewer > .screenshot-viewer,
+.path-detail > .screenshot-viewer {
+  grid-column: 1;
+  grid-row: span 3;
+}
+
+.step-viewer > .candidate-probabilities,
+.path-detail > .candidate-probabilities,
+.path-detail > .metrics-panel {
+  grid-column: 2;
+}
+
+.path-detail {
+  margin-top: var(--um-space-2);
 }
 
 .summary-grid {
   display: grid;
   grid-template-columns: max-content 1fr;
   gap: var(--um-space-2) var(--um-space-6);
+}
+
+.summary-grid dt,
+.summary-grid dd {
+  padding: var(--um-space-2) 0;
+  border-bottom: 1px solid var(--um-surface-subtle);
 }
 
 .summary-grid dt {
@@ -599,10 +675,6 @@ select:focus {
 .run-result-link:hover {
   background: var(--um-brand-hover);
   text-decoration: none;
-}
-
-.path-detail {
-  margin-top: var(--um-space-2);
 }
 
 .issue-list {
@@ -700,11 +772,23 @@ select:focus {
     padding: var(--um-space-4);
   }
 
-  .result-section,
   .step-viewer,
-  .comparison-screen,
-  .comparison-run {
+  .comparison-screen {
     padding: var(--um-space-4);
+  }
+
+  .step-viewer,
+  .path-detail {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .step-viewer > .screenshot-viewer,
+  .path-detail > .screenshot-viewer,
+  .step-viewer > .candidate-probabilities,
+  .path-detail > .candidate-probabilities,
+  .path-detail > .metrics-panel {
+    grid-column: 1;
+    grid-row: auto;
   }
 
   .summary-grid {
@@ -712,7 +796,8 @@ select:focus {
     gap: 2px;
   }
 
-  .summary-grid dd {
-    margin-bottom: var(--um-space-2);
+  .summary-grid dt {
+    padding-bottom: 0;
+    border-bottom: 0;
   }
 }

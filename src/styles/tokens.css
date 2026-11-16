@@ -2,6 +2,8 @@
  * 디자인 토큰. 값의 출처는 Stitch 시안 v5의 DESIGN.md(팀 확정 전 안)다.
  * 컴포넌트 CSS는 색·간격·라운딩을 이 변수로만 참조한다.
  */
+@import '@fontsource-variable/inter';
+@import '@fontsource-variable/jetbrains-mono';
 @import 'pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css';
 
 :root {
@@ -42,11 +44,12 @@
   --um-info-text: #3730a3;
   --um-info-border: #c7d2fe;
 
-  /* 글꼴. 한글과 영문 모두 Pretendard를 쓰고, 코드·ID·배지만 모노스페이스를 쓴다 */
-  --um-font: 'Pretendard Variable', Pretendard, Inter, system-ui, -apple-system,
-    'Segoe UI', 'Malgun Gothic', sans-serif;
-  --um-font-mono: 'JetBrains Mono', ui-monospace, 'Cascadia Mono', Consolas,
-    monospace;
+  /* 글꼴. 영문·숫자는 Inter, 한글은 Inter에 글리프가 없어 Pretendard로 이어진다.
+     코드·ID·배지는 JetBrains Mono를 쓴다 */
+  --um-font: 'Inter Variable', Inter, 'Pretendard Variable', Pretendard,
+    system-ui, -apple-system, 'Segoe UI', 'Malgun Gothic', sans-serif;
+  --um-font-mono: 'JetBrains Mono Variable', 'JetBrains Mono', ui-monospace,
+    'Cascadia Mono', Consolas, 'Pretendard Variable', monospace;
 
   /* 간격 */
   --um-space-1: 4px;
@@ -69,7 +72,7 @@
 
   /* 레이아웃 */
   --um-sidebar-width: 240px;
-  --um-content-max: 1280px;
+  --um-content-max: 1440px;
 
   font: 14px/20px var(--um-font);
   color: var(--um-text);

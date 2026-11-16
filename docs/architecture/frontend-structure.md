@@ -123,7 +123,7 @@ src/
     dto/                   # 서버 응답 타입 (계약서 그대로)
   adapters/                # dto -> domain 변환
   domain/                  # types.ts(도메인 모델), runStatus.ts(isTerminalStatus)
-  mocks/                   # MSW. browser.ts, store.ts, errors.ts, fixtures/(run, scenario, runResult, comparison), handlers/(endpoint별)
+  mocks/                   # MSW. browser.ts, store.ts, errors.ts, fixtures/(run, scenario, screenshot, runResult, comparison), handlers/(endpoint별)
   features/
     new-analysis/, run-progress/, run-result/, comparison/, replay/   # 화면별. 라우트는 App.tsx
   shared/                  # Layout(사이드바·헤더), EngineStatus, ErrorNotice, ResultOriginBadge, useHealth
@@ -131,7 +131,6 @@ src/
     polling/               # poller.ts(간격·backoff 규칙), usePolling(범용 폴링 훅)
 public/
   mockServiceWorker.js     # MSW 생성 파일
-  mock/screenshot.png      # mock 스크린샷(1440×900)
 ```
 
 화면 라우트는 `/`(새 UX 분석), `/runs/:runId`(AI 탐색 진행), `/runs/:runId/result`(분석 결과), `/comparisons/:experimentKey`(버전 비교), `/replay`(저장된 결과 재생)다. 경로는 프론트가 정한 값이며 계약서 대상이 아니다. 좌표 변환 함수, 폴링 훅 같은 화면 공용 코드는 `shared/` 아래에 둔다.
@@ -139,7 +138,7 @@ public/
 ## 스타일
 
 - 디자인 토큰은 `src/styles/tokens.css`의 CSS 변수(`--um-*`)이며 `src/index.css`가 가져온다. 색·간격·라운딩은 이 변수로만 참조하고 컴포넌트 CSS에 색 값을 새로 쓰지 않는다. 값의 출처는 Stitch 시안 v5의 `DESIGN.md`(팀 확정 전 안)다.
-- 글꼴은 영문·한글 모두 Pretendard(`pretendard` 패키지)이고 코드·ID·배지에만 모노스페이스 스택을 쓴다. 모노스페이스는 `JetBrains Mono`를 우선하지만 패키지로 넣지 않아 설치된 환경에서만 적용된다.
+- 글꼴은 영문·숫자 Inter(`@fontsource-variable/inter`), 한글 Pretendard(`pretendard`)다. Inter에 한글 글리프가 없어 글꼴 스택에서 Pretendard로 이어진다. 코드·ID·배지는 JetBrains Mono(`@fontsource-variable/jetbrains-mono`)를 쓴다.
 - 레이아웃은 좌측 사이드바(`Layout`)와 상단 헤더다. 사이드바 메뉴는 주소 인자 없이 열 수 있는 화면(새 UX 분석, 저장된 결과 재생)만 두고, 진행·결과·비교 화면은 화면 안의 링크로 들어간다. 767px 이하에서는 사이드바가 위쪽 띠가 된다.
 - 기본 버튼은 보조 스타일이고, 화면의 주 행동(`분석 시작`, `비교하기`)에만 `primary`를 쓴다. `분석 결과 보기`는 링크이므로 `run-result-link` 클래스로 같은 모양을 내고, 종료 전 비활성 버튼은 기본 스타일이다.
 - `[role='alert']`와 `.error-notice`는 오류 스타일이고 `.error-notice[role='status']`(예: 비교 준비 중)는 정보 스타일이다. `data-origin`(`LIVE`, `MOCK`, `SAVED_MEASURED`)과 `data-status`는 배지 색을 정한다. 색만으로 뜻을 전하지 않도록 배지에는 항상 글자를 함께 둔다.

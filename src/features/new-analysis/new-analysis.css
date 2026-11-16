@@ -2,8 +2,6 @@
   display: flex;
   flex-direction: column;
   gap: var(--um-space-4);
-  max-width: 960px;
-  margin: 0 auto;
 }
 
 .new-analysis > * {
@@ -21,18 +19,29 @@
 }
 
 .new-analysis fieldset {
+  min-width: 0;
   margin: 0;
-  padding: var(--um-space-6);
+  padding: 0 var(--um-space-6) var(--um-space-4);
   border: 1px solid var(--um-border);
   border-radius: var(--um-radius-card);
   background: var(--um-surface);
   box-shadow: var(--um-shadow-card);
 }
 
+/* 테두리에 걸치는 기본 제목 대신 카드 상단의 헤더 띠로 보인다 */
 .new-analysis legend {
-  padding: 0 var(--um-space-2);
+  float: left;
+  width: calc(100% + var(--um-space-6) * 2);
+  margin: 0 calc(var(--um-space-6) * -1) var(--um-space-4);
+  padding: var(--um-space-3) var(--um-space-6);
+  border-bottom: 1px solid var(--um-surface-subtle);
   font-size: 16px;
   font-weight: 600;
+  line-height: 24px;
+}
+
+.new-analysis legend + * {
+  clear: both;
 }
 
 .version-list {
@@ -60,4 +69,24 @@
 
 .new-analysis > label input {
   width: min(420px, 100%);
+}
+
+.key-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--um-space-3);
+  margin-bottom: var(--um-space-3);
+}
+
+.key-row label {
+  margin: 0;
+}
+
+.key-row button {
+  min-height: 36px;
+}
+
+.new-analysis .card label {
+  margin-right: var(--um-space-4);
 }

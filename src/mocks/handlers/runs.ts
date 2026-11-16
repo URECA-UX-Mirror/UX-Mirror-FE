@@ -1,4 +1,4 @@
-import { bypass, delay, http, HttpResponse } from 'msw'
+import { delay, http, HttpResponse } from 'msw'
 import type {
   CreateRunRequestDto,
   CreateRunResponseDto,
@@ -12,7 +12,10 @@ import {
   buildRun,
   buildSteps,
   getTiming,
+  scenarioOf,
 } from '../fixtures/run.ts'
+import { stepSpecs } from '../fixtures/scenario.ts'
+import { screenshotSvg } from '../fixtures/screenshot.ts'
 import { issueOverride } from '../fixtures/runResult.ts'
 import {
   addRun,
@@ -193,7 +196,7 @@ export const runsHandlers = [
     return HttpResponse.json(override ?? buildIssues(record, now))
   }),
 
-  // 정적 PNG(1440×900)를 돌려준다. 저장된 Step이 아니면 404(서버도 RUN_NOT_FOUND를 쓴다).
+  // 화면별 mock 이미지(SVG, 1440×900)를 돌려준다. 저장된 Step이 아니면 404(서버도 RUN_NOT_FOUND를 쓴다).
   http.get(
     apiUrl('/api/runs/:runId/screenshots/:stepId'),
     async ({ params, request }) => {
@@ -216,11 +219,12 @@ export const runsHandlers = [
           '스크린샷을 찾을 수 없습니다',
         )
       }
-      const image = await fetch(
-        bypass(new URL('/mock/screenshot.png', location.origin)),
-      )
-      return new HttpResponse(await image.arrayBuffer(), {
-        headers: { 'Content-Type': 'image/png' },
+      const scenario = scenarioOf(record)
+      const spec = stepSpecs(scenario)[stepId - 1]
+      // 홈 상단 메뉴 라벨만 버전마다 다르다(Before `이용정보` / After `주문·환불`)
+      const menuLabel = scenario === 'after' ? '주문·환불' : '이용정보'
+      return new HttpResponse(screenshotSvg(spec.pageKey, menuLabel), {
+        headers: { 'Content-Type': 'image/svg+xml; charset=utf-8' },
       })
     },
   ),

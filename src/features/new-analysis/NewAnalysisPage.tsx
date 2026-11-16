@@ -129,16 +129,26 @@ function NewAnalysisContent() {
   const code = isApiError(submitError) ? submitError.code : null
   return (
     <section className="new-analysis">
-      <h1>새 UX 분석</h1>
-      <p>{SITE.name}의 두 버전을 같은 조건으로 분석합니다.</p>
-      <p><Link to="/replay">저장된 결과 보기</Link></p>
-      <p>분석 사이트: {SITE.name}. 각 버전의 분석을 시작하면 해당 버전의 사이트가 사용됩니다.</p>
-      <label>실험 키 <input value={keyInput} placeholder="새 실험은 비워 두세요" onChange={(e) => setKeyInput(e.target.value)} /></label>
-      <button type="button" disabled={!KEY_PATTERN.test(keyInput)} onClick={() => selectExperiment(keyInput)}>조회</button>
-      {!!keyInput && !KEY_PATTERN.test(keyInput) && <p role="alert">실험 키는 영문, 숫자, 밑줄, 하이픈으로 1~64자 입력해 주세요.</p>}
-      {!validKey && <p role="alert">주소의 실험 키가 올바르지 않습니다.</p>}
-      <button type="button" onClick={() => selectExperiment('')}>새 실험</button>
-      <p>기존 실험 키를 입력하면 서버에서 실행 기록과 분석 조건을 불러옵니다.</p>
+      <header className="page-header">
+        <h1>새 UX 분석</h1>
+        <p className="page-lead">{SITE.name}의 두 버전을 같은 조건으로 분석합니다.</p>
+      </header>
+      <section className="card" aria-label="분석 대상">
+        <h2>분석 대상</h2>
+        <p>분석 사이트: {SITE.name}. 각 버전의 분석을 시작하면 해당 버전의 사이트가 사용됩니다.</p>
+        <p><Link to="/replay">저장된 결과 보기</Link></p>
+      </section>
+      <section className="card" aria-label="실험">
+        <h2>실험</h2>
+        <div className="key-row">
+          <label>실험 키 <input value={keyInput} placeholder="새 실험은 비워 두세요" onChange={(e) => setKeyInput(e.target.value)} /></label>
+          <button type="button" disabled={!KEY_PATTERN.test(keyInput)} onClick={() => selectExperiment(keyInput)}>조회</button>
+          <button type="button" onClick={() => selectExperiment('')}>새 실험</button>
+        </div>
+        {!!keyInput && !KEY_PATTERN.test(keyInput) && <p role="alert">실험 키는 영문, 숫자, 밑줄, 하이픈으로 1~64자 입력해 주세요.</p>}
+        {!validKey && <p role="alert">주소의 실험 키가 올바르지 않습니다.</p>}
+        <p className="muted">기존 실험 키를 입력하면 서버에서 실행 기록과 분석 조건을 불러옵니다.</p>
+      </section>
       {presetError ? <ErrorNotice error={presetError} onRetry={() => setPresetVersion((v) => v + 1)} /> : !preset ? <p>프리셋을 불러오는 중입니다.</p> : !preset.goals.length || !preset.personas.length ? <p role="alert">선택할 목표 또는 사용자 유형이 없어 분석을 시작할 수 없습니다.</p> : null}
       <fieldset disabled={!preset || !!firstId}>
         <legend>분석 조건</legend>
@@ -162,11 +172,13 @@ function NewAnalysisContent() {
       })}</div>
       {listFailed && validKey && <button type="button" onClick={() => setListVersion((v) => v + 1)}>실행 기록 다시 조회</button>}
       <button type="button" disabled>+ 버전 추가</button> <span>v3 (준비 중)</span>
-      <h2>버전 비교</h2>
-      <label>첫 번째 버전 <select value={compareA} onChange={(e) => setCompareA(e.target.value as Variant)}>{VERSIONS.map((v) => <option value={v.variant} key={v.variant}>{v.name}</option>)}</select></label>
-      <label>두 번째 버전 <select value={compareB} onChange={(e) => setCompareB(e.target.value as Variant)}>{VERSIONS.map((v) => <option value={v.variant} key={v.variant}>{v.name}</option>)}</select></label>
-      {compareA === compareB && <p role="alert">서로 다른 버전을 선택해 주세요.</p>}
-      <button type="button" className="primary" disabled={!bothFinished || compareA === compareB || !experimentKey || keyInput !== experimentKey} onClick={() => navigate(`/comparisons/${encodeURIComponent(experimentKey)}`)}>비교하기</button>
+      <section className="card" aria-label="버전 비교">
+        <h2>버전 비교</h2>
+        <label>첫 번째 버전 <select value={compareA} onChange={(e) => setCompareA(e.target.value as Variant)}>{VERSIONS.map((v) => <option value={v.variant} key={v.variant}>{v.name}</option>)}</select></label>
+        <label>두 번째 버전 <select value={compareB} onChange={(e) => setCompareB(e.target.value as Variant)}>{VERSIONS.map((v) => <option value={v.variant} key={v.variant}>{v.name}</option>)}</select></label>
+        {compareA === compareB && <p role="alert">서로 다른 버전을 선택해 주세요.</p>}
+        <button type="button" className="primary" disabled={!bothFinished || compareA === compareB || !experimentKey || keyInput !== experimentKey} onClick={() => navigate(`/comparisons/${encodeURIComponent(experimentKey)}`)}>비교하기</button>
+      </section>
     </section>
   )
 }

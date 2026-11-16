@@ -1,11 +1,12 @@
 import { toIssueList } from '../adapters/issue.ts'
-import { toCreatedRun, toRun } from '../adapters/run.ts'
+import { toCreatedRun, toRun, toRunList } from '../adapters/run.ts'
 import { toStepList } from '../adapters/step.ts'
 import type {
   CreatedRun,
   CreateRunInput,
   IssueList,
   Run,
+  RunListItem,
   Step,
 } from '../domain/types.ts'
 import { apiUrl, request } from './client.ts'
@@ -14,6 +15,7 @@ import type {
   CreateRunResponseDto,
   IssueListDto,
   RunDto,
+  RunListDto,
   StepListDto,
 } from './dto/index.ts'
 
@@ -37,6 +39,23 @@ export async function createRun(
       body,
       signal,
     }),
+  )
+}
+
+/**
+ * GET /api/runs (계약 §17.10). 최신 Run이 먼저 온다.
+ * 이 브라우저에서 시작하지 않은 Run과 저장된 실측 Run도 포함된다.
+ */
+export async function listRuns(
+  filter: { experimentKey?: string; variant?: 'before' | 'after' } = {},
+  signal?: AbortSignal,
+): Promise<RunListItem[]> {
+  const query = new URLSearchParams()
+  if (filter.experimentKey) query.set('experimentKey', filter.experimentKey)
+  if (filter.variant) query.set('variant', filter.variant)
+  const suffix = query.size > 0 ? `?${query.toString()}` : ''
+  return toRunList(
+    await request<RunListDto>(`/api/runs${suffix}`, { signal }),
   )
 }
 

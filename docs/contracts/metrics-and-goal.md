@@ -44,6 +44,6 @@
 - Issue는 "AI 탐색 기록 기반의 검토 후보"이며 실제 사용자 결함이 아니다. `reviewPriority`는 표시 순서이며 심각도가 아니다(`계약 §4.13`). 우선순위는 "우선 검토"와 "일반 검토" 두 단계로만 표시하고 "높음/낮음" 같은 심각도 표현을 쓰지 않는다.
 - 비교 결과는 모델의 관찰값이다. 실제 사용자 행동 변화를 단정하는 문구를 쓰지 않는다.
 - Issue 비교는 두 Run의 `detectedIssueTypes`를 나란히 "탐지됨 / 탐지되지 않음"으로 표시하고 "해소됨" 판정을 만들지 않는다.
-- Run 단위 값(`navigationCost`, `stepCount`, `backCount` 등)의 증감은 서버가 주지 않으므로 before/after만 표시한다. [OI-5](../operations/open_issue.md#oi-5)
+- Run 단위 값(`navigationCost`, `stepCount`, `backCount` 등)은 before/after를 나란히만 표시한다. P0에서 Run 단위 `delta`는 서버 계약에 없고, 프론트도 정수 뺄셈이나 상승·하락 화살표를 만들지 않는다. step이 줄었다고 항상 개선은 아니고 목표 미달성 Run과의 단순 차이는 오해를 만들기 때문이다. P0의 정량 비교는 화면 단위 확률·엔트로피·Top-2 margin의 `delta`로 한정한다. Run 단위 `delta`는 `P1`에서 `After - Before`, 비교 불가 시 `null`로 서버 계약에 추가할 수 있다.
 - 값이 `null`이면 0으로 바꾸지 않는다.
 - 모델 확률이 1에 가까워도 목표 도달 여부는 `goalReached`로만 표시한다.

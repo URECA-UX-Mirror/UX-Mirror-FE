@@ -83,6 +83,27 @@ export interface PathVisitDto {
   stepId: number | null
 }
 
+/** GET /api/runs 응답의 원소 (계약 §17.10). 최신 Run이 먼저 온다. */
+export interface RunListItemDto {
+  runId: string
+  experimentKey: string
+  variant: Variant
+  status: RunStatus
+  terminationReason: string | null
+  validity: 'VALID' | 'INVALID' | null
+  replacementRunId: string | null
+  resultOrigin: ResultOrigin
+  /** `summary`가 없으면 `null` */
+  goalReached: boolean | null
+  createdAt: string
+  finishedAt: string | null
+}
+
+export interface RunListDto {
+  count: number
+  items: RunListItemDto[]
+}
+
 /** POST /api/runs 요청 (계약 §5.1, §17.2). 선택 필드는 보내지 않는다. */
 export interface CreateRunRequestDto {
   experimentKey: string

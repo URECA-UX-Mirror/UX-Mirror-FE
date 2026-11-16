@@ -24,9 +24,9 @@ npm run build      # 배포용 빌드 (dist/)
 
 | 화면 | 데이터 (백엔드 API) |
 | --- | --- |
-| ① 새 UX 분석 | `GET /api/presets`, `GET /api/health`, `POST /api/runs` |
+| ① 새 UX 분석 | `GET /api/presets`, `GET /api/health`, `GET /api/runs`, `POST /api/runs` |
 | ② AI 탐색 진행 | `GET /api/health`, `GET /api/runs/{runId}`, `/steps`, `/screenshots/{stepId}` |
-| ③ UX 탐색 분석 결과 | `GET /api/health`, `GET /api/runs/{runId}`, `/steps`, `/screenshots/{stepId}`, `/issues` |
+| ③ UX 탐색 분석 결과 | `GET /api/health`, `GET /api/runs`, `GET /api/runs/{runId}`, `/steps`, `/screenshots/{stepId}`, `/issues` |
 | ④ 버전 비교 | `GET /api/health`, `GET /api/comparisons/{experimentKey}`, `/api/runs/{runId}/steps`, `/api/runs/{runId}/screenshots/{stepId}` |
 
 화면별 상태 관리, 요청·응답 형식, bbox 변환은 [docs/README.md](docs/README.md)의 문서를 따른다.

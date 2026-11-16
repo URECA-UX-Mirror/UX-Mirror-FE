@@ -2,12 +2,14 @@ import type {
   CreateRunResponseDto,
   PathVisitDto,
   RunDto,
+  RunListDto,
   RunSummaryDto,
 } from '../api/dto/index.ts'
 import type {
   CreatedRun,
   PathVisit,
   Run,
+  RunListItem,
   RunSummary,
 } from '../domain/types.ts'
 import { toErrorInfoOrNull } from './common.ts'
@@ -81,6 +83,23 @@ export function toRun(dto: RunDto): Run {
     invalidReason: dto.invalidReason,
     replacementRunId: dto.replacementRunId,
   }
+}
+
+/** 서버 순서(최신순)를 그대로 유지한다. */
+export function toRunList(dto: RunListDto): RunListItem[] {
+  return dto.items.map((item) => ({
+    runId: item.runId,
+    experimentKey: item.experimentKey,
+    variant: item.variant,
+    status: item.status,
+    terminationReason: item.terminationReason,
+    validity: item.validity,
+    replacementRunId: item.replacementRunId,
+    resultOrigin: item.resultOrigin,
+    goalReached: item.goalReached,
+    createdAt: item.createdAt,
+    finishedAt: item.finishedAt,
+  }))
 }
 
 export function toCreatedRun(dto: CreateRunResponseDto): CreatedRun {

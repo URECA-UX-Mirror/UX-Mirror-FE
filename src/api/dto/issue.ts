@@ -17,7 +17,8 @@ export interface IssueDto {
   pageSignature: string | null
   title: string
   description: string
-  evidence: Record<string, number | string>
+  /** `issueType`별 키가 다르고 값이 목록일 수 있다(예: `visitCauses`). 화면에서 타입을 확인한 뒤 표시한다 */
+  evidence: Record<string, unknown>
   reviewPriority: ReviewPriority
   occurrenceCount: number
   createdAt: string

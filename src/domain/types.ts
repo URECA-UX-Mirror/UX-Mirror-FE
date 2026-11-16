@@ -50,10 +50,12 @@ export interface Preset {
 }
 
 export interface Health {
+  /** `READY`(모델·브라우저·에이전트 모두 준비) 또는 `NOT_READY`. 모르는 값은 준비되지 않은 것으로 본다 */
   status: string
   backendReady: boolean
   modelReady: boolean
   browserReady: boolean
+  agentReady: boolean
   /** 실행 중인 Run이 있으면 그 `runId`, 없으면 `null` */
   activeRunId: string | null
   checkedAt: string
@@ -130,6 +132,22 @@ export interface Run {
   replacementRunId: string | null
 }
 
+/** Run 목록의 한 줄 (`GET /api/runs`). 전체 Run은 `getRun`으로 조회한다 */
+export interface RunListItem {
+  runId: string
+  experimentKey: string
+  variant: Open<Variant>
+  status: Open<RunStatus>
+  terminationReason: string | null
+  validity: 'VALID' | 'INVALID' | null
+  replacementRunId: string | null
+  resultOrigin: Open<ResultOrigin>
+  /** `summary`가 없으면 `null` */
+  goalReached: boolean | null
+  createdAt: string
+  finishedAt: string | null
+}
+
 export interface CreatedRun {
   runId: string
   experimentKey: string
@@ -154,6 +172,8 @@ export interface Candidate {
   label: string
   region: string
   context: string | null
+  /** 목적지 경로. 화면에서 후보를 설명할 때만 쓴다 */
+  href: string
   bbox: BoundingBox
   /** 버전 간 같은 의미의 후보를 잇는 키. `optionId`로 매칭하지 않는다 */
   semanticKey: string
@@ -226,8 +246,8 @@ export interface Issue {
   pageKey: string | null
   title: string
   description: string
-  /** `issueType`별 키가 다르다. 표시 이름은 화면에서 정한다 */
-  evidence: Record<string, number | string>
+  /** `issueType`별 키가 다르고 값이 목록일 수 있다. 표시 이름과 타입 확인은 화면에서 한다 */
+  evidence: Record<string, unknown>
   reviewPriority: Open<ReviewPriority>
   occurrenceCount: number
 }

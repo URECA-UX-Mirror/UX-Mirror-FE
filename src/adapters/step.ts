@@ -20,6 +20,7 @@ export function toStep(dto: StepDto): Step {
       label: candidate.label,
       region: candidate.region,
       context: candidate.context,
+      href: candidate.href,
       bbox: candidate.bbox,
       semanticKey: candidate.semanticKey,
       probability: candidate.probability,

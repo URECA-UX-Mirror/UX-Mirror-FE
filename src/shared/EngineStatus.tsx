@@ -22,7 +22,8 @@ export function EngineStatus({ refreshKey }: EngineStatusProps) {
     return <span className="engine-status">엔진 상태 확인 불가</span>
   }
 
-  const ready = health.backendReady && health.modelReady && health.browserReady
+  // 모델·브라우저·에이전트가 모두 준비되면 서버가 `READY`를 준다(계약 §17.8)
+  const ready = health.status === 'READY'
   return (
     <span className="engine-status">
       {ready ? '엔진 준비 완료' : '엔진 준비 중'}

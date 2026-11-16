@@ -60,6 +60,8 @@ export interface StepCandidateDto {
   label: string
   region: string
   context: string | null
+  /** 정규화된 쇼핑몰 내부 경로 (예: `/shop/orders`). v1.3.4부터 프론트에 전달된다 */
+  href: string
   bbox: BoundingBox
   semanticKey: string
   actionType: 'CLICK'

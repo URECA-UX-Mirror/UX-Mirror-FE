@@ -17,7 +17,8 @@ export function toHealth(dto: HealthDto): Health {
     backendReady: dto.backend.ready,
     modelReady: dto.model.ready,
     browserReady: dto.browser.ready,
-    activeRunId: dto.activeRun?.runId ?? null,
+    agentReady: dto.agent.ready,
+    activeRunId: dto.activeRun ?? null,
     checkedAt: dto.checkedAt,
   }
 }

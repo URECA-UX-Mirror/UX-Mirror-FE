@@ -129,11 +129,12 @@ interface CandidateSet {             // §8.2
   backOptionId: string | null;       // GO_BACK 선택지 ID. 후보 객체가 아니다
   candidates: StepCandidate[];       // GO_BACK 제외, 전달 순서
 }
-interface StepCandidate {            // §8.1. href·domIndex는 프론트에 전달되지 않는다
+interface StepCandidate {            // §8.1. domIndex는 프론트에 전달되지 않는다
   optionId: string;                  // 화면마다 option_01부터
   label: string;                     // 화면에 보이는 글자
   region: string;                    // "상단 메뉴" | "본문" | "사이드 메뉴" | "경로 표시" | "하단"
   context: string | null;
+  href: string;                      // 목적지 경로(예: /shop/orders). v1.3.4부터 프론트에 전달
   bbox: { x: number; y: number; width: number; height: number };   // 항상 존재
   semanticKey: string;               // 버전 간 같은 의미의 후보 대응
   actionType: "CLICK";
@@ -176,8 +177,7 @@ interface ActionRecord {             // §11.2
 
 - **모델의 선택과 실제 행동은 별개다.** `decision.selectedOptionId`는 모델의 선택이고 `action.executedOptionId`는 실제로 실행한 후보다. 실행하지 못했으면 `null`이다. `계약 §11.2`
 - GO_BACK은 후보가 아니다. `decision.selectedActionType = "GO_BACK"`이면 `selectedOptionId == candidateSet.backOptionId`이고, 이때 `candidates[].selected`는 모두 `false`다. GO_BACK 확률은 `decision.goBackProbability`다. `계약 §8.1`
-- `Step`에는 후보별 확률 맵(`probabilities`)과 `confidence`가 없다. 후보별 확률은 `StepCandidate.probability`다.
-- 확률 합계는 최대 0.02까지 오차를 허용한다. `계약 §12.3`
+- `Step`에는 후보별 확률 맵(`probabilities`)과 `confidence`가 없다. 후보별 확률은 `StepCandidate.probability`이고 합계는 최대 0.02까지 오차를 허용한다. `계약 §12.3`
 
 ## Issue (`계약 §14`)
 
@@ -194,14 +194,14 @@ interface Issue {
   pageSignature: string | null;
   title: string;
   description: string;
-  evidence: Record<string, number | string>;   // issueType별 키(§14.2)
+  evidence: Record<string, unknown>;   // issueType별 키(§14.2). 값이 목록일 수 있다(visitCauses)
   reviewPriority: ReviewPriority;
   occurrenceCount: number;
   createdAt: string;
 }
 ```
 
-`evidence`의 키는 종류마다 다르다(`계약 §14.2`). 프론트는 키별 표시 이름 표를 따로 두고, 표에 없는 키는 키 이름 그대로 보인다.
+`evidence`의 키는 종류마다 다르고 값이 목록일 수 있다(`계약 §14.2`). 프론트는 키별 표시 이름 표를 따로 두고 값의 타입을 확인한 뒤 표시하며, 표에 없는 키는 키 이름 그대로 보인다.
 
 ## ComparisonResult (`계약 §15`)
 
@@ -288,7 +288,7 @@ interface ErrorDetail {
 | 식별자 | 목적 | 고유성 범위 | 생성 주체 | 전달 방식 |
 | --- | --- | --- | --- | --- |
 | `runId` | 개별 분석 실행 | 전체 | 백엔드 (`계약 §17.2`) | `POST /api/runs` 응답, 경로 파라미터 |
-| `experimentKey` | Before/After 비교 쌍 | 전체. 쌍마다 고유 (`§5.1`) | 요청에 필수이므로 프론트가 생성한다 (규칙은 `임시`, [OI-1](../operations/open_issue.md#oi-1)) | 요청 본문, 응답, 경로 파라미터 |
+| `experimentKey` | Before/After 비교 쌍 | 전체. 쌍마다 고유 (`§5.1`) | 프론트가 만든다. `[A-Za-z0-9_-]` 1~64자 (`§5.1`) | 요청 본문, 응답, 경로 파라미터 |
 | `stepId` | Run 안의 탐색 단계 | 같은 `runId` 안 (1부터 정수) | 백엔드 | `Step`, 스크린샷 경로 |
 | `optionId` | 한 화면(Step) 안의 후보 | 같은 Step 안 (`option_01`…) | 백엔드 | `StepCandidate`, `decision` |
 | `semanticKey` | 버전 간 같은 의미의 후보 | 같은 사이트·화면 | 백엔드 (형식 `영역>목적지#순번`) | `StepCandidate`, `CandidateComparison` |

@@ -9,6 +9,7 @@ npm install
 copy .env.example .env
 npm run dev        # http://localhost:5173
 npm run build      # 배포용 빌드 (dist/)
+npm test           # 자동 테스트 1회 실행
 ```
 
 ## 설정

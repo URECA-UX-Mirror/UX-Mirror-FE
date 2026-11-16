@@ -29,7 +29,9 @@ export function ReplayPage() {
       {runs.status === 'failed' ? (
         <ErrorNotice error={runs.error} onRetry={runs.retry} />
       ) : !runs.data ? (
-        <p role="status">저장된 실행을 불러오는 중</p>
+        <p role="status">
+          {runs.retrying ? '연결 재시도 중' : '저장된 실행을 불러오는 중'}
+        </p>
       ) : runs.data.length === 0 ? (
         <p role="status">저장된 실행이 없습니다</p>
       ) : (
@@ -49,7 +51,9 @@ export function ReplayPage() {
         </ul>
       )}
 
-      <Link to={`/comparisons/${key}`}>버전 비교 보기</Link>
+      {runs.data && runs.data.length > 0 ? (
+        <Link to={`/comparisons/${key}`}>버전 비교 보기</Link>
+      ) : null}
     </section>
   )
 }

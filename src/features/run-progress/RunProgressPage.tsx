@@ -69,7 +69,7 @@ function RunProgress({ runId }: { runId: string }) {
       <StepViewer run={run} steps={steps} terminal={terminal} />
 
       {terminal ? (
-        <Link className="run-result-link" to={`/runs/${run.runId}/result`}>
+        <Link className="run-result-link" to={`/runs/${encodeURIComponent(run.runId)}/result`}>
           분석 결과 보기
         </Link>
       ) : (
@@ -109,6 +109,9 @@ function ProgressCells({
     <div>
       <p>
         진행 {run.progress.stepCount} / {run.progress.maxSteps}
+        {run.progress.currentPageKey === null
+          ? null
+          : ` · 현재 화면 ${run.progress.currentPageKey}`}
       </p>
       <ol className="progress-cells" aria-label="탐색 단계">
         {Array.from({ length: total }, (_, index) => {

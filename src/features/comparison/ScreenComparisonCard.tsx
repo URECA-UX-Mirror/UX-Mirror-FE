@@ -70,7 +70,11 @@ function ScreenshotPane({
   } else if (!step) {
     body = (
       <p className="muted" role="status">
-        {stepsState.failed ? '화면 정보를 불러오지 못했습니다' : '화면 준비 중'}
+        {stepsState.failed
+          ? '화면 정보를 불러오지 못했습니다'
+          : stepsState.loading
+            ? '화면 준비 중'
+            : '화면 없음'}
       </p>
     )
   } else {
@@ -86,6 +90,7 @@ function ScreenshotPane({
           bbox: candidate.bbox,
           label: candidate.label,
           probability: candidate.probability,
+          highlighted: candidate.selected,
         }))}
         runInProgress={false}
       />
@@ -173,6 +178,11 @@ export function ScreenComparisonCard({
         />
       </div>
 
+      {/* 스크린샷 박스의 확률 배지도 있으므로 후보 대응 표가 없어도 항상 둔다 */}
+      <p className="probability-note">
+        모델의 선택 확률이며 실제 사용자의 클릭 확률이 아닙니다
+      </p>
+
       {screen.candidateComparisons.length > 0 ? (
         <>
           <h4>후보 대응</h4>
@@ -206,9 +216,6 @@ export function ScreenComparisonCard({
               ))}
             </tbody>
           </table>
-          <p className="probability-note">
-            모델의 선택 확률이며 실제 사용자의 클릭 확률이 아닙니다
-          </p>
         </>
       ) : null}
 

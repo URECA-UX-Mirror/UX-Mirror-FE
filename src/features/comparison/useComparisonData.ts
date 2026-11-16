@@ -48,6 +48,8 @@ export interface RunStepsState {
   /** `stepId`로 찾는 Step. 아직 받지 못했거나 실패하면 비어 있다 */
   steps: ReadonlyMap<number, Step>
   failed: boolean
+  /** 아직 응답을 받지 못했으면 true. 끝난 뒤 Step이 없는 것과 구분한다 */
+  loading: boolean
 }
 
 interface StepsLoaded {
@@ -81,5 +83,6 @@ export function useRunSteps(runId: string): RunStepsState {
   return {
     steps: current?.steps ?? new Map(),
     failed: current?.failed ?? false,
+    loading: current === null,
   }
 }

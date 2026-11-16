@@ -22,8 +22,9 @@
 - `.env.example`을 복사해 `.env`를 만든다. `.env`는 Git에 올리지 않는다.
 - 값은 마지막 `/` 없이 쓴다. API 경로는 이 값에 `/api/...`를 붙여 만든다. 스크린샷 주소도 같은 방식으로 만든다.
 - 변경하면 개발 서버를 다시 시작해야 반영된다.
+- `.env.example`을 그대로 복사하면 `VITE_USE_MOCK=true`라 mock 데이터가 나온다. 실제 서버로 시연·확인할 때는 `false`로 바꾼다.
 - `VITE_USE_MOCK`이 정확히 `true`일 때만 MSW(Mock Service Worker)가 API 응답을 대신한다. 그 밖의 값이나 미설정은 실제 백엔드를 호출한다. 이때 `public/mockServiceWorker.js`와 `src/mocks/`는 불러오지 않는다.
-- mock 모드의 요청은 `VITE_API_BASE_URL`로 나가는 실제 요청처럼 개발자 도구 Network 탭에 보이고, Service Worker가 응답한다. Service Worker를 지원하지 않는 환경에서는 mock이 시작되지 않고 콘솔에 오류가 남는다.
+- mock 모드의 요청은 `VITE_API_BASE_URL`로 나가는 실제 요청처럼 개발자 도구 Network 탭에 보이고, Service Worker가 응답한다. Service Worker를 지원하지 않는 환경에서는 mock이 시작되지 않고 콘솔에 오류가 남으며, 이때 요청은 실제 서버로 나가고 헤더에 "MOCK 시작 실패 · 실제 서버로 요청 중"이 표시된다. mock이 시작되면 헤더에 "MOCK 데이터"가 표시된다.
 - mock 응답 형식과 시나리오(시드 Run, 오류 재현 키)는 `src/mocks/handlers/`의 주석을 따른다.
 
 ## 비밀값 규칙

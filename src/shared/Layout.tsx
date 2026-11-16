@@ -1,5 +1,6 @@
 import { Link, Outlet, useLocation } from 'react-router'
 import { useMock } from '../config/env.ts'
+import { mockRuntime } from '../config/runtime.ts'
 import { EngineStatus } from './EngineStatus.tsx'
 
 /** 모든 화면의 공통 영역. 엔진 상태는 여기서만 표시한다. */
@@ -13,7 +14,11 @@ export function Layout() {
           UX MIRROR
         </Link>
         <div className="layout-status">
-          {useMock ? <span className="mock-flag">MOCK 데이터</span> : null}
+          {mockRuntime.running ? (
+            <span className="mock-flag">MOCK 데이터</span>
+          ) : useMock ? (
+            <span className="mock-flag">MOCK 시작 실패 · 실제 서버로 요청 중</span>
+          ) : null}
           <EngineStatus refreshKey={pathname} />
         </div>
       </header>

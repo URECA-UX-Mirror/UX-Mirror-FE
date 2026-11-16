@@ -190,13 +190,20 @@ export const runsHandlers = [
   // 정적 PNG(1440×900)를 돌려준다. 저장된 Step이 아니면 404(서버도 RUN_NOT_FOUND를 쓴다).
   http.get(
     apiUrl('/api/runs/:runId/screenshots/:stepId'),
-    async ({ params }) => {
+    async ({ params, request }) => {
       await delay(80)
       const record = findRun(String(params.runId))
       const stepId = Number(params.stepId)
       if (!record) return runNotFound()
       const { doneSteps } = getTiming(record, Date.now())
-      if (!Number.isInteger(stepId) || stepId < 1 || stepId > doneSteps) {
+      // 오버레이 이미지는 mock에 없다. 없으면 404다(계약 §17.7)
+      const kind = new URL(request.url).searchParams.get('kind')
+      if (
+        kind === 'overlay' ||
+        !Number.isInteger(stepId) ||
+        stepId < 1 ||
+        stepId > doneSteps
+      ) {
         return errorResponse(
           404,
           'RUN_NOT_FOUND',

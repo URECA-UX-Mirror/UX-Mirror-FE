@@ -13,19 +13,19 @@
 
 | # | 화면 | 사용 API | 화면 상태(서버 데이터 아님) |
 | --- | --- | --- | --- |
-| 1 | 새 UX 분석 | `GET /api/presets`, `GET /api/health`, `POST /api/runs` | 선택한 목표·사용자 유형·최대 탐색 횟수, 비교할 두 버전 선택 |
+| 1 | 새 UX 분석 | `GET /api/presets`, `GET /api/health`, `GET /api/runs`, `POST /api/runs` | 선택한 목표·사용자 유형·최대 탐색 횟수, 비교할 두 버전 선택 |
 | 2 | AI 탐색 진행 | `GET /api/health`, `GET /api/runs/{runId}`, `/steps`, `/screenshots/{stepId}` | 열람 중인 stepId(기록 열람 / 최신), 후보 목록 펼침 |
-| 3 | UX 탐색 분석 결과 | `GET /api/health`, `GET /api/runs/{runId}`, `/steps`, `/screenshots/{stepId}`, `/issues` | 선택한 경로 노드, 열린 Issue 상세, 지표 패널 펼침 |
+| 3 | UX 탐색 분석 결과 | `GET /api/health`, `GET /api/runs`, `GET /api/runs/{runId}`, `/steps`, `/screenshots/{stepId}`, `/issues` | 선택한 경로 노드, 열린 Issue 상세, 지표 패널 펼침 |
 | 4 | 버전 비교 | `GET /api/health`, `GET /api/comparisons/{experimentKey}`, `/api/runs/{runId}/steps`, `/api/runs/{runId}/screenshots/{stepId}` | 지표 표 펼침 |
 
-`GET /api/health`는 모든 화면의 공통 영역(엔진 상태 표시)에서 호출한다. 화면 1에서는 시작 가능 여부 판단에도 쓴다. 화면 4는 `CandidateComparison`에 `bbox`가 없으므로 `beforeRunId`·`afterRunId`의 `/steps`에서 해당 Step을 가져온다.
+`GET /api/health`는 모든 화면의 공통 영역(엔진 상태 표시)에서 호출하고, 라우트가 바뀔 때마다 다시 조회한다(다시 조회하는 동안은 이전 결과를 보인다). 화면 1에서는 시작 가능 여부 판단에도 쓴다. 화면 4는 `CandidateComparison`에 `bbox`가 없으므로 `beforeRunId`·`afterRunId`의 `/steps`에서 해당 Step을 가져온다.
 
 ### 1. 새 UX 분석
 
-- 사이트(MORO MARKET)·버전 이름·변경 내용·최대 탐색 횟수 범위(1~15, 기본 8)는 프리셋 응답에 없으므로 프론트 상수다. 목표·사용자 유형은 `GET /api/presets`에서 받는다. [OI-6](../operations/open_issue.md#oi-6)
+- 사이트(MORO MARKET)·버전 이름·변경 내용(Before `이용정보` → After `주문·환불`, 상단 메뉴 라벨 한 곳)·최대 탐색 횟수 범위(1~15, 기본 8)는 프리셋 응답에 없으므로 프론트 상수다. 목표·사용자 유형은 `GET /api/presets`에서 받는다.
 - 프리셋과 일치하지 않는 주소는 입력 단계에서 막고 "지원하지 않는 웹사이트" 안내를 보인다. 검증은 상수 기준이며 별도 API는 호출하지 않는다.
 - 버전 표의 행은 `variant`(`before`, `after`)에 대응한다. 표시 이름은 `v1 (변경 전)`, `v2 (변경 후)`다. 두 Run은 같은 `experimentKey`로 묶고 `goalId`·`personaId`·`maxSteps`를 같게 보낸다.
-- 행의 "마지막 Run ID·분석 상태·목표 달성 상태"는 해당 variant의 최신 Run으로 채운다. Run 목록 API가 없으므로 이 브라우저에서 시작한 `runId`를 `localStorage`에 기록해 대신한다. [OI-2](../operations/open_issue.md#oi-2)
+- 행의 "마지막 Run ID·분석 상태·목표 달성 상태"는 `GET /api/runs?experimentKey=&variant=`의 첫 항목(최신 Run)으로 채운다.
 - `+ 버전 추가`와 `v3` 행은 `P1`이라 비활성으로 둔다.
 - 비교 버튼은 두 버전의 Run이 모두 종료 상태일 때만 활성화하고, 같은 버전을 두 번 고르면 오류를 보인다.
 - 엔진 상태는 `GET /api/health`로 표시한다. `activeRun`이 있으면 새 분석 시작을 막는다.
@@ -41,8 +41,8 @@
 ### 3. UX 탐색 분석 결과
 
 - 요약(종료 상태, 목표 달성, 탐색 단계, CLICK·GO_BACK 횟수, 검토 후보 수)은 `Run.summary`를 그대로 쓴다.
-- 탐색 경로의 노드는 `summary.path`(`PathVisit`)다. 노드에 `stepId`가 있으면 해당 Step의 스크린샷·확률·지표를 보인다. `stepId`가 `null`인 노드(시작 화면, 시스템 BACK)와 도착 화면은 이미지 없이 표시한다. [OI-3](../operations/open_issue.md#oi-3)
-- "다른 실행 보기"는 Run 목록이 필요하다. 정해지기 전에는 `localStorage` 기록을 쓴다. [OI-2](../operations/open_issue.md#oi-2)
+- 탐색 경로의 노드는 `summary.path`(`PathVisit`)다. `PathVisit.stepId`는 그 노드에 **들어오게 만든** Step이다(시작 화면과 시스템 BACK은 `null`, `계약 §6.4`). 한 노드의 화면에서 모델이 판단한 Step은 **다음 노드의 `stepId`**이므로, 노드를 고르면 다음 노드의 `stepId`로 Step·스크린샷·확률·지표를 찾는다. 다음 노드가 없거나(도착 화면) 그 `stepId`가 `null`이면 이미지 없이 표시한다. [OI-3](../operations/open_issue.md#oi-3)
+- "다른 실행 보기"는 `GET /api/runs?experimentKey=`의 목록이다.
 - Issue는 `GET /api/runs/{runId}/issues`의 서버 순서를 그대로 쓰고 프론트가 다시 정렬하지 않는다.
 
 ### 4. 버전 비교
@@ -89,19 +89,24 @@
 - 서버 데이터(Run, Step, 비교 결과)와 화면 상태(선택한 단계, 펼침 여부)를 섞지 않는다.
 - 값 변환(확률 ×100, 소수점 반올림, 날짜 표기)은 표시 단계에서만 하고 원본 값은 보존한다.
 
-## 폴더 구조(제안, 아직 생성하지 않음)
+## 폴더 구조
 
 ```
 src/
-  config/env.ts            # VITE_API_BASE_URL 등 환경변수 한 곳에서 읽기
+  config/env.ts            # VITE_API_BASE_URL, VITE_USE_MOCK을 한 곳에서 읽기
   api/
-    client.ts              # fetch 래퍼, ErrorDetail 변환
-    runs.ts, presets.ts, comparisons.ts, health.ts
+    client.ts              # fetch 래퍼, ApiError(ErrorDetail 변환), apiUrl
+    runs.ts, presets.ts, comparisons.ts, health.ts   # endpoint 함수, screenshotUrl
     dto/                   # 서버 응답 타입 (계약서 그대로)
   adapters/                # dto -> domain 변환
-  domain/                  # Run, Step, Candidate, Issue, Comparison
-  mocks/                   # 응답 DTO 형식의 fixture
+  domain/                  # types.ts(도메인 모델), runStatus.ts(isTerminalStatus)
+  mocks/                   # MSW. browser.ts, store.ts, errors.ts, fixtures/, handlers/(endpoint별)
   features/
-    new-analysis/, run-progress/, run-result/, comparison/
-  shared/                  # 공용 컴포넌트, 포맷터, 폴링 훅
+    new-analysis/, run-progress/, run-result/, comparison/   # 화면별. 라우트는 App.tsx
+  shared/                  # Layout, EngineStatus, ErrorNotice, ResultOriginBadge, useHealth
+public/
+  mockServiceWorker.js     # MSW 생성 파일
+  mock/screenshot.png      # mock 스크린샷(1440×900)
 ```
+
+화면 라우트는 `/`(새 UX 분석), `/runs/:runId`(AI 탐색 진행), `/runs/:runId/result`(분석 결과), `/comparisons/:experimentKey`(버전 비교)다. 경로는 프론트가 정한 값이며 계약서 대상이 아니다. 좌표 변환 함수, 폴링 훅 같은 화면 공용 코드는 `shared/` 아래에 추가한다.

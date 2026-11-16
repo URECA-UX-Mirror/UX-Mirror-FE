@@ -112,7 +112,7 @@
 
 | `analysisStatus` | 처리 |
 | --- | --- |
-| `PENDING` | "분석 대기 중"을 보인다. 종료 후에도 `PENDING`이면 [실행 상태와 폴링](run-lifecycle.md)의 규칙대로 몇 번 더 조회하고 멈춘다. 분석 모듈이 연결되기 전에는 계속 `PENDING`일 수 있다 |
+| `PENDING` | "분석 대기 중"을 보인다. 종료 후에도 `PENDING`이면 [실행 상태와 폴링](run-lifecycle.md)의 규칙대로 몇 번 더 조회하고 멈춘다. 분석 전에 만들어진 Run은 계속 `PENDING`일 수 있다 |
 | `COMPLETED` + `items` 있음 | 서버 순서대로 표시한다 |
 | `COMPLETED` + `items` 비어 있음 | "검토 후보 0건"으로 표시한다. `validity = INVALID` Run도 같다 (`계약 §14.2`) |
 | `FAILED` | "분석에 실패했습니다" 안내를 보이고 나머지 결과는 계속 표시한다 |

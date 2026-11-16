@@ -59,6 +59,6 @@ export const comparisonsHandlers = [
         '두 버전의 분석이 모두 끝나면 비교할 수 있습니다',
       )
     }
-    return HttpResponse.json(buildComparison(before, after, !mismatch))
+    return HttpResponse.json(buildComparison(before, after, !mismatch, key))
   }),
 ]

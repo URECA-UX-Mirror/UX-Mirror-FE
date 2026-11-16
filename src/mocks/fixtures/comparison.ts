@@ -151,6 +151,8 @@ export function buildComparison(
   before: RunRecord,
   after: RunRecord,
   conditionsMatched: boolean,
+  /** 응답의 `experimentKey`. 요청 경로의 키와 같아야 한다(시드 Run을 빌려 쓰는 경우를 위해 따로 받는다) */
+  experimentKey: string = before.experimentKey,
 ): ComparisonResultDto {
   const beforeReps = representatives(buildSteps(before, 99))
   const afterReps = representatives(buildSteps(after, 99))
@@ -208,7 +210,7 @@ export function buildComparison(
 
   return {
     schemaVersion: '1.3.5',
-    experimentKey: before.experimentKey,
+    experimentKey,
     beforeRunId: before.runId,
     afterRunId: after.runId,
     comparisonStatus,
@@ -218,7 +220,8 @@ export function buildComparison(
       return {
         code,
         matched: !failed,
-        message: failed ? '최대 탐색 횟수가 다릅니다 (before 8, after 5)' : null,
+        // 조건 불일치를 흉내 내는 mock이라 실제 Run의 설정값과 무관하게 차이만 알린다
+        message: failed ? '최대 탐색 횟수가 다릅니다' : null,
       }
     }),
     layoutMatched: conditionsMatched,

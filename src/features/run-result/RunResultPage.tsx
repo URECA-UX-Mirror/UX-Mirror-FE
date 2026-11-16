@@ -120,6 +120,10 @@ function ResultBody({ run }: { run: Run }) {
       ) : null}
 
       <IssuePanel
+        runId={run.runId}
+        steps={steps.data}
+        stepsFailed={steps.status === 'failed'}
+        onRetrySteps={steps.retry}
         issues={issues.data}
         pollingStatus={issues.status}
         error={issues.error}

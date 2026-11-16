@@ -10,7 +10,7 @@
 | MORO MARKET After | `http://127.0.0.1:8002` | 위와 같음 |
 | Zoro-1 GPU 서버 | 백엔드 설정(`ZORO_BASE_URL`) | 프론트에 노출하지 않음 |
 
-8001·8002 포트는 `UX-Mirror-BE` README(`build_shop.py`, `shop/moro-before`·`moro-after`)에서 확인한 값이다. FastAPI의 8000 포트는 이 저장소 `.env.example`의 값이며 백엔드 코드에서는 아직 확인되지 않았다.
+8001·8002 포트는 `UX-Mirror-BE` README(`build_shop.py`, `shop/moro-before`·`moro-after`)에서 확인한 값이다. FastAPI의 8000 포트는 `UX-Mirror-BE` README의 실행 명령(`uvicorn api.main:app --port 8000`)과 같다.
 
 ## 환경변수
 

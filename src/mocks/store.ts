@@ -1,4 +1,5 @@
 import type { Variant } from '../api/dto/index.ts'
+import { RESULT_SEEDS } from './fixtures/runResult.ts'
 import type { ScenarioName } from './fixtures/scenario.ts'
 
 // 모의 서버의 Run 기록. 새로고침 뒤 복원을 확인할 수 있도록 sessionStorage에 보관한다.
@@ -72,6 +73,7 @@ const SEEDS: RunRecord[] = [
     invalid: true,
   }, 20),
   seed({ runId: 'run_mock_invalid_only_after', experimentKey: 'mock-invalid-run', variant: 'after' }, 21),
+  ...RESULT_SEEDS,
 ]
 
 function load(): Record<string, RunRecord> {

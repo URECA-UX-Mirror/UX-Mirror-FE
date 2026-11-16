@@ -54,3 +54,81 @@ a {
   border: 1px solid var(--border);
   border-radius: 8px;
 }
+
+.screenshot-viewer {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  background: #f4f5f8;
+}
+
+.screenshot-image {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.screenshot-placeholder {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+}
+
+.screenshot-box {
+  position: absolute;
+  box-sizing: border-box;
+  border: 2px solid #5b7cfa;
+  background: rgb(91 124 250 / 12%);
+}
+
+.screenshot-box-selected {
+  border-color: #e5484d;
+  background: rgb(229 72 77 / 18%);
+}
+
+.screenshot-box-badge {
+  position: absolute;
+  top: 0;
+  left: 0;
+  padding: 0 4px;
+  color: #fff;
+  background: #5b7cfa;
+  font-size: 11px;
+  line-height: 16px;
+  white-space: nowrap;
+}
+
+.screenshot-box-selected .screenshot-box-badge {
+  background: #e5484d;
+}
+
+.candidate-probabilities ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.candidate-probabilities li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 4px 8px;
+}
+
+.candidate-selected {
+  font-weight: 700;
+  background: rgb(229 72 77 / 10%);
+}
+
+.go-back-notice {
+  margin: 0 0 8px;
+  font-weight: 700;
+}
+
+.probability-note {
+  color: var(--muted);
+  font-size: 13px;
+}

@@ -68,7 +68,7 @@
 | 목표 판정 문구 | "목표 화면 도달". "DOM 마커 검증"은 쓰지 않는다 |
 | 지표 단위 | 엔트로피에 `bit`를 붙이지 않는다 |
 | 이벤트 로그·Playwright 상태 | 표시하지 않는다(`P1`) |
-| 확률 | "모델의 선택 확률이며 실제 사용자의 클릭 확률이 아니다" 문구를 함께 둔다 |
+| 확률 | "모델의 선택 확률이며 실제 사용자의 클릭 확률이 아닙니다" 문구를 함께 둔다 |
 | Run 표기 | `runId`를 그대로 표시한다 |
 
 ## 데이터 출처 구분
@@ -104,9 +104,11 @@ src/
   features/
     new-analysis/, run-progress/, run-result/, comparison/   # 화면별. 라우트는 App.tsx
   shared/                  # Layout, EngineStatus, ErrorNotice, ResultOriginBadge, useHealth
+    screenshot/            # boxStyle.ts(좌표 변환), ScreenshotViewer, CandidateProbabilityList
+    polling/               # poller.ts(간격·backoff 규칙), usePolling(범용 폴링 훅)
 public/
   mockServiceWorker.js     # MSW 생성 파일
   mock/screenshot.png      # mock 스크린샷(1440×900)
 ```
 
-화면 라우트는 `/`(새 UX 분석), `/runs/:runId`(AI 탐색 진행), `/runs/:runId/result`(분석 결과), `/comparisons/:experimentKey`(버전 비교)다. 경로는 프론트가 정한 값이며 계약서 대상이 아니다. 좌표 변환 함수, 폴링 훅 같은 화면 공용 코드는 `shared/` 아래에 추가한다.
+화면 라우트는 `/`(새 UX 분석), `/runs/:runId`(AI 탐색 진행), `/runs/:runId/result`(분석 결과), `/comparisons/:experimentKey`(버전 비교)다. 경로는 프론트가 정한 값이며 계약서 대상이 아니다. 좌표 변환 함수, 폴링 훅 같은 화면 공용 코드는 `shared/` 아래에 둔다.

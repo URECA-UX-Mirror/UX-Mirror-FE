@@ -140,11 +140,11 @@ function KpiCard({
 
 /**
  * 핵심 비교. 값과 증감은 모두 서버가 준 그대로이고 배수·절감률·판정은 만들지 않는다.
- * 목표 경로 확률은 비교 가능한 첫 화면(시작 화면)의 지표를 쓴다.
+ * 목표 경로 확률은 시작 화면(`home`)의 지표만 쓴다. 지표가 없으면 다른 화면 값으로 대신하지 않고 계산 불가로 둔다.
  */
 export function KpiCards({ comparison }: { comparison: Comparison }) {
   const { before, after } = comparison.runComparison
-  const start = comparison.screenComparisons.find((screen) => screen.metrics)
+  const start = comparison.screenComparisons.find((screen) => screen.pageKey === 'home')
   const goal = start?.metrics?.goalPathProbability
   return (
     <section className="kpi-grid" aria-label="핵심 비교">

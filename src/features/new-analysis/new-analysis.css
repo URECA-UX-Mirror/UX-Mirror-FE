@@ -155,7 +155,8 @@
 }
 
 .site-warning {
-  color: var(--um-warning-text);
+  margin: 0;
+  color: var(--um-danger-text);
   font-weight: 600;
 }
 

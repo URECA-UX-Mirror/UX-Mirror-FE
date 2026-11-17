@@ -106,7 +106,9 @@ function NewAnalysisContent() {
   const engineNotReady = health.health !== null && health.health.status !== 'READY'
   const firstPending = !!firstId && firstRunState !== 'ready'
   const anyRunning = Object.values(results).some((runs) => runs.some((run) => !isTerminalStatus(run.status)))
-  const ready = !!preset && !!goalId && !!personaId && validSteps && validKey && keyInput === experimentKey && !submitting && !health.loading && health.health?.status === 'READY' && !activeRun && !anyLoading && !listFailed && !firstPending && !anyRunning
+  // 실행 요청에는 사이트가 없어 대상은 MORO MARKET으로 고정이다. 다른 값이면 시작할 수 없다(OI-8)
+  const siteSupported = site.trim().toLowerCase() === SITE.name.toLowerCase()
+  const ready = siteSupported && !!preset && !!goalId && !!personaId && validSteps && validKey && keyInput === experimentKey && !submitting && !health.loading && health.health?.status === 'READY' && !activeRun && !anyLoading && !listFailed && !firstPending && !anyRunning
   const bothFinished = !anyLoading && !listFailed && !!validBefore && !!validAfter && isTerminalStatus(validBefore.status) && isTerminalStatus(validAfter.status)
 
   function selectExperiment(key: string) {
@@ -175,9 +177,13 @@ function NewAnalysisContent() {
           />
         </div>
         <p className="muted">
-          사이트 이름 또는 주소를 입력할 수 있습니다. 아직 분석 요청에는 반영되지 않으며, 현재는 각 버전에 맞는 {SITE.name} 테스트 사이트만 분석됩니다.
-          {site.trim() !== SITE.name && site.trim() !== '' ? <strong className="site-warning"> 입력한 사이트는 분석 대상이 아닙니다.</strong> : null}
+          현재는 각 버전에 맞는 {SITE.name} 테스트 사이트만 분석할 수 있습니다. 입력한 값은 아직 분석 요청에 반영되지 않습니다.
         </p>
+        {!siteSupported && (
+          <p role="alert" className="site-warning">
+            {site.trim() === '' ? '분석 사이트를 입력해 주세요.' : `분석할 수 없는 사이트입니다. ${SITE.name}만 분석할 수 있습니다.`}
+          </p>
+        )}
       </section>
 
       <section className="card" aria-label="실험">

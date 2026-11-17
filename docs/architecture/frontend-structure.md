@@ -23,7 +23,7 @@
 ### 1. 새 UX 분석
 
 - 사이트(MORO MARKET)·버전 이름·변경 내용(Before `이용정보` → After `주문·환불`, 상단 메뉴 라벨 한 곳)·최대 탐색 횟수 범위(1~15, 기본 8)는 프리셋 응답에 없으므로 프론트 상수다. 목표·사용자 유형은 `GET /api/presets`에서 받는다.
-- 분석 사이트는 입력란이다. 기본값은 MORO MARKET이며 입력값은 요청에 싣지 않는다. MORO MARKET이 아니면 경고만 표시한다([OI-8](../operations/open_issue.md#oi-8)). 실행할 버전에 따라 백엔드가 대상을 정한다.
+- 분석 사이트는 입력란이다. 기본값은 MORO MARKET이며 입력값은 요청에 싣지 않는다. MORO MARKET이 아니거나 비어 있으면 안내를 보이고 분석 시작을 막는다([OI-8](../operations/open_issue.md#oi-8)). 실행할 버전에 따라 백엔드가 대상을 정한다.
 - 버전 표의 행은 `variant`(`before`, `after`)에 대응한다. 표시 이름은 `v1 (변경 전)`, `v2 (변경 후)`다. 두 Run은 같은 `experimentKey`로 묶고 `goalId`·`personaId`·`maxSteps`를 같게 보낸다.
 - 행의 "마지막 Run ID·분석 상태·목표 달성 상태"는 `GET /api/runs?experimentKey=&variant=`의 첫 항목(최신 Run)으로 채운다.
 - 기존 실험 키를 입력하고 조회 버튼을 눌러 서버의 실행 기록을 조회하고 첫 Run의 조건을 다음 Run에 재사용한다. 시작 후 진행 화면 주소에도 실험 키를 남긴다.

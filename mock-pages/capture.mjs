@@ -1,6 +1,6 @@
 // 목업 쇼핑몰(`mock-pages/*.html`)을 1440×900 PNG로 찍어 `public/mock/screens/{variant}/{pageKey}.png`에 저장한다.
 // mock 모드의 스크린샷 API가 이 PNG를 돌려준다. 찍은 뒤 `scenario.ts`의 후보 bbox와
-// 페이지 안 `data-key` 요소의 위치를 비교해, 어긋나면 실패한다(디자인을 바꾸면 한쪽을 맞춰야 한다).
+// 페이지 안 `data-key` 요소의 위치를 비교하고(기대하는 요소가 없어도), 어긋나면 실패한다(디자인을 바꾸면 한쪽을 맞춰야 한다).
 //
 // 사용: npm run mock:shots   (Chrome 또는 Edge가 필요하다. 경로는 CHROME_PATH로도 지정할 수 있다)
 
@@ -89,6 +89,14 @@ try {
           }
         }),
       )
+      // 역방향: 시나리오가 기대하는 후보 요소가 페이지에 모두 있어야 한다(요소가 사라지면 위 비교는 놓친다)
+      for (const id of Object.keys(expected)) {
+        const [expectedPage, key] = id.split(':')
+        if (expectedPage === pageKey && !boxes.some((box) => box.key === key)) {
+          mismatches += 1
+          console.error(`[후보 누락] ${pageKey}/${key}: 시나리오에는 있지만 페이지에 data-key 요소가 없습니다`)
+        }
+      }
       for (const box of boxes) {
         const want = expected[`${pageKey}:${box.key}`]
         if (!want) continue

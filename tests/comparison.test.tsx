@@ -2,6 +2,8 @@ import { fireEvent, render, screen, waitFor, within } from '@testing-library/rea
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { expect, it } from 'vitest'
 import { ComparisonPage } from '../src/features/comparison/ComparisonPage.tsx'
+import { KpiCards } from '../src/features/comparison/ComparisonSections.tsx'
+import type { Comparison } from '../src/domain/types.ts'
 import { formatDelta, formatMetric } from '../src/features/comparison/format.ts'
 
 // mock 키는 src/mocks/handlers/comparisons.ts 상단 주석을 따른다.
@@ -136,4 +138,22 @@ it('후보별 확률 비교는 Before·After 게이지를 같은 눈금으로 �
   const rows = card.querySelectorAll('.comparison-candidates tbody tr')
   expect(rows.length).toBeGreaterThan(0)
   for (const row of rows) expect(row.querySelectorAll('.pair-row .gauge')).toHaveLength(2)
+})
+
+it('시작 화면 KPI는 home의 지표만 쓰고 없으면 다른 화면 값 대신 계산 불가로 둔다', () => {
+  const run = { navigationCost: 1, goalReached: true, stepCount: 2, successfulNavigationClickCount: 2, backCount: 0 }
+  const metrics = { goalPathProbability: { before: 0.31, after: 0.72, delta: 0.41 } }
+  const make = (screens: unknown[]) =>
+    ({ runComparison: { before: run, after: run }, screenComparisons: screens }) as unknown as Comparison
+
+  const { unmount } = render(<KpiCards comparison={make([{ pageKey: 'mypage', metrics }, { pageKey: 'home', metrics: null }])} />)
+  const card = screen.getByText('시작 화면 후보 확률').closest('.kpi-card') as HTMLElement
+  expect(within(card).getAllByText('계산 불가')).toHaveLength(2)
+  expect(card.textContent).not.toContain('72')
+  unmount()
+
+  render(<KpiCards comparison={make([{ pageKey: 'mypage', metrics }, { pageKey: 'home', metrics }])} />)
+  const homeCard = screen.getByText('시작 화면 후보 확률').closest('.kpi-card') as HTMLElement
+  expect(homeCard.textContent).toContain('31.0%')
+  expect(homeCard.textContent).toContain('72.0%')
 })

@@ -10,7 +10,8 @@ API와 데이터 구조의 정본은 **인터페이스·데이터 계약서 v1.3
 | --- | --- | --- |
 | 구조 | [프론트엔드 구조](architecture/frontend-structure.md) | 화면별 사용 API·상태 관리, 표시 규칙, Adapter 계층, 폴더 구조 |
 | 계약 | [REST API](contracts/rest-api.md) | endpoint별 요청·응답·오류·빈 데이터 처리 |
-| 계약 | [데이터 모델](contracts/data-model.md) | 프론트가 소비하는 타입과 식별자 정책 |
+| 계약 | [데이터 모델](contracts/data-model.md) | Run·Step 등 공통 타입과 식별자 정책 |
+| 계약 | [비교 데이터 모델](contracts/comparison-data-model.md) | 비교 응답 타입과 표시 규칙 |
 | 계약 | [실행 상태와 폴링](contracts/run-lifecycle.md) | 상태값, 폴링, 새로고침 복원 |
 | 계약 | [스크린샷과 bbox](contracts/screenshot-bbox.md) | 이미지 표시와 bbox 좌표 변환 |
 | 계약 | [지표와 목표 판정](contracts/metrics-and-goal.md) | 지표 의미, 목표 판정, 프론트의 책임 범위 |

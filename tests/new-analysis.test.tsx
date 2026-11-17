@@ -32,6 +32,13 @@ it('분석 대상·실험·분석 조건·버전별 분석·버전 비교 카드
   expect(screen.getByRole('group', { name: /^분석 조건/ })).toBeTruthy()
 })
 
+it('성공 조건 안내는 사이트 지도 기준 경로 지표를 설명한다', async () => {
+  renderAt('/')
+  const note = await screen.findByText(/사이트 지도를 기준으로/)
+  expect(note.textContent).toContain('우회 이동')
+  expect(note.textContent).not.toContain('허용 경로가 없어')
+})
+
 it('버전별 분석 표는 v1·v2 행과 비활성 v3 행을 보이고 v3는 시작할 수 없다', async () => {
   renderAt('/?experimentKey=mock-done')
   const table = await screen.findByRole('table')

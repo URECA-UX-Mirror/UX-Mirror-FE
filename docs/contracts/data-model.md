@@ -35,8 +35,10 @@ interface Run {
   goalJudgmentMode: GoalJudgmentMode;
   goalId: string | null;             // 직접 입력한 목표면 null (OI-9)
   goal: string;                      // 목표 문구(preset에서 복사 또는 직접 입력)
-  personaId: string | null; persona: string;  // 직접 입력한 사용자 유형이면 personaId null (OI-9)
-  verification?: { type: string; path: string; text: string; exact: boolean; scope: string } | null; referencePathConfig?: { basis?: 'ALLOWED_PATHS' | 'SITE_MAP'; ... } | null;  // 저장된 성공 조건. 기준 null=없음, 필드·basis 없음=ALLOWED_PATHS (OI-9, OI-10)
+  personaId: string | null;          // 직접 입력한 사용자 유형이면 null (OI-9)
+  persona: string;
+  verification?: { type: string; path: string; text: string; exact: boolean; scope: string } | null; // OI-9
+  referencePathConfig?: { basis?: 'ALLOWED_PATHS' | 'SITE_MAP'; ... } | null; // OI-10
   startPath: string;
   viewport: { width: number; height: number };
   limits: { maxSteps: number; modelTimeoutMs: number; runTimeoutMs: number };
@@ -70,11 +72,12 @@ interface RunSummary {
   systemBackCount: number;
   backCount: number;                 // modelBackCount + systemBackCount
   revisitCount: number;
-  referencePathDeviationCount: number | null;  // 허용 경로가 없으면 null
+  referencePathDeviationCount: number | null;  // SITE_MAP 또는 기준 없음이면 null
   navigationCost: number;            // successfulNavigationClickCount + backCount
-  extraSteps: number | null;         // goalReached=false이거나 허용 경로가 없으면 null
+  extraSteps: number | null;         // 목표 미도달 또는 계산 불가면 null
   extraNavigationCost: number | null;
-  attemptedExtraSteps: number | null; detourMoveCount?: number | null;  // 우회 이동(사이트 지도 기준). 없으면 null로 읽는다 (OI-10)
+  attemptedExtraSteps: number | null;
+  detourMoveCount?: number | null;    // 우회 이동(사이트 지도 기준). 없으면 null로 읽는다 (OI-10)
   executionTimeMs: number;
   path: PathVisit[];
   detectedIssueTypes: IssueType[];
@@ -91,7 +94,8 @@ interface PathVisit {
 ```
 
 - `stepCount`(탐색 비용 기준)와 `stepRecordCount`(저장된 Step 수)는 다르다. 진행 표시는 `progress.stepCount / progress.maxSteps`를 쓴다.
-- `summary`의 `extraSteps` 계열은 목표에 도달하지 못하면 `null`이다. 0으로 바꾸지 않는다. `계약 §6.4`. `referencePathConfig: null`(직접 입력한 목표)이면 `referencePathDeviationCount`, `extraSteps` 계열, Step의 `goalPathProbability`도 `null`이고, 프론트는 명시적 `null`일 때만(없는 필드는 과거 preset Run) "계산 불가 (경로 기준 없음)"으로 표시한다. [OI-9](../operations/open_issue.md#oi-9)
+- `referencePathConfig`가 명시적 `null`이면 기준 없음, 필드나 `basis`가 없으면 FE는 과거 허용 경로로 읽는다. 직접 입력 목표에도 사이트 지도 기준이 적용될 수 있다. 서버 비교의 누락 필드 검증은 별개다. [OI-10](../operations/open_issue.md#oi-10)
+- `extraSteps` 계열은 목표 미도달이면 `null`이다(`계약 §6.4`). 결과 화면은 기준 없음이면 "계산 불가 (경로 기준 없음)", 기준이 있고 목표 미도달이면 "해당 없음", 도달했으나 값이 `null`이면 "계산 불가"로 보인다. `detourMoveCount`는 목표 도달과 관계없이 `null`이면 "계산 불가"다. 0을 `null`로 바꾸지 않는다. 사이트 지도 기준에서 허용 경로 이탈은 사용하지 않는다.
 - `Run.limits`의 나머지 필드(`pageChangeTimeoutMs` 등)와 `thresholdConfig`, `analysisVersion`, `comparisonContext`는 프론트가 쓰지 않는다.
 
 ## Step (`계약 §12`)
@@ -203,73 +207,7 @@ interface Issue {
 
 `evidence`의 키는 종류마다 다르고 값이 목록일 수 있다(`계약 §14.2`). 프론트는 키별 표시 이름 표를 따로 두고 값의 타입을 확인한 뒤 표시하며, 표에 없는 키는 키 이름 그대로 보인다.
 
-## ComparisonResult (`계약 §15`)
-
-```ts
-interface ComparisonResult {
-  schemaVersion: string;
-  experimentKey: string;
-  beforeRunId: string;
-  afterRunId: string;
-  comparisonStatus: ComparisonStatus;
-  conditionsMatched: boolean;
-  conditionChecks: { code: string; matched: boolean; message: string | null }[];
-  layoutMatched: boolean;
-  screenComparisons: ScreenComparison[];
-  runComparison: { before: RunOutcome; after: RunOutcome };
-  beforeResultOrigin: ResultOrigin;
-  afterResultOrigin: ResultOrigin;
-  resultOrigin: ResultOrigin | null;         // 두 출처가 다르면 null
-  createdAt: string;
-}
-interface ScreenComparison {
-  pageKey: string;
-  beforeStepId: number | null;
-  afterStepId: number | null;
-  screenComparable: boolean;
-  reason: string | null;                     // 비교 불가 이유 코드 (§15.3)
-  candidateSetMatched: boolean;
-  actionSetIncludesBack: boolean | null;
-  candidateComparisons: CandidateComparison[];
-  metrics: ScreenMetricComparison | null;    // 한쪽 미방문이면 null
-}
-interface CandidateComparison {
-  semanticKey: string;
-  beforeLabel: string | null;
-  afterLabel: string | null;
-  beforeProbability: number | null;
-  afterProbability: number | null;
-  deltaProbability: number | null;           // 비교 불가면 null
-  comparable: boolean;
-  reason: string | null;
-}
-interface ScreenMetricComparison {           // §15.7. 지표마다 before/after/delta 세 필드
-  beforeNormalizedEntropy: number | null;
-  afterNormalizedEntropy: number | null;
-  deltaNormalizedEntropy: number | null;
-  // 같은 형태: ClickOnlyNormalizedEntropy, Top2Margin, ClickOnlyTop2Margin, GoBackProbability, GoalPathProbability
-}
-interface RunOutcome {                       // §15.8. Run.summary에서 복사된 값
-  goalReached: boolean;
-  status: RunStatus;
-  terminationReason: string | null;
-  stepCount: number;
-  successfulNavigationClickCount: number;
-  modelBackCount: number;
-  systemBackCount: number;
-  backCount: number;
-  navigationCost: number;
-  extraSteps: number | null;
-  extraNavigationCost: number | null;
-  referencePathDeviationCount: number; detourMoveCount?: number | null;  // OI-10
-  path: PathVisit[];
-  detectedIssueTypes: IssueType[];
-}
-```
-
-- `conditionsMatched = false`이면 모든 화면이 비교 불가이고 모든 `delta*`가 `null`이다. 한쪽 값이 `null`이면 해당 `delta`도 `null`이다. 비교 불가 값을 0으로 표현하지 않는다. `계약 §15.5`, `§15.7`
-- `conditionChecks`의 `code` 목록은 `계약 §15.2`다. 프론트는 코드 목록을 하드코딩해 판정하지 않고 서버가 준 항목을 순서대로 표시한다.
-- 비교 대상 Run은 서버가 고른다(`VALID`인 최종 Run). 프론트는 Run을 직접 고르지 않는다. `계약 §15.1`
+비교 응답 타입과 표시 규칙은 [비교 데이터 모델](comparison-data-model.md)을 따른다.
 
 ## ErrorDetail (`계약 §16.1`)
 

@@ -1,6 +1,6 @@
 # REST API 소비 규칙
 
-프론트가 호출하는 endpoint의 정본은 계약서 §17이다. 이 문서는 화면별 사용처, 요청 값의 출처, 오류와 빈 데이터 처리만 정한다. 응답 타입은 [데이터 모델](data-model.md)에 있다. `P0`는 MORO MARKET Before/After 범위다.
+프론트가 호출하는 endpoint의 정본은 계약서 §17이다. 이 문서는 화면별 사용처, 요청 값의 출처, 오류와 빈 데이터 처리만 정한다. Run·Step 등 공통 응답 타입은 [데이터 모델](data-model.md), 비교 응답 타입은 [비교 데이터 모델](comparison-data-model.md)에 있다. `P0`는 MORO MARKET Before/After 범위다.
 
 ## 공통 규칙
 
@@ -75,7 +75,7 @@
 | 409 | `RUN_ALREADY_ACTIVE` | 다른 분석이 실행 중이라는 안내와 해당 Run 이동 링크 |
 | 409 | `EXPERIMENT_RUN_EXISTS` | 같은 키와 버전에 진행 중이거나 유효한 Run이 이미 있다는 안내와 결과 보기 링크. 기존 Run이 모두 `INVALID`일 때만 같은 키로 다시 실행할 수 있다 |
 | 422 | `CONTRACT_VALIDATION_ERROR` | 서버 `message`(키 형식, `maxSteps` 범위, 없는 목표·사용자 유형, 직접 입력 문장의 빈 값·길이·금지 문자열, 성공 조건 오류, 첫 Run과 다른 입력)를 그대로 보이고 입력 수정을 안내한다. 재시도 버튼은 두지 않는다 |
-| 503 | `BROWSER_ERROR` | 서버 `message`를 보이고 Run이 생성되지 않았음을 안내한다. 메시지가 비어 있으면 "도착 화면을 확인하지 못했습니다"를 보인다. `retryable`이면 같은 버전의 실행 재시도 버튼을 보인다 |
+| 503 | `BROWSER_ERROR` | FE는 서버 `message`를 보이고 Run이 생성되지 않았음을 안내한다. 도착 화면 사전 검사 오류는 현재 mock 시나리오이며 백엔드 구현은 미확정이다([OI-9](../operations/open_issue.md#oi-9)). 메시지가 비어 있으면 "도착 화면을 확인하지 못했습니다"를 보인다. `retryable`이면 같은 버전의 실행 재시도 버튼을 보인다 |
 
 ### GET /api/runs
 
@@ -139,6 +139,8 @@
 | 409 `COMPARISON_NOT_READY` | "두 버전의 분석이 모두 끝나면 비교할 수 있습니다" 안내. Run이 아직 끝나지 않았거나 Issue 분석이 `PENDING`인 경우이며 기다리면 해결되는 상태다 |
 | 409 `COMPARISON_RUN_INVALID` | "유효한 실행이 없는 버전이 있습니다" 안내와 해당 버전 재분석 링크 |
 | 500 `ANALYSIS_ERROR` | 오류 안내와 재시도 |
+
+- 직접 입력한 Run의 비교 조건은 `GOAL_MATCHED`가 목표 문장과 `verification`, `PERSONA_MATCHED`가 사용자 유형 문장을 기준으로 판정한다. `verification`이 없는 과거 Run은 확인 불가로 처리되어 `PARTIAL`이 될 수 있다([OI-9](../operations/open_issue.md#oi-9)).
 
 `COMPARISON_NOT_READY`와 `RUN_NOT_FOUND`는 화면 문구를 구분한다. 한쪽이 진행 중이면 기다리라는 안내이고, 키가 없으면 잘못된 주소 안내다.
 

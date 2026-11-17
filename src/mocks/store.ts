@@ -20,7 +20,7 @@ export interface RunRecord {
   persona?: string
   /**
    * 경로 지표 기준. 생략하면 허용 경로(직접 입력한 목표는 기준 없음).
-   * `site-map` 사이트 지도, `none` 지도 오류로 기준 없음(`referencePathConfig: null`),
+   * `site-map` 사이트 지도(직접 입력한 목표에도 적용), `none` 지도 오류로 기준 없음(`referencePathConfig: null`),
    * `legacy` `basis` 없는 과거 허용 경로 설정
    */
   reference?: 'site-map' | 'none' | 'legacy'

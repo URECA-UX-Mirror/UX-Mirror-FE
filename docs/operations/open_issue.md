@@ -62,6 +62,6 @@
 ### OI-10 경로 지표 기준(basis)·우회 이동
 
 - 계약서(v1.3.5): `referencePathConfig`는 허용 경로(`allowedPaths`·`shortestAllowedSteps`)만 정의하고 `basis`·`detourMoveCount`는 없다.
-- 임시 결정: 설계 v2.1(3.1·3.2·4.1)에 따라 `referencePathConfig.basis`(`ALLOWED_PATHS` / `SITE_MAP`)와 `summary.detourMoveCount`를 optional로 받는다. `basis`가 없으면 `ALLOWED_PATHS`, 필드가 없는 과거 Run도 `ALLOWED_PATHS`, 명시적 `null`만 기준 없음이다. `detourMoveCount`가 없으면 `null`이다. SITE_MAP의 `distances` 등 세부 필드는 형식이 정해지지 않아 읽기만 하고 화면에 쓰지 않는다.
+- 임시 결정: 설계 v2.1(3.1·3.2·4.1)에 따라 `referencePathConfig.basis`(`ALLOWED_PATHS` / `SITE_MAP`)와 `summary.detourMoveCount`를 optional로 받는다. `basis`가 없으면 `ALLOWED_PATHS`, 필드가 없는 과거 Run도 `ALLOWED_PATHS`, 명시적 `null`만 기준 없음이다. `detourMoveCount`가 없으면 `null`이다. SITE_MAP 설정은 설계 v2.1 4.1의 `siteMapVersion`·`siteMapHash`·`startPageKey`·`goalPageKey`·`shortestSteps`·`distances`(화면별 거리, 도달 불가는 `null`)로 읽으며 화면에는 쓰지 않는다. 우회 이동은 BACK을 뺀 모델 CLICK 이동 중 거리가 줄지 않은 횟수이고(설계 3.1), mock도 이 정의를 따른다.
 - 확인할 것: 백엔드가 `basis`·`detourMoveCount`·SITE_MAP 설정 형식을 확정하고 계약서에 반영되면 `docs/contracts/`를 고치고 이 항목을 지운다.
 - 담당: 정자비(지표), 장근창(API).

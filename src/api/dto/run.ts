@@ -133,11 +133,18 @@ export interface AllowedPathsConfigDto {
   shortestAllowedSteps: number
 }
 
-/** 사이트 지도 기준. `distances` 등은 서버가 계산한 값이며 FE는 읽기만 한다 (OI-10) */
+/**
+ * 사이트 지도 기준 (설계 v2.1 4.1, OI-10). 값은 서버가 계산하며 FE는 읽기만 한다.
+ * `distances`는 화면(`pageKey`)별 목표까지의 클릭 수이고, 도달할 수 없는 화면은 `null`이다.
+ */
 export interface SiteMapConfigDto {
   basis: 'SITE_MAP'
-  version: string
-  distances?: Record<string, number>
+  siteMapVersion: string
+  siteMapHash: string
+  startPageKey: string
+  goalPageKey: string
+  shortestSteps: number
+  distances: Record<string, number | null>
 }
 
 export type ReferencePathConfigDto = AllowedPathsConfigDto | SiteMapConfigDto

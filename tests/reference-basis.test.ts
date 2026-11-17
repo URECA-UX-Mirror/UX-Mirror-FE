@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest'
 import { toReferenceBasis, toRun } from '../src/adapters/run.ts'
 import { toComparison } from '../src/adapters/comparison.ts'
 import { buildComparison } from '../src/mocks/fixtures/comparison.ts'
-import { buildRun } from '../src/mocks/fixtures/run.ts'
+import { buildRun, buildSteps } from '../src/mocks/fixtures/run.ts'
+import { countDetourMoves, siteMapDistances } from '../src/mocks/fixtures/siteMap.ts'
 import { findRun } from '../src/mocks/store.ts'
 import {
   goalPathProbabilityHint,
@@ -46,9 +47,59 @@ describe('경로 지표 기준(basis) 변환', () => {
 })
 
 describe('detourMoveCount 변환', () => {
-  it('값이 오면 그대로 두고 SITE_MAP mock Run에는 우회 이동이 있다', () => {
+  it('값이 오면 그대로 둔다(홈→마이페이지는 거리가 줄지 않아 우회 이동 1회)', () => {
     const run = toRun(runOf('run_mock_sitemap'))
-    expect(run.summary?.detourMoveCount).toBeGreaterThan(0)
+    expect(run.summary?.detourMoveCount).toBe(1)
+  })
+
+  it('BACK만 있는 이동은 우회 이동으로 세지 않는다', () => {
+    const distances = siteMapDistances('orders')
+    const backOnly = [{ to: 'home' as const, back: true }, { to: 'home' as const, back: true }]
+    expect(countDetourMoves(backOnly, distances)).toBe(0)
+    // 목표에 가까워지는 CLICK(home→orders) 뒤의 BACK도 세지 않는다
+    expect(countDetourMoves([{ to: 'orders', back: false }, { to: 'home', back: true }], distances)).toBe(0)
+    // 거리가 줄지 않는 CLICK은 센다
+    expect(countDetourMoves([{ to: 'mypage', back: false }], distances)).toBe(1)
+  })
+})
+
+describe('SITE_MAP 설정(설계 v2.1 4.1) 변환', () => {
+  it('실제 백엔드 형식(도달 불가 화면은 null)을 그대로 읽는다', () => {
+    const dto = runOf('run_mock_sitemap')
+    dto.referencePathConfig = {
+      basis: 'SITE_MAP',
+      siteMapVersion: 'v1',
+      siteMapHash: 'sha256:abc',
+      startPageKey: 'home',
+      goalPageKey: 'orders',
+      shortestSteps: 1,
+      distances: { home: 1, orders: 0, support: null },
+    }
+    const run = toRun(dto)
+    expect(run.referenceBasis).toBe('SITE_MAP')
+    expect(dto.referencePathConfig.distances.support).toBeNull()
+  })
+
+  it('mock은 설계의 필드를 쓴다', () => {
+    const config = runOf('run_mock_sitemap').referencePathConfig
+    expect(config).toMatchObject({
+      basis: 'SITE_MAP',
+      startPageKey: 'home',
+      goalPageKey: 'orders',
+      shortestSteps: 1,
+    })
+    expect(config).not.toHaveProperty('version')
+  })
+
+  it('직접 입력한 목표에도 SITE_MAP이 유지되고 goalPathProbability는 거리가 줄어드는 후보만 합한다', () => {
+    const rec = findRun('run_mock_sitemap')!
+    expect(rec.goalId).toBeNull()
+    const [first] = buildSteps(rec, 1)
+    // 홈: orders 후보(거리 0)만 목표에 가까워진다. 허용 경로용 onGoalPath(orders+mypage)와 다르다
+    const toOrders = first.candidateSet.candidates
+      .filter((c) => c.href === '/shop/orders')
+      .reduce((sum, c) => sum + c.probability, 0)
+    expect(first.decision.goalPathProbability).toBeCloseTo(toOrders, 3)
   })
 
   it('필드가 없으면 0이 아니라 null이다', () => {

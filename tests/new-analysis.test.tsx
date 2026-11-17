@@ -181,6 +181,32 @@ it('도착 화면 확인 실패 503은 서버 문구와 재시도를 보이고 R
   }
 })
 
+it('일반 503 응답은 재시도로 직전에 선택한 버전을 다시 요청한다', async () => {
+  const variants: unknown[] = []
+  server.use(http.post(apiUrl('/api/runs'), async ({ request }) => {
+    variants.push(((await request.json()) as { variant: unknown }).variant)
+    return new Response('<html>Unavailable</html>', { status: 503, headers: { 'Content-Type': 'text/html' } })
+  }))
+  renderAt('/?experimentKey=mock-direct')
+  await waitFor(() => expect(startButtons()[1].disabled).toBe(false))
+  fireEvent.click(startButtons()[1])
+  expect(await screen.findByText('서버에 연결할 수 없습니다')).toBeTruthy()
+  const retry = screen.getByRole('button', { name: '다시 시도' })
+  await waitFor(() => expect(retry.hasAttribute('disabled')).toBe(false))
+  fireEvent.click(retry)
+  await waitFor(() => expect(variants).toEqual(['after', 'after']))
+})
+
+it('재시도할 수 없는 일반 503 응답은 재시도 버튼을 보이지 않는다', async () => {
+  server.use(http.post(apiUrl('/api/runs'), () => errorResponse(503, 'OTHER_ERROR', '준비 실패', false)))
+  renderAt('/')
+  fillInputs()
+  await waitFor(() => expect(startButtons()[0].disabled).toBe(false))
+  fireEvent.click(startButtons()[0])
+  expect(await screen.findByText('준비 실패')).toBeTruthy()
+  expect(screen.queryByRole('button', { name: '다시 시도' })).toBeNull()
+})
+
 it('503 BROWSER_ERROR에 메시지가 없으면 대체 문구를 보인다', async () => {
   server.use(http.post(apiUrl('/api/runs'), () => errorResponse(503, 'BROWSER_ERROR', '', false)))
   renderAt('/')

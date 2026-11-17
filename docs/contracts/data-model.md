@@ -36,7 +36,7 @@ interface Run {
   goalId: string | null;             // 직접 입력한 목표면 null (OI-9)
   goal: string;                      // 목표 문구(preset에서 복사 또는 직접 입력)
   personaId: string | null; persona: string;  // 직접 입력한 사용자 유형이면 personaId null (OI-9)
-  verification?: { type: string; path: string; text: string; exact: boolean; scope: string } | null; referencePathConfig?: object | null;  // 저장된 성공 조건, 직접 입력한 목표는 허용 경로 null (OI-9)
+  verification?: { type: string; path: string; text: string; exact: boolean; scope: string } | null; referencePathConfig?: { basis?: 'ALLOWED_PATHS' | 'SITE_MAP'; ... } | null;  // 저장된 성공 조건. 기준 null=없음, 필드·basis 없음=ALLOWED_PATHS (OI-9, OI-10)
   startPath: string;
   viewport: { width: number; height: number };
   limits: { maxSteps: number; modelTimeoutMs: number; runTimeoutMs: number };
@@ -74,7 +74,7 @@ interface RunSummary {
   navigationCost: number;            // successfulNavigationClickCount + backCount
   extraSteps: number | null;         // goalReached=false이거나 허용 경로가 없으면 null
   extraNavigationCost: number | null;
-  attemptedExtraSteps: number | null;
+  attemptedExtraSteps: number | null; detourMoveCount?: number | null;  // 우회 이동(사이트 지도 기준). 없으면 null로 읽는다 (OI-10)
   executionTimeMs: number;
   path: PathVisit[];
   detectedIssueTypes: IssueType[];
@@ -261,7 +261,7 @@ interface RunOutcome {                       // §15.8. Run.summary에서 복사
   navigationCost: number;
   extraSteps: number | null;
   extraNavigationCost: number | null;
-  referencePathDeviationCount: number;
+  referencePathDeviationCount: number; detourMoveCount?: number | null;  // OI-10
   path: PathVisit[];
   detectedIssueTypes: IssueType[];
 }

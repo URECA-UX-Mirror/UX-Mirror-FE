@@ -125,9 +125,9 @@ export function RunSummaryPanel({ run, issues }: RunSummaryPanelProps) {
                 {summary.systemBackCount})
               </dd>
               <dt>추가 이동(extraSteps)</dt>
-              <dd>{run.hasReferencePath ? formatCount(summary.extraSteps) : NO_REFERENCE_PATH}</dd>
+              <dd>{run.referenceBasis !== null ? formatCount(summary.extraSteps) : NO_REFERENCE_PATH}</dd>
               <dt>추가 이동 비용</dt>
-              <dd>{run.hasReferencePath ? formatCount(summary.extraNavigationCost) : NO_REFERENCE_PATH}</dd>
+              <dd>{run.referenceBasis !== null ? formatCount(summary.extraNavigationCost) : NO_REFERENCE_PATH}</dd>
               <dt>검토 후보 수</dt>
               <dd>{issueCountText(issues)}</dd>
             </dl>

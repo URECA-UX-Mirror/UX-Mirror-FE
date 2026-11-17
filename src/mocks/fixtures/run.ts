@@ -22,6 +22,12 @@ import {
   type ScenarioName,
   type StepSpec,
 } from './scenario.ts'
+import {
+  countDetourMoves,
+  goalPageKeyOf,
+  movesCloser,
+  siteMapConfig,
+} from './siteMap.ts'
 
 /** 생성 후 첫 Step이 시작되기까지(READY 구간) */
 export const START_MS = 1000
@@ -34,6 +40,26 @@ const SCHEMA_VERSION = '1.3.5'
 const ENTROPY_THRESHOLD = 0.9
 const iso = (ms: number) => new Date(ms).toISOString()
 const round = (value: number) => Math.round(value * 10000) / 10000
+
+const isSiteMap = (rec: RunRecord): boolean => rec.reference === 'site-map'
+
+/** 경로 지표 기준이 없는 Run인지. 사이트 지도 기준은 직접 입력한 목표에도 적용된다 */
+const hasNoReference = (rec: RunRecord): boolean =>
+  rec.reference === 'none' || (rec.goalId === null && !isSiteMap(rec))
+
+/** 사이트 지도 기준 Run의 목표 화면별 거리표 */
+const siteMapOf = (rec: RunRecord) => siteMapConfig(goalPageKeyOf(rec.verification?.path))
+
+/** 목표까지의 최단 클릭 수. 사이트 지도 기준이면 지도의 값, 아니면 허용 경로의 값 */
+const shortestStepsOf = (rec: RunRecord): number =>
+  isSiteMap(rec) ? siteMapOf(rec).shortestSteps : SHORTEST_ALLOWED_STEPS
+
+function referencePathConfig(rec: RunRecord): RunDto['referencePathConfig'] {
+  if (hasNoReference(rec)) return null
+  if (isSiteMap(rec)) return siteMapOf(rec)
+  if (rec.reference === 'legacy') return REFERENCE_PATH_CONFIG
+  return { basis: 'ALLOWED_PATHS', ...REFERENCE_PATH_CONFIG }
+}
 
 export const scenarioOf = (rec: RunRecord): ScenarioName =>
   rec.scenario ?? rec.variant
@@ -140,10 +166,15 @@ export function buildSteps(rec: RunRecord, count: number): StepDto[] {
       choices.goBackProbability === null
         ? clickProbabilities
         : [...clickProbabilities, choices.goBackProbability]
-    // 허용 경로로 이어지는 후보가 없으면 null이다. 0으로 바꾸지 않는다(metrics-and-goal.md).
-    const goalPath = choices.candidates.filter((c) => c.onGoalPath)
+    // 목표 경로로 이어지는 후보가 없으면 null이다. 0으로 바꾸지 않는다(metrics-and-goal.md).
+    // 허용 경로 기준은 `onGoalPath`, 사이트 지도 기준은 목표까지의 거리가 줄어드는 이동이다.
+    const goalPath = isSiteMap(rec)
+      ? choices.candidates.filter((c) =>
+          movesCloser(siteMapOf(rec).distances, pageKey, c.leadsTo),
+        )
+      : choices.candidates.filter((c) => c.onGoalPath)
     const goalPathProbability =
-      goalPath.length === 0 || rec.goalId === null
+      goalPath.length === 0 || hasNoReference(rec)
         ? null
         : round(goalPath.reduce((sum, c) => sum + c.probability, 0))
     const startedMs = rec.createdAtMs + START_MS + i * STEP_MS
@@ -260,7 +291,7 @@ function buildPath(rec: RunRecord): PathVisitDto[] {
 export function buildSummary(rec: RunRecord): RunSummaryDto {
   const specs = stepSpecs(scenarioOf(rec)).slice(0, stepLimit(rec))
   const stopped = isMaxStepsStopped(rec)
-  const noReference = rec.goalId === null
+  const noReference = hasNoReference(rec)
   const path = buildPath(rec)
   const modelBackCount = specs.filter((s) => s.selected === 'BACK').length
   const clickCount = specs.length - modelBackCount
@@ -273,7 +304,8 @@ export function buildSummary(rec: RunRecord): RunSummaryDto {
     if (seen.has(visit.pageSignature)) revisitCount += 1
     seen.add(visit.pageSignature)
   }
-  const extraSteps = Math.max(0, clickCount - SHORTEST_ALLOWED_STEPS)
+  const shortest = shortestStepsOf(rec)
+  const extraSteps = Math.max(0, clickCount - shortest)
   return {
     goalReached: !stopped,
     stepCount,
@@ -285,16 +317,26 @@ export function buildSummary(rec: RunRecord): RunSummaryDto {
     systemBackCount: 0,
     backCount,
     revisitCount,
-    referencePathDeviationCount: noReference ? null : 0,
+    // 이탈 횟수는 허용 경로 기준의 값이다. 사이트 지도 기준에서는 계산하지 않는다
+    referencePathDeviationCount: noReference || isSiteMap(rec) ? null : 0,
     navigationCost,
     // 목표에 도달하지 못하거나 허용 경로가 없으면 extraSteps 계열은 null이다(계약 §6.4, UX-Mirror-BE #39)
     extraSteps: stopped || noReference ? null : extraSteps,
     extraNavigationCost: stopped || noReference
       ? null
-      : Math.max(0, navigationCost - SHORTEST_ALLOWED_STEPS),
+      : Math.max(0, navigationCost - shortest),
     attemptedExtraSteps: stopped || noReference
       ? null
-      : Math.max(0, stepCount - SHORTEST_ALLOWED_STEPS),
+      : Math.max(0, stepCount - shortest),
+    // 우회 이동은 사이트 지도 기준에서만 있다. 지도 기준이 아니면 필드를 주지 않는다(백엔드 미반영 상태)
+    ...(isSiteMap(rec)
+      ? {
+          detourMoveCount: countDetourMoves(
+            simulate(specs, specs.length),
+            siteMapOf(rec).distances,
+          ),
+        }
+      : {}),
     executionTimeMs: stepCount * STEP_MS,
     path,
     detectedIssueTypes: buildIssues(rec, Number.MAX_SAFE_INTEGER).items.map(
@@ -337,7 +379,7 @@ export function buildRun(rec: RunRecord, nowMs: number): RunDto {
     persona: rec.persona ?? persona.persona,
     verification: rec.verification ?? GOAL_VERIFICATION,
     // 직접 입력한 목표는 허용 경로가 없다 → 경로 기반 지표 null
-    referencePathConfig: rec.goalId === null ? null : REFERENCE_PATH_CONFIG,
+    referencePathConfig: referencePathConfig(rec),
     startPath: PAGES.home.path,
     viewport: VIEWPORT,
     limits: {
@@ -441,7 +483,7 @@ function issueItems(rec: RunRecord, createdAt: string): IssueDto[] {
     })
   }
   // 허용 경로가 없는 Run(직접 입력한 목표)은 추가 단계를 계산하지 않으므로 EXTRA_STEPS도 만들지 않는다(UX-Mirror-BE #44)
-  if (rec.goalId !== null && summary.extraSteps > 0) {
+  if (!hasNoReference(rec) && summary.extraSteps > 0) {
     issues.push({
       ...base,
       issueId: id(),
@@ -455,7 +497,7 @@ function issueItems(rec: RunRecord, createdAt: string): IssueDto[] {
       description: '허용 최단 경로보다 이동을 더 했습니다.',
       evidence: {
         successfulNavigationClickCount: summary.clickCount,
-        shortestAllowedSteps: SHORTEST_ALLOWED_STEPS,
+        shortestAllowedSteps: shortestStepsOf(rec),
         extraSteps: summary.extraSteps,
       },
       reviewPriority: 'GENERAL_REVIEW',
@@ -497,7 +539,7 @@ function buildSummaryCounts(rec: RunRecord) {
   const clickCount = specs.filter((s) => s.selected !== 'BACK').length
   return {
     clickCount,
-    extraSteps: Math.max(0, clickCount - SHORTEST_ALLOWED_STEPS),
+    extraSteps: Math.max(0, clickCount - shortestStepsOf(rec)),
   }
 }
 

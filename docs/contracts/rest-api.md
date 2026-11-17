@@ -1,6 +1,6 @@
 # REST API 소비 규칙
 
-프론트가 호출하는 endpoint의 정본은 계약서 §17이다. 이 문서는 화면별 사용처, 요청 값의 출처, 오류와 빈 데이터 처리만 정한다. 응답 타입은 [데이터 모델](data-model.md)에 있다. `P0`는 MORO MARKET Before/After 범위다.
+프론트가 호출하는 endpoint의 정본은 계약서 §17이다. 이 문서는 화면별 사용처, 요청 값의 출처, 오류와 빈 데이터 처리만 정한다. Run·Step 등 공통 응답 타입은 [데이터 모델](data-model.md), 비교 응답 타입은 [비교 데이터 모델](comparison-data-model.md)에 있다. `P0`는 MORO MARKET Before/After 범위다.
 
 ## 공통 규칙
 

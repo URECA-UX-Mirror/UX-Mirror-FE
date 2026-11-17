@@ -5,7 +5,8 @@
 ## 목표 도달 판정
 
 - 판정 방식은 `DOM_ONLY`다. 모델에 목표 YES/NO를 묻지 않고(`modelGoalReached = null`) 브라우저에서 확인한 경로와 화면에 보이는 글자만 쓴다. 모델 판정(`MODEL_AND_DOM`)은 `P1`이다. `계약 §4.4`
-- 성공 조건은 목표마다 정하며 현재 `refund`(환불 신청 화면 찾기)는 경로가 `/shop/refund`이고 `환불 / 반품 신청` 글자가 화면에 보일 때 성공이다. 주소만 맞거나 글자만 보이는 것은 도착이 아니다. `계약 §2.3`
+- 성공 조건은 목표마다 정한다. 기본 preset `refund`(환불 신청 화면 찾기)의 예시는 경로가 `/shop/refund`이고 `환불 / 반품 신청` 글자가 화면에 보일 때 성공이다. 주소만 맞거나 글자만 보이는 것은 도착이 아니다. `계약 §2.3`
+- 직접 입력한 목표는 Run에 저장된 `verification.path`와 `verification.text`를 사용하며, 글자 일치 방식과 찾는 범위는 `exact`와 `scope`를 따른다([OI-9](../operations/open_issue.md#oi-9)).
 - 성공 조건(`verification`)은 Run에 저장되며 프론트는 기존 실험의 입력을 재사용한다. 계약 v1.3.5와의 차이는 [OI-9](../operations/open_issue.md#oi-9)를 따른다.
 - 프론트는 `Run.summary.goalReached`를 표시할 뿐 도달 여부를 판정하지 않는다. `goalReached`는 항상 화면 판정(`verifiedGoalReached`)과 같다. `계약 §10.2`
 - 화면 문구는 "목표 화면 도달"을 쓴다. "DOM 마커 검증" 같은 표현은 쓰지 않는다. 마커 방식은 폐기됐다.

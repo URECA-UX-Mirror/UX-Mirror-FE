@@ -1,5 +1,6 @@
 // MOCK 시나리오 정의. 응답 DTO와 같은 구조로 만들고 resultOrigin은 MOCK이다.
 // 값과 형식은 계약서 v1.3.5의 예시(§12.4, §15.6)와 실제 쇼핑몰(`/shop/{home,mypage,orders,support,refund}`)을 따른다.
+// 후보 bbox는 `mock-pages/`의 목업 쇼핑몰 화면과 맞춘다(`npm run mock:shots`가 어긋나면 실패한다).
 //
 // 목표 "환불 신청 화면 찾기"(`refund`). 허용 경로: home→orders→refund, home→mypage→refund,
 // home→mypage→orders→refund (최단 2회). 두 버전은 홈 상단 메뉴 라벨만 다르다

@@ -4,7 +4,9 @@ import type { IssueList, Step } from '../../domain/types.ts'
 import { screenshotUrl } from '../../api/runs.ts'
 import { ScreenshotViewer } from '../../shared/screenshot/ScreenshotViewer.tsx'
 import { CandidateProbabilityList } from '../../shared/screenshot/CandidateProbabilityList.tsx'
+import { ListChecksIcon } from '../../shared/icons.tsx'
 import type { PollingStatus } from '../../shared/polling/usePolling.ts'
+import { SectionTitle } from '../../shared/SectionTitle.tsx'
 import { evidenceLabel, evidenceValue, priorityLabel } from './issueLabels.ts'
 
 interface IssuePanelProps {
@@ -133,8 +135,16 @@ export function IssuePanel({
   }
 
   return (
-    <section className="result-section" aria-label="검토 후보">
-      <h2>검토 후보</h2>
+    <section className="card" aria-label="검토 후보">
+      <SectionTitle
+        icon={<ListChecksIcon />}
+        title="UX 검토 후보"
+        aside={
+          issues && issues.analysisStatus === 'COMPLETED'
+            ? `${issues.items.length}건 탐지됨`
+            : undefined
+        }
+      />
       <p className="probability-note">
         AI 탐색 기록 기반의 검토 후보이며 실제 사용자 결함이 아닙니다
       </p>
@@ -161,9 +171,9 @@ function StepEvidence({ runId, stepId, steps, failed, onRetry }: {
       <ScreenshotViewer key={`${runId}:${step.stepId}`} src={screenshotUrl(runId, step.stepId)}
         alt={`Step ${step.stepId} 근거 화면`} viewport={step.page.viewport}
         screenshotSize={step.page.screenshotSize} scroll={step.page.scroll}
-        boxes={step.candidates.map((candidate) => ({
+        boxes={step.candidates.map((candidate, index) => ({
           id: candidate.optionId, bbox: candidate.bbox, label: candidate.label,
-          probability: candidate.probability, highlighted: candidate.selected,
+          tag: index + 1, highlighted: candidate.selected,
         }))} runInProgress={false} />
       <CandidateProbabilityList candidates={step.candidates} decision={step.decision} />
     </div>

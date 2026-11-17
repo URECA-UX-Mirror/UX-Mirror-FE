@@ -132,14 +132,14 @@ describe('진행 화면 폴링', () => {
     expect(screen.queryByText(/기록 열람 중/)).toBeNull()
   })
 
-  it('종료 상태 Run에는 대기 칸을 만들지 않고 진행 중에는 maxSteps만큼 만든다', async () => {
+  it('종료 상태 Run에는 대기 카드를 만들지 않고 진행 중에는 남은 단계 대기 카드 한 장을 보인다', async () => {
     getRun.mockResolvedValueOnce(runOf('RUNNING')).mockResolvedValue(runOf('SUCCESS'))
     getRunSteps.mockResolvedValue(stepsOf(3))
     renderPage()
     await flush()
-    expect(screen.getAllByText('대기')).toHaveLength(2)
+    expect(screen.getAllByText('대기 중')).toHaveLength(1)
     await tick()
-    expect(screen.queryByText('대기')).toBeNull()
+    expect(screen.queryByText('대기 중')).toBeNull()
   })
 
   it('404 RUN_NOT_FOUND이면 폴링을 멈추고 새 분석 링크를 보인다', async () => {

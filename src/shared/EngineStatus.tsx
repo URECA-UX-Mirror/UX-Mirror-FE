@@ -16,16 +16,24 @@ export function EngineStatus({ refreshKey }: EngineStatusProps) {
   const { health, error, loading } = useHealth(refreshKey)
 
   if (loading && !health && !error) {
-    return <span className="engine-status">엔진 상태 확인 중</span>
+    return (
+      <span className="engine-status" data-state="pending">
+        엔진 상태 확인 중
+      </span>
+    )
   }
   if (error || !health) {
-    return <span className="engine-status">엔진 상태 확인 불가</span>
+    return (
+      <span className="engine-status" data-state="unknown">
+        엔진 상태 확인 불가
+      </span>
+    )
   }
 
   // 모델·브라우저·에이전트가 모두 준비되면 서버가 `READY`를 준다(계약 §17.8)
   const ready = health.status === 'READY'
   return (
-    <span className="engine-status">
+    <span className="engine-status" data-state={ready ? 'ready' : 'pending'}>
       {ready ? '엔진 준비 완료' : '엔진 준비 중'}
       {health.activeRunId ? (
         <>

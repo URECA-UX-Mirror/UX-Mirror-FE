@@ -1,42 +1,74 @@
+import { useState } from 'react'
 import { useParams } from 'react-router'
 import './comparison.css'
 import type { Comparison } from '../../domain/types.ts'
 import { ComparisonError } from './ComparisonError.tsx'
 import { ReplayNotice } from '../replay/ReplayNotice.tsx'
 import { ConditionChecks } from './ConditionChecks.tsx'
+import {
+  ComparisonSetup,
+  ConditionBar,
+  IssueComparison,
+  KpiCards,
+  PathComparison,
+} from './ComparisonSections.tsx'
 import { OriginBadges } from './OriginBadges.tsx'
 import { RunComparison } from './RunComparison.tsx'
 import { ScreenComparisonCard } from './ScreenComparisonCard.tsx'
+import { SingleScreenView } from './SingleScreenView.tsx'
 import { useComparison, useRunSteps } from './useComparisonData.ts'
-
-const STATUS_TEXT: Record<string, string> = {
-  COMPLETED: '모든 화면을 비교했습니다',
-  PARTIAL: '비교할 수 있는 부분만 표시합니다',
-}
 
 function ComparisonBody({ comparison }: { comparison: Comparison }) {
   // 후보 박스는 비교 응답에 없으므로 각 Run의 Step에서 가져온다. Run마다 따로 조회한다.
   const beforeSteps = useRunSteps(comparison.beforeRunId)
   const afterSteps = useRunSteps(comparison.afterRunId)
+  // 보기 방식은 화면 상태다. 기본은 한눈에 보기
+  const [view, setView] = useState<'overview' | 'single'>('overview')
 
   return (
     <>
-      <p>
-        {STATUS_TEXT[comparison.comparisonStatus] ?? comparison.comparisonStatus}
-        <span className="muted">
-          {' '}
-          · Before {comparison.beforeRunId} · After {comparison.afterRunId}
-        </span>
-      </p>
+      <ComparisonSetup comparison={comparison} />
 
-      {comparison.conditionsMatched ? null : (
+      {comparison.conditionsMatched ? (
+        <ConditionBar />
+      ) : (
         <ConditionChecks checks={comparison.conditionChecks} />
       )}
 
-      <section>
-        <h2>화면별 비교</h2>
+      <KpiCards comparison={comparison} />
+
+      <section className="comparison-screens">
+        <div className="comparison-screens-head">
+          <h2>화면별 비교</h2>
+          {comparison.screenComparisons.length === 0 ? null : (
+            <div className="segmented" role="group" aria-label="보기 방식">
+              <button
+                type="button"
+                aria-pressed={view === 'overview'}
+                onClick={() => setView('overview')}
+              >
+                한눈에 보기
+              </button>
+              <button
+                type="button"
+                aria-pressed={view === 'single'}
+                onClick={() => setView('single')}
+              >
+                하나씩 보기
+              </button>
+            </div>
+          )}
+        </div>
         {comparison.screenComparisons.length === 0 ? (
           <p className="muted">비교할 화면이 없습니다</p>
+        ) : view === 'single' ? (
+          <SingleScreenView
+            screens={comparison.screenComparisons}
+            beforeRunId={comparison.beforeRunId}
+            afterRunId={comparison.afterRunId}
+            beforeSteps={beforeSteps}
+            afterSteps={afterSteps}
+          />
         ) : (
           comparison.screenComparisons.map((screen) => (
             <ScreenComparisonCard
@@ -50,6 +82,9 @@ function ComparisonBody({ comparison }: { comparison: Comparison }) {
           ))
         )}
       </section>
+
+      <PathComparison comparison={comparison} />
+      <IssueComparison comparison={comparison} />
 
       <RunComparison
         before={comparison.runComparison.before}
@@ -66,22 +101,27 @@ export function ComparisonPage() {
 
   return (
     <section className="comparison-page">
-      <header className="comparison-header">
-        <h1>버전 비교</h1>
-        {comparison ? (
-          <OriginBadges
-            before={comparison.beforeResultOrigin}
-            after={comparison.afterResultOrigin}
-          />
-        ) : null}
+      <header className="page-header">
+        <div className="page-title-row">
+          <h1>버전 비교</h1>
+          {comparison ? (
+            <OriginBadges
+              before={comparison.beforeResultOrigin}
+              after={comparison.afterResultOrigin}
+            />
+          ) : null}
+          {comparison ? (
+            <ReplayNotice
+              experimentKey={experimentKey}
+              origins={[comparison.beforeResultOrigin, comparison.afterResultOrigin]}
+            />
+          ) : null}
+        </div>
+        <p className="page-lead">두 버전의 AI 탐색 결과와 검토 항목을 비교합니다.</p>
+        <p className="page-lead">
+          <span className="mono">experimentKey: {experimentKey}</span>
+        </p>
       </header>
-      {comparison ? (
-        <ReplayNotice
-          experimentKey={experimentKey}
-          origins={[comparison.beforeResultOrigin, comparison.afterResultOrigin]}
-        />
-      ) : null}
-      <p className="muted">experimentKey: {experimentKey}</p>
 
       {loading ? <p role="status">비교 결과를 불러오는 중</p> : null}
       {error ? (

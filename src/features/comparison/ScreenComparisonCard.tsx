@@ -1,12 +1,8 @@
 import { useState } from 'react'
-import { screenshotUrl } from '../../api/runs.ts'
-import type {
-  ScreenComparison,
-  ScreenMetrics,
-  Step,
-} from '../../domain/types.ts'
-import { ScreenshotViewer } from '../../shared/screenshot/ScreenshotViewer.tsx'
+import type { ScreenComparison, ScreenMetrics } from '../../domain/types.ts'
+import { ProbabilityGauge } from '../../shared/ProbabilityGauge.tsx'
 import { formatPercent } from '../../shared/screenshot/boxStyle.ts'
+import { ScreenshotPane } from './ScreenshotPane.tsx'
 import {
   formatDelta,
   formatMetric,
@@ -48,64 +44,6 @@ const METRIC_ROWS: {
   { key: 'goalPathProbability', label: '목표 경로 확률', kind: 'probability' },
 ]
 
-interface ScreenshotPaneProps {
-  title: string
-  runId: string
-  stepId: number | null
-  stepsState: RunStepsState
-}
-
-/** 한 버전의 스크린샷과 후보 박스. 박스는 이 Run의 Step에서만 가져온다 */
-function ScreenshotPane({
-  title,
-  runId,
-  stepId,
-  stepsState,
-}: ScreenshotPaneProps) {
-  const step: Step | undefined =
-    stepId === null ? undefined : stepsState.steps.get(stepId)
-  let body
-  if (stepId === null) {
-    body = <p className="muted">이 버전에서 방문하지 않아 화면이 없습니다</p>
-  } else if (!step) {
-    body = (
-      <p className="muted" role="status">
-        {stepsState.failed
-          ? '화면 정보를 불러오지 못했습니다'
-          : stepsState.loading
-            ? '화면 준비 중'
-            : '화면 없음'}
-      </p>
-    )
-  } else {
-    body = (
-      <ScreenshotViewer
-        src={screenshotUrl(runId, step.stepId)}
-        alt={`${title} 화면 (${runId}, Step ${step.stepId})`}
-        viewport={step.page.viewport}
-        screenshotSize={step.page.screenshotSize}
-        scroll={step.page.scroll}
-        boxes={step.candidates.map((candidate) => ({
-          id: candidate.optionId,
-          bbox: candidate.bbox,
-          label: candidate.label,
-          probability: candidate.probability,
-          highlighted: candidate.selected,
-        }))}
-        runInProgress={false}
-      />
-    )
-  }
-  return (
-    <figure className="comparison-pane">
-      <figcaption>
-        {title} <span className="muted">{runId}</span>
-      </figcaption>
-      {body}
-    </figure>
-  )
-}
-
 function MetricsTable({ metrics }: { metrics: ScreenMetrics }) {
   return (
     <div className="comparison-table-scroll">
@@ -135,6 +73,44 @@ function MetricsTable({ metrics }: { metrics: ScreenMetrics }) {
 
 const probabilityText = (value: number | null) =>
   value === null ? NULL_TEXT : formatPercent(value)
+
+function GaugeRow({
+  side,
+  value,
+}: {
+  side: 'before' | 'after'
+  value: number | null
+}) {
+  return (
+    <div className="pair-row">
+      <span className="pair-side" data-side={side}>
+        {side === 'before' ? 'Before' : 'After'}
+      </span>
+      {value === null ? (
+        <span className="gauge" aria-hidden="true" />
+      ) : (
+        <ProbabilityGauge value={value} tone={side} />
+      )}
+      <span className="pair-value">{probabilityText(value)}</span>
+    </div>
+  )
+}
+
+/** 같은 눈금(0~100%)으로 Before·After 막대를 위아래에 놓아 길이를 바로 비교한다 */
+export function PairedGauge({
+  before,
+  after,
+}: {
+  before: number | null
+  after: number | null
+}) {
+  return (
+    <div className="pair">
+      <GaugeRow side="before" value={before} />
+      <GaugeRow side="after" value={after} />
+    </div>
+  )
+}
 
 interface ScreenComparisonCardProps {
   screen: ScreenComparison
@@ -171,43 +147,61 @@ export function ScreenComparisonCard({
           runId={beforeRunId}
           stepId={screen.beforeStepId}
           stepsState={beforeSteps}
+          screen={screen}
         />
         <ScreenshotPane
           title="After"
           runId={afterRunId}
           stepId={screen.afterStepId}
           stepsState={afterSteps}
+          screen={screen}
         />
       </div>
 
-      {/* 스크린샷 박스의 확률 배지도 있으므로 후보 대응 표가 없어도 항상 둔다 */}
+      {/* 스크린샷 위에는 번호 태그만 있으므로 확률 문구는 후보 대응 표가 없어도 항상 둔다 */}
       <p className="probability-note">
         모델의 선택 확률이며 실제 사용자의 클릭 확률이 아닙니다
       </p>
 
       {screen.candidateComparisons.length > 0 ? (
         <>
-          <h4>후보 대응</h4>
+          <div className="comparison-legend">
+            <h4>후보별 확률 비교</h4>
+            <span className="legend-item" data-tone="before">
+              Before
+            </span>
+            <span className="legend-item" data-tone="after">
+              After
+            </span>
+          </div>
           <div className="comparison-table-scroll">
           <table className="comparison-candidates">
             <thead>
               <tr>
-                <th scope="col">Before 후보</th>
-                <th scope="col">Before 확률</th>
-                <th scope="col">After 후보</th>
-                <th scope="col">After 확률</th>
+                <th scope="col">후보</th>
+                <th scope="col">Before / After 확률</th>
                 <th scope="col">증감(서버 값)</th>
               </tr>
             </thead>
             <tbody>
-              {screen.candidateComparisons.map((candidate) => (
+              {screen.candidateComparisons.map((candidate, index) => (
                 <tr key={candidate.semanticKey}>
-                  <td>{candidate.beforeLabel ?? '없음'}</td>
-                  <td>{probabilityText(candidate.beforeProbability)}</td>
-                  <td>{candidate.afterLabel ?? '없음'}</td>
-                  <td>{probabilityText(candidate.afterProbability)}</td>
                   <td>
-                    {formatDelta(candidate.deltaProbability, 'probability')}
+                    <span className="candidate-no">{index + 1}</span>
+                    {candidate.beforeLabel === candidate.afterLabel
+                      ? (candidate.beforeLabel ?? '없음')
+                      : `${candidate.beforeLabel ?? '없음'} → ${candidate.afterLabel ?? '없음'}`}
+                  </td>
+                  <td>
+                    <PairedGauge
+                      before={candidate.beforeProbability}
+                      after={candidate.afterProbability}
+                    />
+                  </td>
+                  <td>
+                    <span className="delta-chip">
+                      {formatDelta(candidate.deltaProbability, 'probability')}
+                    </span>
                     {candidate.comparable ? null : (
                       <span className="muted">
                         {' '}

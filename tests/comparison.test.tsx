@@ -2,6 +2,8 @@ import { fireEvent, render, screen, waitFor, within } from '@testing-library/rea
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { expect, it } from 'vitest'
 import { ComparisonPage } from '../src/features/comparison/ComparisonPage.tsx'
+import { KpiCards } from '../src/features/comparison/ComparisonSections.tsx'
+import type { Comparison } from '../src/domain/types.ts'
 import { formatDelta, formatMetric } from '../src/features/comparison/format.ts'
 
 // mock 키는 src/mocks/handlers/comparisons.ts 상단 주석을 따른다.
@@ -112,4 +114,46 @@ it('ANALYSIS_ERROR는 다시 시도 버튼을 보인다', async () => {
   renderPage('mock-error')
   expect(await screen.findByText('비교 분석 중 오류가 발생했습니다')).toBeTruthy()
   expect(screen.getByRole('button', { name: '다시 시도' })).toBeTruthy()
+})
+
+it('하나씩 보기는 화면과 버전을 골라 한 장씩 보이고 한눈에 보기로 돌아온다', async () => {
+  renderPage('mock-done')
+  await screen.findByText(/모든 화면을 비교했습니다/)
+  fireEvent.click(screen.getByRole('button', { name: '하나씩 보기' }))
+  expect(screen.queryByRole('heading', { name: /화면:/ })).toBeNull()
+  const side = screen.getByRole('group', { name: '버전 선택' })
+  expect(within(side).getByRole('button', { name: 'Before' }).getAttribute('aria-pressed')).toBe('true')
+  fireEvent.click(within(side).getByRole('button', { name: 'After' }))
+  expect(within(side).getByRole('button', { name: 'After' }).getAttribute('aria-pressed')).toBe('true')
+  const pages = screen.getByRole('group', { name: '화면 선택' })
+  expect(within(pages).getAllByRole('button').length).toBeGreaterThan(0)
+  fireEvent.click(screen.getByRole('button', { name: '한눈에 보기' }))
+  expect(screen.getAllByRole('heading', { name: /화면:/ }).length).toBeGreaterThan(0)
+})
+
+it('후보별 확률 비교는 Before·After 게이지를 같은 눈금으로 보인다', async () => {
+  renderPage('mock-done')
+  await screen.findByText(/모든 화면을 비교했습니다/)
+  const card = screenCard('home')
+  const rows = card.querySelectorAll('.comparison-candidates tbody tr')
+  expect(rows.length).toBeGreaterThan(0)
+  for (const row of rows) expect(row.querySelectorAll('.pair-row .gauge')).toHaveLength(2)
+})
+
+it('시작 화면 KPI는 home의 지표만 쓰고 없으면 다른 화면 값 대신 계산 불가로 둔다', () => {
+  const run = { navigationCost: 1, goalReached: true, stepCount: 2, successfulNavigationClickCount: 2, backCount: 0 }
+  const metrics = { goalPathProbability: { before: 0.31, after: 0.72, delta: 0.41 } }
+  const make = (screens: unknown[]) =>
+    ({ runComparison: { before: run, after: run }, screenComparisons: screens }) as unknown as Comparison
+
+  const { unmount } = render(<KpiCards comparison={make([{ pageKey: 'mypage', metrics }, { pageKey: 'home', metrics: null }])} />)
+  const card = screen.getByText('시작 화면 후보 확률').closest('.kpi-card') as HTMLElement
+  expect(within(card).getAllByText('계산 불가')).toHaveLength(2)
+  expect(card.textContent).not.toContain('72')
+  unmount()
+
+  render(<KpiCards comparison={make([{ pageKey: 'mypage', metrics }, { pageKey: 'home', metrics }])} />)
+  const homeCard = screen.getByText('시작 화면 후보 확률').closest('.kpi-card') as HTMLElement
+  expect(homeCard.textContent).toContain('31.0%')
+  expect(homeCard.textContent).toContain('72.0%')
 })

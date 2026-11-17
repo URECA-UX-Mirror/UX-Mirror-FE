@@ -1,19 +1,14 @@
 import { useState } from 'react'
 import type { BoundingBox, Size } from '../../domain/types.ts'
-import {
-  formatPercent,
-  pickBaseSize,
-  toBoxStyle,
-  type Scroll,
-} from './boxStyle.ts'
+import { pickBaseSize, toBoxStyle, type Scroll } from './boxStyle.ts'
 
 /** 뷰어가 그리는 박스 하나. Step 전용이 아니라서 ④ 비교 화면의 Before/After도 같은 형태로 넘긴다. */
 export interface ViewerBox {
   id: string
   bbox: BoundingBox
   label?: string
-  /** 0~1. 있으면 박스에 백분율로 표시한다 */
-  probability?: number
+  /** 박스 바깥에 붙이는 번호 태그. 화면 요소를 가리지 않도록 확률 숫자는 박스 위에 올리지 않는다 */
+  tag?: string | number
   highlighted?: boolean
 }
 
@@ -97,9 +92,16 @@ export function ScreenshotViewer({
                 // 같은 정보가 `CandidateProbabilityList`에 있어 스크린 리더에서는 숨긴다.
                 aria-hidden="true"
               >
-                {box.probability === undefined ? null : (
-                  <span className="screenshot-box-badge">
-                    {formatPercent(box.probability)}
+                {box.tag === undefined ? null : (
+                  <span
+                    className={
+                      // 화면 맨 위에 붙은 박스는 태그가 잘리지 않게 박스 아래에 둔다
+                      style.top < 5
+                        ? 'screenshot-box-tag screenshot-box-tag-below'
+                        : 'screenshot-box-tag'
+                    }
+                  >
+                    {box.tag}
                   </span>
                 )}
               </div>

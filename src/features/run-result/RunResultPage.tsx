@@ -7,7 +7,10 @@ import type { Run } from '../../domain/types.ts'
 import { usePolling } from '../../shared/polling/usePolling.ts'
 import { ErrorNotice } from '../../shared/ErrorNotice.tsx'
 import { ResultOriginBadge } from '../../shared/ResultOriginBadge.tsx'
+import { formatDateTime } from '../../shared/stepLabel.ts'
 import { ReplayNotice } from '../replay/ReplayNotice.tsx'
+import { VERSIONS } from '../new-analysis/constants.ts'
+import { statusLabel } from '../run-progress/statusLabel.ts'
 import { IssuePanel } from './IssuePanel.tsx'
 import { OtherRuns } from './OtherRuns.tsx'
 import { PathPanel } from './PathPanel.tsx'
@@ -74,6 +77,7 @@ export function RunResultPage() {
 
 function ResultBody({ run }: { run: Run }) {
   const [selected, setSelected] = useState(0)
+  const version = VERSIONS.find((item) => item.variant === run.variant)
   const steps = usePolling({
     fetch: (signal) => getRunSteps(run.runId, signal),
     isDone: () => true,
@@ -93,16 +97,48 @@ function ResultBody({ run }: { run: Run }) {
 
   return (
     <section className="result-page">
-      <header className="result-header">
-        <h1>UX 탐색 분석 결과</h1>
-        <div>
-          <span>{run.runId}</span> <ResultOriginBadge origin={run.resultOrigin} />
+      <section className="card run-head" aria-label="실행 정보">
+        <div className="run-head-top">
+          <div className="page-title-row">
+            <h1>UX 탐색 분석 결과</h1>
+            <span role="status" className="run-status" data-status={run.status}>
+              {statusLabel(run)}
+            </span>
+            <ResultOriginBadge origin={run.resultOrigin} />
+            <ReplayNotice experimentKey={run.experimentKey} origins={[run.resultOrigin]} />
+          </div>
+          <Link
+            className="run-result-link"
+            to={`/comparisons/${encodeURIComponent(run.experimentKey)}`}
+          >
+            버전 비교 보기
+          </Link>
         </div>
-        <ReplayNotice experimentKey={run.experimentKey} origins={[run.resultOrigin]} />
-        <p>
-          {run.goal} · {run.persona}
-        </p>
-      </header>
+        <dl className="meta-row">
+          <div>
+            <dt>실행 ID</dt>
+            <dd>
+              <span className="run-id">{run.runId}</span>
+            </dd>
+          </div>
+          <div>
+            <dt>버전</dt>
+            <dd>{version ? `${version.name} · ${version.change}` : run.variant}</dd>
+          </div>
+          <div>
+            <dt>실행 일시</dt>
+            <dd className="num">{formatDateTime(run.startedAt ?? run.createdAt)}</dd>
+          </div>
+          <div>
+            <dt>사용자 유형</dt>
+            <dd>{run.persona}</dd>
+          </div>
+          <div className="meta-goal">
+            <dt>탐색 목표</dt>
+            <dd>{run.goal}</dd>
+          </div>
+        </dl>
+      </section>
 
       <RunSummaryPanel run={run} issues={issues.data} />
 
@@ -114,6 +150,7 @@ function ResultBody({ run }: { run: Run }) {
           stepsFailed={steps.status === 'failed'}
           stepsRetrying={steps.retrying}
           onRetrySteps={steps.retry}
+          goalReached={run.summary.goalReached}
           selected={selected}
           onSelect={setSelected}
         />

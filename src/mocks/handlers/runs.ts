@@ -27,6 +27,8 @@ import type { RunRecord } from '../store.ts'
 
 // 오류 시나리오를 켜는 방법(화면 개발용):
 //   POST /api/runs 의 experimentKey가 `mock-fail-503`으로 시작하면 503 BROWSER_ERROR
+//   `mock-preflight-503`이면 도착 화면 확인 실패(503 BROWSER_ERROR, 재시도 가능)
+//   도착 화면에 없는 verification.text는 422 CONTRACT_VALIDATION_ERROR (Before/After 구분)
 //   runId가 `run_mock_error` 이면 상세·steps·issues가 모두 500(retryable) — 폴링 backoff 확인용
 //   없는 runId는 404 RUN_NOT_FOUND
 // 시드 Run(종료 상태로 시작):
@@ -112,6 +114,9 @@ export const runsHandlers = [
     await delay(200)
     const body = await readBody(request)
 
+    if (body.experimentKey === 'mock-preflight-503') {
+      return errorResponse(503, 'BROWSER_ERROR', `${body.variant === 'after' ? 'After' : 'Before'} 도착 화면을 읽지 못했습니다`, true)
+    }
     if (body.experimentKey?.startsWith('mock-fail-503')) {
       return errorResponse(
         503,
@@ -138,7 +143,7 @@ export const runsHandlers = [
     const v = inputs.verification
     if (v && !textVisibleOn(v.path, v.text, v.exact)) {
       const known = (VISIBLE_TEXTS[v.path] ?? []).join(', ')
-      return validationError(`MOCK 도착 화면(${v.path})에 '${v.text}' 글자가 없습니다${v.exact ? ' (정확 일치)' : ''}. MOCK에서 판정할 수 있는 글자: ${known}`)
+      return validationError(`${body.variant === 'after' ? 'After' : 'Before'} 도착 화면(${v.path})에 '${v.text}' 글자가 없습니다${v.exact ? ' (정확 일치)' : ''}. MOCK에서 판정할 수 있는 글자: ${known}`)
     }
     const first = firstExperimentRun(body.experimentKey)
     if (first && !sameInputs(inputs, first)) {

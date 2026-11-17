@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { http } from 'msw'
 import { MemoryRouter } from 'react-router'
-import { expect, it } from 'vitest'
+import { expect, it, vi } from 'vitest'
 import { apiUrl } from '../src/api/client.ts'
 import { NewAnalysisPage } from '../src/features/new-analysis/NewAnalysisPage.tsx'
 import { errorResponse } from '../src/mocks/errors.ts'
@@ -143,6 +143,52 @@ it('입력한 목표·성공 조건·사용자 유형을 문장으로 보내고,
     persona: '쇼핑몰을 처음 쓰는 사용자',
     maxSteps: 8,
   })
+})
+
+it('도착 화면에 글자가 없으면 422 메시지를 보여 주고 Run을 만들지 않는다', async () => {
+  renderAt('/?experimentKey=mock-preflight-422')
+  fillInputs()
+  fireEvent.change(screen.getByLabelText('화면에 보여야 할 글자'), { target: { value: '없는 글자' } })
+  await waitFor(() => expect(startButtons()[0].disabled).toBe(false))
+  fireEvent.click(startButtons()[0])
+
+  expect(await screen.findByText(/Before 도착 화면.*없는 글자.*글자가 없습니다/)).toBeTruthy()
+  expect(screen.getByText('입력을 고친 뒤 다시 시작해 주세요.')).toBeTruthy()
+  expect(screen.queryByRole('button', { name: '다시 시도' })).toBeNull()
+  const response = await fetch(apiUrl('/api/runs?experimentKey=mock-preflight-422'))
+  expect((await response.json()).count).toBe(0)
+})
+
+it('도착 화면 확인 실패 503은 서버 문구와 재시도를 보이고 Run을 만들지 않는다', async () => {
+  const fetchSpy = vi.spyOn(globalThis, 'fetch')
+  try {
+    renderAt('/?experimentKey=mock-preflight-503')
+    fillInputs()
+    await waitFor(() => expect(startButtons()[0].disabled).toBe(false))
+    fireEvent.click(startButtons()[0])
+
+    expect(await screen.findByText('Before 도착 화면을 읽지 못했습니다')).toBeTruthy()
+    expect(screen.getByText('Run은 생성되지 않았습니다.')).toBeTruthy()
+    const retry = screen.getByRole('button', { name: '다시 시도' })
+    await waitFor(() => expect(retry.hasAttribute('disabled')).toBe(false))
+    fireEvent.click(retry)
+    await waitFor(() => expect(fetchSpy.mock.calls.filter(([url, options]) =>
+      String(url).endsWith('/api/runs') && (options as RequestInit | undefined)?.method === 'POST').length).toBe(2))
+    const response = await fetch(apiUrl('/api/runs?experimentKey=mock-preflight-503'))
+    expect((await response.json()).count).toBe(0)
+  } finally {
+    fetchSpy.mockRestore()
+  }
+})
+
+it('503 BROWSER_ERROR에 메시지가 없으면 대체 문구를 보인다', async () => {
+  server.use(http.post(apiUrl('/api/runs'), () => errorResponse(503, 'BROWSER_ERROR', '', false)))
+  renderAt('/')
+  fillInputs()
+  await waitFor(() => expect(startButtons()[0].disabled).toBe(false))
+  fireEvent.click(startButtons()[0])
+  expect(await screen.findByText('도착 화면을 확인하지 못했습니다')).toBeTruthy()
+  expect(screen.queryByRole('button', { name: '다시 시도' })).toBeNull()
 })
 
 it('직접 입력한 기존 실험은 입력이 첫 Run 값으로 잠기고 v2는 그 값을 그대로 보낸다', async () => {

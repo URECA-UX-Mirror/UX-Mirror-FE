@@ -62,6 +62,7 @@ function NewAnalysisContent() {
   const [runResult, setRunResult] = useState<{ token: string; run: Run | null; error: boolean } | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<unknown>(null)
+  const [attemptedVariant, setAttemptedVariant] = useState<Variant | null>(null)
   // 분석 사이트 입력. 실행 요청 계약에 사이트 필드가 없어 요청에는 싣지 않는다(OI-8)
   const [site, setSite] = useState<string>(SITE.name)
   const [compareA, setCompareA] = useState<Variant>('before')
@@ -144,6 +145,7 @@ function NewAnalysisContent() {
   async function start(variant: Variant) {
     if (!ready) return
     const key = experimentKey || createExperimentKey()
+    setAttemptedVariant(variant)
     setSubmitting(true)
     setSubmitError(null)
     try {
@@ -173,7 +175,7 @@ function NewAnalysisContent() {
       {engineNotReady && !health.loading && <p role="alert">엔진이 준비되지 않아 분석을 시작할 수 없습니다. <button type="button" onClick={health.reload}>다시 확인</button></p>}
       {activeRun && <p role="alert">다른 분석이 실행 중입니다. <Link to={`/runs/${encodeURIComponent(activeRun)}`}>진행 중인 Run 보기</Link></p>}
       {!!health.error && <p role="status">엔진 상태를 확인할 수 없습니다. <button type="button" onClick={health.reload}>다시 확인</button></p>}
-      {submitError ? <div role="alert">{code === 'RUN_ALREADY_ACTIVE' ? <p>다른 분석이 실행 중입니다. {activeRun && <Link to={`/runs/${encodeURIComponent(activeRun)}`}>진행 중인 Run 보기</Link>}</p> : code === 'EXPERIMENT_RUN_EXISTS' ? <p>같은 버전의 실행이 이미 있습니다. {Object.values(results).flat().filter((r) => r.validity === 'VALID').map((r) => <Link key={r.runId} to={`/runs/${encodeURIComponent(r.runId)}/result`}>{r.runId} 결과 보기 </Link>)}</p> : code === 'CONTRACT_VALIDATION_ERROR' ? <p>입력한 분석 조건을 확인해 주세요.{isApiError(submitError) && submitError.message ? ` ${submitError.message}` : ''}</p> : isApiError(submitError) && submitError.status === 503 ? <p>실행 환경을 준비하지 못했습니다. 다시 시도해 주세요.</p> : <ErrorNotice error={submitError} />}</div> : null}
+      {submitError ? <div role="alert">{code === 'RUN_ALREADY_ACTIVE' ? <p>다른 분석이 실행 중입니다. {activeRun && <Link to={`/runs/${encodeURIComponent(activeRun)}`}>진행 중인 Run 보기</Link>}</p> : code === 'EXPERIMENT_RUN_EXISTS' ? <p>같은 버전의 실행이 이미 있습니다. {Object.values(results).flat().filter((r) => r.validity === 'VALID').map((r) => <Link key={r.runId} to={`/runs/${encodeURIComponent(r.runId)}/result`}>{r.runId} 결과 보기 </Link>)}</p> : code === 'CONTRACT_VALIDATION_ERROR' ? <><p>{isApiError(submitError) && submitError.message ? submitError.message : '입력한 분석 조건을 확인해 주세요.'}</p><p>입력을 고친 뒤 다시 시작해 주세요.</p></> : code === 'BROWSER_ERROR' && isApiError(submitError) ? <><p>{submitError.message.trim() || '도착 화면을 확인하지 못했습니다'}</p><p>Run은 생성되지 않았습니다.</p>{submitError.retryable && attemptedVariant && <button type="button" disabled={!ready} onClick={() => void start(attemptedVariant)}>다시 시도</button>}</> : isApiError(submitError) && submitError.status === 503 ? <p>{submitError.message.trim() || '실행 환경을 준비하지 못했습니다.'}</p> : <ErrorNotice error={submitError} />}</div> : null}
     </>
   )
 
@@ -257,7 +259,7 @@ function NewAnalysisContent() {
               </select>
             </label>
           </div>
-          <p className="muted verification-note">직접 입력한 목표는 허용 경로가 없어 경로 이탈·추가 단계·목표 경로 확률은 계산하지 않습니다.</p>
+          <p className="muted verification-note">사이트 지도 기준이 적용되면 지원 화면(마이페이지·주문/배송 조회·고객센터·환불 신청)의 경로 지표를 계산할 예정입니다. 그 외 화면은 계산하지 않습니다.</p>
         </fieldset>
         <div className="steps-row">
           <div>

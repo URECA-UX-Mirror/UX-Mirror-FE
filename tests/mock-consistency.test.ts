@@ -1,7 +1,7 @@
-import { expect, it } from 'vitest'
+import { expect, it, vi } from 'vitest'
 import { apiUrl } from '../src/api/client.ts'
 import { buildIssues, buildRun } from '../src/mocks/fixtures/run.ts'
-import { scenarioForGoal } from '../src/mocks/fixtures/scenario.ts'
+import { scenarioForGoal, textVisibleOn, VISIBLE_TEXTS } from '../src/mocks/fixtures/scenario.ts'
 import { GOAL_PAGES } from '../src/features/new-analysis/constants.ts'
 import { allRuns, findRun } from '../src/mocks/store.ts'
 import type { RunRecord } from '../src/mocks/store.ts'
@@ -67,4 +67,52 @@ it('허용 경로가 없는 Run은 요약의 추가 단계가 null이고 EXTRA_S
   // 같은 경로라도 preset Run이면 EXTRA_STEPS가 생긴다(조건이 허용 경로 유무로만 갈리는지 확인)
   const preset = { ...allRuns().find((item) => item.runId === 'run_mock_direct_before')!, goalId: 'refund', scenario: 'before' as const }
   expect(buildIssues(preset, FAR_FUTURE).items.map((issue) => issue.issueType)).toContain('EXTRA_STEPS')
+})
+
+/** POST /api/runs 직접 입력 요청 */
+async function createDirect(experimentKey: string, verification: Record<string, unknown>) {
+  const response = await fetch(apiUrl('/api/runs'), {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ experimentKey, variant: 'before', goal: '주문 내역 화면 찾기', persona: '테스트 사용자', verification }),
+  })
+  return { status: response.status, body: (await response.json()) as { error?: { message: string } } }
+}
+
+it('화면에 없는 글자를 성공 조건으로 넣으면 MOCK은 Run을 만들지 않는다 (성공으로 표시하지 않음)', async () => {
+  const before = allRuns().length
+  for (const [key, verification] of [
+    ['mock-text-missing', { path: '/shop/orders', text: '화면에 없는 글자' }],
+    ['mock-text-spacing', { path: '/shop/orders', text: '주문/배송 조회' }],   // 탭 제목에만 있는 글자
+    ['mock-text-exact', { path: '/shop/orders', text: '배송 조회', exact: true }],   // 부분만 맞는데 정확 일치
+    ['mock-text-other-page', { path: '/shop/orders', text: '환불 / 반품 신청' }],   // 다른 화면의 제목
+  ] as const) {
+    const { status, body } = await createDirect(key, verification)
+    expect([key, status]).toEqual([key, 422])
+    expect(body.error?.message).toContain('글자가 없습니다')
+  }
+  expect(allRuns().length).toBe(before)
+})
+
+it('도착 화면 제목과 맞는 글자는 부분 일치·정확 일치·찾는 범위와 관계없이 받는다', async () => {
+  expect(textVisibleOn('/shop/orders', '배송 조회', false)).toBe(true)
+  expect(textVisibleOn('/shop/orders', '주문 / 배송 조회', true)).toBe(true)
+  expect(textVisibleOn('/shop/orders', '배송 조회', true)).toBe(false)
+  // 앞에서 만든 Run이 진행 중이면 409가 나므로, 시각을 1시간씩 앞당겨 이전 Run을 끝난 상태로 만든다
+  const base = Date.now()
+  try {
+    for (const [i, scope] of ['page', 'main'].entries()) {
+      vi.spyOn(Date, 'now').mockReturnValue(base + (i + 1) * 3_600_000)
+      const { status } = await createDirect(`mock-text-ok-${scope}`, { path: '/shop/orders', text: '배송 조회', scope })
+      expect([scope, status]).toEqual([scope, 201])
+    }
+  } finally {
+    vi.restoreAllMocks()
+  }
+})
+
+it('화면이 자동으로 채우는 도착 화면 제목은 모두 MOCK이 판정할 수 있다', () => {
+  for (const page of GOAL_PAGES) {
+    expect([page.path, VISIBLE_TEXTS[page.path]]).toEqual([page.path, [page.text]])
+    expect(textVisibleOn(page.path, page.text, true)).toBe(true)
+  }
 })

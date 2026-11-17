@@ -274,6 +274,27 @@ export function stepSpecs(scenario: ScenarioName): StepSpec[] {
 }
 
 /**
+ * MOCK이 판정할 수 있는 도착 화면별 "보이는 글자". 실제 쇼핑몰(UX-Mirror-BE `shop/moro-before`·`moro-after`)의
+ * 그 화면에만 보이는 제목이다. 화면 전체 글자를 다 알 수 없으므로 이 목록으로만 성공 조건 글자를 판정한다.
+ * 실제 화면의 <main> 안에 있어 scope가 page·main 어느 쪽이어도 보인다.
+ */
+export const VISIBLE_TEXTS: Record<string, string[]> = {
+  '/shop/refund': ['환불 / 반품 신청'],
+  '/shop/orders': ['주문 / 배송 조회'],
+  '/shop/mypage': ['김모로 님'],
+  '/shop/support': ['자주 묻는 질문'],
+}
+
+/**
+ * 성공 조건 글자가 MOCK 도착 화면에 보이는지. 실제 판정(Playwright `get_by_text`)처럼
+ * `exact=false`는 부분 일치, `exact=true`는 전체 일치. 알 수 없는 화면이면 false.
+ */
+export function textVisibleOn(path: string, text: string, exact: boolean): boolean {
+  const texts = VISIBLE_TEXTS[path.replace(/\/$/, '')] ?? []
+  return texts.some((visible) => (exact ? visible === text : visible.includes(text)))
+}
+
+/**
  * 직접 입력한 목표의 MOCK 시나리오. 성공 조건의 도착 화면에서 끝나야 `goalReached`가 성공 조건과 맞는다.
  * 지원하지 않는 화면이면 `null`(요청을 거부한다).
  */

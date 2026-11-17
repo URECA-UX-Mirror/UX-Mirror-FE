@@ -14,7 +14,7 @@ import {
   getTiming,
   scenarioOf,
 } from '../fixtures/run.ts'
-import { scenarioForGoal, stepSpecs } from '../fixtures/scenario.ts'
+import { scenarioForGoal, stepSpecs, textVisibleOn, VISIBLE_TEXTS } from '../fixtures/scenario.ts'
 import { issueOverride } from '../fixtures/runResult.ts'
 import {
   addRun,
@@ -133,6 +133,13 @@ export const runsHandlers = [
     // 직접 입력한 목표는 성공 조건의 도착 화면에서 끝나는 시나리오로 진행한다(환불 화면으로 가서 성공 처리하지 않음)
     const scenario = inputs.verification ? scenarioForGoal(body.variant, inputs.verification.path) : undefined
     if (scenario === null) return validationError('MOCK에서 지원하지 않는 도착 화면입니다 (시작 화면 home 등)')
+    // MOCK은 화면 전체 글자를 모르므로, 도착 화면의 알려진 제목과 맞는 성공 조건만 받는다.
+    // 화면에 없는 글자로 만든 Run이 성공으로 표시되지 않게 실행 전에 거부한다(exact·scope 포함)
+    const v = inputs.verification
+    if (v && !textVisibleOn(v.path, v.text, v.exact)) {
+      const known = (VISIBLE_TEXTS[v.path] ?? []).join(', ')
+      return validationError(`MOCK 도착 화면(${v.path})에 '${v.text}' 글자가 없습니다${v.exact ? ' (정확 일치)' : ''}. MOCK에서 판정할 수 있는 글자: ${known}`)
+    }
     const first = firstExperimentRun(body.experimentKey)
     if (first && !sameInputs(inputs, first)) {
       return validationError('같은 experimentKey의 첫 실행과 입력이 다릅니다')

@@ -140,6 +140,8 @@
 | 409 `COMPARISON_RUN_INVALID` | "유효한 실행이 없는 버전이 있습니다" 안내와 해당 버전 재분석 링크 |
 | 500 `ANALYSIS_ERROR` | 오류 안내와 재시도 |
 
+- 직접 입력한 Run의 비교 조건은 `GOAL_MATCHED`가 목표 문장과 `verification`, `PERSONA_MATCHED`가 사용자 유형 문장을 기준으로 판정한다. `verification`이 없는 과거 Run은 확인 불가로 처리되어 `PARTIAL`이 될 수 있다([OI-9](../operations/open_issue.md#oi-9)).
+
 `COMPARISON_NOT_READY`와 `RUN_NOT_FOUND`는 화면 문구를 구분한다. 한쪽이 진행 중이면 기다리라는 안내이고, 키가 없으면 잘못된 주소 안내다.
 
 ## P1 (구현된 기능이 아님)

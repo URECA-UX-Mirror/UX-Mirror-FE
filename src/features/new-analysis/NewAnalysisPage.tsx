@@ -43,6 +43,8 @@ function NewAnalysisContent() {
   const [runResult, setRunResult] = useState<{ token: string; run: Run | null; error: boolean } | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<unknown>(null)
+  // 분석 사이트 입력. 실행 요청 계약에 사이트 필드가 없어 요청에는 싣지 않는다(OI-8)
+  const [site, setSite] = useState<string>(SITE.name)
   const [compareA, setCompareA] = useState<Variant>('before')
   const [compareB, setCompareB] = useState<Variant>('after')
   const health = useHealth()
@@ -156,17 +158,26 @@ function NewAnalysisContent() {
         <p className="page-lead">{SITE.name}의 두 버전을 같은 조건으로 분석하고 결과를 비교합니다.</p>
       </header>
 
-      <section className="card" aria-label="분석 대상">
+      <section className="card target-card" aria-label="분석 대상">
         <SectionTitle
           icon={<GlobeIcon />}
           title="분석 대상"
           action={<Link to="/replay" className="section-link">저장된 결과 보기</Link>}
         />
-        <dl className="target-site">
-          <dt>분석 사이트</dt>
-          <dd className="mono">{SITE.name}</dd>
-        </dl>
-        <p className="muted">각 버전의 분석을 시작하면 해당 버전의 사이트가 사용됩니다. 현재는 {SITE.name} 테스트 사이트만 분석할 수 있습니다.</p>
+        <div className="target-site">
+          <label htmlFor="target-site-input">분석 사이트</label>
+          <input
+            id="target-site-input"
+            value={site}
+            placeholder={SITE.name}
+            maxLength={120}
+            onChange={(e) => setSite(e.target.value)}
+          />
+        </div>
+        <p className="muted">
+          사이트 이름 또는 주소를 입력할 수 있습니다. 아직 분석 요청에는 반영되지 않으며, 현재는 각 버전에 맞는 {SITE.name} 테스트 사이트만 분석됩니다.
+          {site.trim() !== SITE.name && site.trim() !== '' ? <strong className="site-warning"> 입력한 사이트는 분석 대상이 아닙니다.</strong> : null}
+        </p>
       </section>
 
       <section className="card" aria-label="실험">

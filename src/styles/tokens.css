@@ -1,5 +1,5 @@
 /*
- * 디자인 토큰. 값의 출처는 Stitch 시안 v5의 DESIGN.md(팀 확정 전 안)다.
+ * 디자인 토큰. 라이트 고정이며 Stitch 시안 v5의 DESIGN.md(팀 확정 전 안)를 바탕으로 devs7ud.io의 느낌(떠 있는 카드, 큰 둥근 모서리, 노란 강조, 잉크색 알약 버튼)을 반영했다.
  * 컴포넌트 CSS는 색·간격·라운딩을 이 변수로만 참조한다.
  */
 @import '@fontsource-variable/inter';
@@ -7,51 +7,55 @@
 @import 'pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css';
 
 :root {
-  /* 다크 고정. 라이트 모드와 전환하지 않는다 */
-  color-scheme: dark;
+  /* 라이트 고정. 다크 모드와 전환하지 않는다 */
+  color-scheme: light;
 
-  /* 색: 면과 구분선 */
-  --um-canvas: #0b0f1a;
-  --um-surface: #111827;
-  --um-surface-subtle: #1b2535;
-  --um-border: #2c3a52;
-  --um-border-strong: #43536f;
+  /* 면: canvas(바닥) < surface(카드) 순으로 카드가 바닥 위에 떠 보인다.
+     surface-subtle은 카드 안의 칸, surface-raised는 눌림·강조 칸 */
+  --um-canvas: #f2f1ec;
+  --um-surface: #ffffff;
+  --um-surface-subtle: #f6f5f1;
+  --um-surface-raised: #ebeae3;
+  --um-border: #e3e1d8;
+  --um-border-strong: #c7c4b8;
 
-  /* 색: 글자 */
-  --um-text: #f4f6fa;
-  --um-text-secondary: #d3dbe8;
-  --um-text-muted: #aebad0;
-  --um-text-placeholder: #8f9db5;
+  /* 글자: 세 단계 + 안내. 대비는 흰 면 위 4.5:1 이상(placeholder 제외) */
+  --um-text: #14141a;
+  --um-text-secondary: #3d414d;
+  --um-text-muted: #666a77;
+  --um-text-placeholder: #8a8e99;
 
-  /* 색: 행동(브랜드). 채움은 brand, 다크 면 위의 글자·윤곽은 accent를 쓴다 */
-  --um-brand: #4f46e5;
-  --um-brand-hover: #6366f1;
-  --um-accent: #818cf8;
-  --um-accent-strong: #a5b4fc;
-  --um-brand-soft: rgb(99 102 241 / 16%);
-  --um-brand-border: rgb(129 140 248 / 40%);
-  --um-brand-text: #dbe1ff;
+  /* 행동: 주 버튼은 잉크색(brand), 링크·선택은 파랑(accent), 한 화면의 핵심은 노랑(highlight) */
+  --um-brand: #14141a;
+  --um-brand-hover: #2e2f3a;
+  --um-accent: #3a57e8;
+  --um-accent-strong: #2740c4;
+  --um-brand-soft: rgb(58 87 232 / 10%);
+  --um-brand-border: rgb(58 87 232 / 38%);
+  --um-brand-text: #2740c4;
+  --um-highlight: #ffc82c;
+  --um-highlight-ink: #2a2100;
 
-  /* 색: 상태. 배경·글자·테두리 세트 */
-  --um-success: #34d399;
-  --um-success-bg: rgb(52 211 153 / 12%);
-  --um-success-text: #86efc4;
-  --um-success-border: rgb(52 211 153 / 35%);
-  --um-warning: #fbbf24;
-  --um-warning-bg: rgb(251 191 36 / 12%);
-  --um-warning-text: #fde68a;
-  --um-warning-border: rgb(251 191 36 / 35%);
-  --um-danger: #f87171;
-  --um-danger-bg: rgb(248 113 113 / 12%);
-  --um-danger-text: #fecaca;
-  --um-danger-border: rgb(248 113 113 / 35%);
-  --um-info-bg: rgb(99 102 241 / 16%);
-  --um-info-text: #dbe1ff;
-  --um-info-border: rgb(129 140 248 / 40%);
+  /* 상태: 배경·글자·테두리 세트 */
+  --um-success: #14935a;
+  --um-success-bg: #e4f6ec;
+  --um-success-text: #0b6a3e;
+  --um-success-border: #a6dcc0;
+  --um-warning: #d98b00;
+  --um-warning-bg: #fff3d4;
+  --um-warning-text: #7a5000;
+  --um-warning-border: #efd085;
+  --um-danger: #d92d20;
+  --um-danger-bg: #fdecea;
+  --um-danger-text: #b0261b;
+  --um-danger-border: #f2b5af;
+  --um-info-bg: rgb(58 87 232 / 10%);
+  --um-info-text: #2740c4;
+  --um-info-border: rgb(58 87 232 / 38%);
 
-  /* 비교 막대 색: 서로 보색 계열이라 한눈에 구분된다(Before 시안, After 주황). 좋고 나쁨을 뜻하지 않는다 */
-  --um-before: #22d3ee;
-  --um-after: #fb923c;
+  /* 비교 색: 서로 보색 계열(Before 청록, After 주황). 좋고 나쁨을 뜻하지 않는다 */
+  --um-before: #0b86a6;
+  --um-after: #dd5a10;
 
   /* 글꼴. Inter를 먼저 선언해 영문·숫자는 Inter(400·500·600·700), 한글은 Pretendard로 그려진다.
      ID·코드·배지는 JetBrains Mono(400·500·600). 모노 스택의 Pretendard는 배지 안 한글용이다 */
@@ -70,14 +74,14 @@
   --um-space-8: 32px;
 
   /* 라운딩 */
-  --um-radius-control: 4px;
-  --um-radius-card: 8px;
-  --um-radius-overlay: 12px;
+  --um-radius-control: 12px;
+  --um-radius-card: 24px;
+  --um-radius-overlay: 28px;
   --um-radius-pill: 9999px;
 
   /* 그림자 */
-  --um-shadow-card: none;
-  --um-shadow-hover: none;
+  --um-shadow-card: 0 1px 2px rgb(20 20 26 / 5%), 0 10px 28px rgb(20 20 26 / 6%);
+  --um-shadow-hover: 0 2px 4px rgb(20 20 26 / 6%), 0 14px 34px rgb(20 20 26 / 10%);
 
   /* 레이아웃. 카드 안쪽 여백은 모든 카드 종류가 같다(좁은 화면에서는 16px) */
   --um-card-pad: 24px;

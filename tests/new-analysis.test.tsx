@@ -42,3 +42,13 @@ it('최대 탐색 횟수는 1~15 범위에서 +/- 버튼으로 조절된다', as
   fireEvent.change(input, { target: { value: '1' } })
   expect(screen.getByRole('button', { name: '탐색 횟수 줄이기' }).hasAttribute('disabled')).toBe(true)
 })
+
+it('분석 사이트는 입력할 수 있고 MORO MARKET이 아니면 경고를 보인다', async () => {
+  renderAt('/')
+  const input = (await screen.findByLabelText('분석 사이트')) as HTMLInputElement
+  expect(input.value).toBe('MORO MARKET')
+  expect(screen.queryByText(/분석 대상이 아닙니다/)).toBeNull()
+  fireEvent.change(input, { target: { value: 'https://example.com' } })
+  expect(input.value).toBe('https://example.com')
+  expect(screen.getByText(/분석 대상이 아닙니다/)).toBeTruthy()
+})

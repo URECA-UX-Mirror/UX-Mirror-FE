@@ -15,7 +15,6 @@ import {
   scenarioOf,
 } from '../fixtures/run.ts'
 import { stepSpecs } from '../fixtures/scenario.ts'
-import { screenshotSvg } from '../fixtures/screenshot.ts'
 import { issueOverride } from '../fixtures/runResult.ts'
 import {
   addRun,
@@ -196,7 +195,7 @@ export const runsHandlers = [
     return HttpResponse.json(override ?? buildIssues(record, now))
   }),
 
-  // 화면별 mock 이미지(SVG, 1440×900)를 돌려준다. 저장된 Step이 아니면 404(서버도 RUN_NOT_FOUND를 쓴다).
+  // 화면별 mock 이미지(PNG, 1440×900)를 돌려준다. 이미지는 `mock-pages/`의 목업 쇼핑몰을 `npm run mock:shots`로 찍은 것이다. 저장된 Step이 아니면 404(서버도 RUN_NOT_FOUND를 쓴다).
   http.get(
     apiUrl('/api/runs/:runId/screenshots/:stepId'),
     async ({ params, request }) => {
@@ -221,10 +220,15 @@ export const runsHandlers = [
       }
       const scenario = scenarioOf(record)
       const spec = stepSpecs(scenario)[stepId - 1]
-      // 홈 상단 메뉴 라벨만 버전마다 다르다(Before `이용정보` / After `주문·환불`)
-      const menuLabel = scenario === 'after' ? '주문·환불' : '이용정보'
-      return new HttpResponse(screenshotSvg(spec.pageKey, menuLabel), {
-        headers: { 'Content-Type': 'image/svg+xml; charset=utf-8' },
+      // 상단 메뉴 라벨만 버전마다 다르다(Before `이용정보` / After `주문·환불`). 이미지는 버전별로 따로 있다
+      const image = await fetch(
+        `${import.meta.env.BASE_URL}mock/screens/${scenario === 'after' ? 'after' : 'before'}/${spec.pageKey}.png`,
+      )
+      if (!image.ok) {
+        return errorResponse(404, 'RUN_NOT_FOUND', '스크린샷을 찾을 수 없습니다')
+      }
+      return new HttpResponse(await image.arrayBuffer(), {
+        headers: { 'Content-Type': 'image/png' },
       })
     },
   ),

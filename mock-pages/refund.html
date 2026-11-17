@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=1440" />
+    <title>환불 / 반품 신청</title>
+    <link rel="stylesheet" href="assets/shop.css" />
+  </head>
+  <body data-page="refund">
+    <header class="hd">
+      <a class="logo" href="home.html"><span class="logo-mark">M</span>MORO MARKET</a>
+      <nav class="gnb" aria-label="주요 메뉴">
+        <a href="mypage.html" data-key="top.mypage">마이페이지</a>
+        <a href="orders.html" data-key="top.orders" data-menu-orders>이용정보</a>
+        <a href="support.html" data-key="top.support">고객센터</a>
+      </nav>
+      <div class="hd-right">
+        <div class="search">
+          <svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
+          상품·브랜드 검색
+        </div>
+        <a class="hd-link" href="home.html"><svg class="i" viewBox="0 0 24 24"><path d="M6 7h12l-1 13H7z" /><path d="M9 7a3 3 0 0 1 6 0" /></svg>장바구니 <em>2</em></a>
+        <a class="hd-link quiet" href="home.html">로그인</a>
+      </div>
+    </header>
+
+    <div class="crumb"><a class="home" href="home.html" data-key="crumb.home">홈으로</a><span>주문 내역 &gt; 환불 신청</span></div>
+
+    <main class="page refund-wrap">
+      <h1>환불 / 반품 신청</h1>
+      <section class="card refund-item" aria-label="신청 상품">
+        <img class="thumb" src="assets/img/linen.svg" alt="" />
+        <div><strong>오가닉 린넨 키친웨어</strong><small>18,000원 · 2025.02.20 배송 완료</small></div>
+      </section>
+      <section class="field" aria-label="환불 사유">
+        <h2>환불 사유</h2>
+        <div class="radio"><i class="on"></i>단순 변심</div>
+        <div class="radio"><i></i>상품 불량</div>
+        <div class="radio"><i></i>배송 지연</div>
+      </section>
+      <section class="field" aria-label="상세 사유">
+        <h2>상세 사유 (선택)</h2>
+        <textarea placeholder="자세한 내용을 적어 주세요" readonly></textarea>
+      </section>
+      <div class="field"><a class="btn brand" href="orders.html">환불 신청하기</a></div>
+    </main>
+    <script src="assets/shop.js"></script>
+  </body>
+</html>

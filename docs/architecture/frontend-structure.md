@@ -23,7 +23,7 @@
 ### 1. 새 UX 분석
 
 - 사이트(MORO MARKET)·버전 이름·변경 내용(Before `이용정보` → After `주문·환불`, 상단 메뉴 라벨 한 곳)·최대 탐색 횟수 범위(1~15, 기본 8)는 프리셋 응답에 없으므로 프론트 상수다. 목표·사용자 유형은 `GET /api/presets`에서 받는다.
-- 분석 사이트는 MORO MARKET으로 고정해 표시하며 실행할 버전에 따라 백엔드가 대상을 정한다.
+- 분석 사이트는 입력란이다. 기본값은 MORO MARKET이며 입력값은 요청에 싣지 않는다. MORO MARKET이 아니면 경고만 표시한다([OI-8](../operations/open_issue.md#oi-8)). 실행할 버전에 따라 백엔드가 대상을 정한다.
 - 버전 표의 행은 `variant`(`before`, `after`)에 대응한다. 표시 이름은 `v1 (변경 전)`, `v2 (변경 후)`다. 두 Run은 같은 `experimentKey`로 묶고 `goalId`·`personaId`·`maxSteps`를 같게 보낸다.
 - 행의 "마지막 Run ID·분석 상태·목표 달성 상태"는 `GET /api/runs?experimentKey=&variant=`의 첫 항목(최신 Run)으로 채운다.
 - 기존 실험 키를 입력하고 조회 버튼을 눌러 서버의 실행 기록을 조회하고 첫 Run의 조건을 다음 Run에 재사용한다. 시작 후 진행 화면 주소에도 실험 키를 남긴다.
@@ -124,23 +124,33 @@ src/
     dto/                   # 서버 응답 타입 (계약서 그대로)
   adapters/                # dto -> domain 변환
   domain/                  # types.ts(도메인 모델), runStatus.ts(isTerminalStatus)
-  mocks/                   # MSW. browser.ts, store.ts, errors.ts, fixtures/(run, scenario, screenshot, runResult, comparison), handlers/(endpoint별)
+  mocks/                   # MSW. browser.ts, store.ts, errors.ts, fixtures/(run, scenario, runResult, comparison), handlers/(endpoint별)
   features/
     new-analysis/, run-progress/, run-result/, comparison/, replay/   # 화면별. 라우트는 App.tsx
-  shared/                  # Layout(사이드바·헤더), SectionTitle(카드 제목 줄), icons, ProbabilityGauge, SelectedAction, stepLabel, EngineStatus, ErrorNotice, ResultOriginBadge, useHealth
+  shared/                  # Layout(상단 바·접이식 사이드바), SectionTitle(카드 제목 줄), icons, ProbabilityGauge, SelectedAction, stepLabel, EngineStatus, ErrorNotice, ResultOriginBadge, useHealth
     screenshot/            # boxStyle.ts(좌표 변환), ScreenshotViewer, CandidateProbabilityList
     polling/               # poller.ts(간격·backoff 규칙), usePolling(범용 폴링 훅)
 public/
+  mock/screens/            # 목업 쇼핑몰을 찍은 mock 스크린샷 PNG({before,after}/{home,mypage,orders,support,refund}.png)
   mockServiceWorker.js     # MSW 생성 파일
 ```
 
 화면 라우트는 `/`(새 UX 분석), `/runs/:runId`(AI 탐색 진행), `/runs/:runId/result`(분석 결과), `/comparisons/:experimentKey`(버전 비교), `/replay`(저장된 결과 재생)다. 경로는 프론트가 정한 값이며 계약서 대상이 아니다. 좌표 변환 함수, 폴링 훅 같은 화면 공용 코드는 `shared/` 아래에 둔다.
 
+## 목업 쇼핑몰
+
+`mock-pages/`는 mock 모드의 스크린샷 원본인 MORO MARKET 목업 쇼핑몰이다(홈·마이페이지·주문 내역·고객센터·환불 신청의 정적 HTML·CSS와 SVG 상품 이미지). 앱과는 별개의 디자인이고 개발 서버에서 `/mock-pages/home.html?v=before`(또는 `after`)로 볼 수 있다. `v`는 상단 메뉴 라벨(Before `이용정보` / After `주문·환불`)만 바꾼다.
+
+- `npm run mock:shots`(`mock-pages/capture.mjs`)가 Chrome·Edge(`puppeteer-core`)로 1440×900 PNG를 `public/mock/screens/`에 찍는다. 이 PNG는 Git에 올리고, mock 스크린샷 API(`GET /api/runs/{runId}/screenshots/{stepId}`)가 그대로 돌려준다.
+- 후보 박스 위치(`src/mocks/fixtures/scenario.ts`의 bbox)는 페이지의 `data-key` 요소와 같아야 한다. 스크립트가 찍은 뒤 두 값을 비교하고 1px 넘게 어긋나면 실패한다. 페이지 레이아웃이나 bbox를 바꾸면 `npm run mock:shots`를 다시 실행한다.
+
 ## 스타일
 
-- 디자인 토큰은 `src/styles/tokens.css`의 CSS 변수(`--um-*`)이며 `src/index.css`가 가져온다. 색·간격·라운딩은 이 변수로만 참조하고 컴포넌트 CSS에 색 값을 새로 쓰지 않는다. 값의 출처는 Stitch 시안 v5의 `DESIGN.md`(팀 확정 전 안)다.
+- 디자인 토큰은 `src/styles/tokens.css`의 CSS 변수(`--um-*`)이며 `src/index.css`가 가져온다. 색·간격·라운딩은 이 변수로만 참조하고 컴포넌트 CSS에 색 값을 새로 쓰지 않는다. 값의 출처는 Stitch 시안 v5의 `DESIGN.md`(팀 확정 전 안)이고 `devs7ud.io`의 느낌을 반영했다. 테마는 라이트 고정이며 다크 모드와 전환하지 않는다.
 - 글꼴 변수는 `--font-sans`와 `--font-mono`다. `--font-sans`는 Inter(400·500·600·700, `@fontsource-variable/inter`)를 먼저 선언해 영문·숫자는 Inter, 한글은 Pretendard(`pretendard`)로 그려지고 폴백은 `-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif`다. ID·코드·배지는 `--font-mono`(JetBrains Mono 400·500·600, `@fontsource-variable/jetbrains-mono`)이고 `.mono`, `.badge-mono`로 쓴다. 모노 스택에 Pretendard를 끼워 배지 안 한글이 시스템 고정폭 글꼴로 떨어지지 않게 한다. 확률·단계·표 수치와 `.num`에는 `font-variant-numeric: tabular-nums`를 적용한다.
-- 레이아웃은 좌측 사이드바(`Layout`)와 상단 헤더다. 사이드바 메뉴는 주소 인자 없이 열 수 있는 화면(새 UX 분석, 저장된 결과 재생)만 두고, 진행·결과·비교 화면은 화면 안의 링크로 들어간다. 767px 이하에서는 사이드바가 위쪽 띠가 된다.
+- 레이아웃은 떠 있는 알약형 상단 바와 접이식 사이드바 카드(`Layout`)다. 상단 바에 사이드바 토글·로고·현재 위치·새 분석 버튼이 있고, 사이드바의 펼침 여부는 `localStorage`(`um.sidebar.open`)에 저장한다. 사이드바 메뉴는 주소 인자 없이 열 수 있는 화면(새 UX 분석, 저장된 결과 재생)만 두고, 진행·결과·비교 화면은 화면 안의 링크로 들어간다. 767px 이하에서는 사이드바가 본문 위에 겹쳐 열리고 메뉴를 고르면 닫힌다.
+- 정보 위계는 `index.css` 끝의 "정보 위계" 블록이 정한다. 글자는 `--um-text`(제목·값), `--um-text-secondary`(본문), `--um-text-muted`(라벨·보조 문구) 세 단계로 밝기를 나누고, 면은 따뜻한 회색 바닥(`canvas`) 위에 흰 카드(`surface`)가 그림자로 떠 있고, 카드 안 칸은 `surface-subtle`, 눌림·강조 칸은 `surface-raised`다. 모서리는 카드 24px·컨트롤 12px·버튼 알약형이다. 주 버튼은 잉크색(`--um-brand`), 링크·선택은 파랑(`--um-accent`), 한 화면의 핵심(현재 메뉴, 첫 결과 카드, 증감 칩, 단계 번호, 구역 제목 막대)은 노랑(`--um-highlight`)이다. 핵심 수치는 Before(`--um-before`)·After(`--um-after`) 색으로, 구역 제목은 왼쪽 accent 막대로 구분한다. 참고한 기준은 Material 3 color roles(surface container 단계, outline과 대비 기준 3:1·4.5:1)와 Linear의 "구조는 선이 아니라 명암으로" 원칙이다.
+- 사이드바 너비는 `Layout`의 분할자(`role="separator"`)로 조절한다. 끌기, 방향키(±16px, Shift ±48px), `Home`/`End`(최소 200px·최대 420px), 두 번 누르면 기본 256px이고 값은 `localStorage`(`um.sidebar.width`)에 저장한다. 767px 이하에서는 조절하지 않는다.
 - 기본 버튼은 보조 스타일이고, 화면의 주 행동(`분석 시작`, `비교하기`)에만 `primary`를 쓴다. `분석 결과 보기`는 링크이므로 `run-result-link` 클래스로 같은 모양을 내고, 종료 전 비활성 버튼은 기본 스타일이다.
 - `[role='alert']`와 `.error-notice`는 오류 스타일이고 `.error-notice[role='status']`(예: 비교 준비 중)는 정보 스타일이다. `data-origin`(`LIVE`, `MOCK`, `SAVED_MEASURED`)과 `data-status`는 배지 색을 정한다. 색만으로 뜻을 전하지 않도록 배지에는 항상 글자를 함께 둔다.
 - 모든 화면은 같은 구조다. 제목 줄(`page-header`: `h1`과 출처·재생 배지) 아래에 카드가 쌓이고, 줄글·배지·칩을 카드 밖에 두지 않는다. 카드 안쪽 여백은 `--um-card-pad`(24px, 좁은 화면 16px) 하나라서 모든 카드의 글자 왼쪽 선이 같고, 카드 첫 줄은 구분선이 있는 제목 띠다. 정의 목록(`summary-grid`)은 라벨 열 너비(168px)가 모든 카드에서 같다.

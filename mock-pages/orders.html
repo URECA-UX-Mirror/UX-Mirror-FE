@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=1440" />
+    <title>주문 내역</title>
+    <link rel="stylesheet" href="assets/shop.css" />
+  </head>
+  <body data-page="orders">
+    <header class="hd">
+      <a class="logo" href="home.html"><span class="logo-mark">M</span>MORO MARKET</a>
+      <nav class="gnb" aria-label="주요 메뉴">
+        <a href="mypage.html" data-key="top.mypage">마이페이지</a>
+        <a href="orders.html" data-key="top.orders" data-menu-orders>이용정보</a>
+        <a href="support.html" data-key="top.support">고객센터</a>
+      </nav>
+      <div class="hd-right">
+        <div class="search">
+          <svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
+          상품·브랜드 검색
+        </div>
+        <a class="hd-link" href="home.html"><svg class="i" viewBox="0 0 24 24"><path d="M6 7h12l-1 13H7z" /><path d="M9 7a3 3 0 0 1 6 0" /></svg>장바구니 <em>2</em></a>
+        <a class="hd-link quiet" href="home.html">로그인</a>
+      </div>
+    </header>
+
+    <div class="crumb"><a class="home" href="home.html" data-key="crumb.home">홈으로</a><span>주문 내역</span></div>
+
+    <main class="page">
+      <h1>주문 내역</h1>
+      <div class="chips"><span class="on">전체</span><span>배송 중</span><span>배송 완료</span><span>취소·환불</span></div>
+
+      <div class="ohead"><span>상품</span><span>주문일</span><span>상태</span></div>
+
+      <article class="orow">
+        <div class="prod"><img class="thumb" src="assets/img/linen.svg" alt="" /><div><strong>오가닉 린넨 키친웨어</strong><small>18,000원</small></div></div>
+        <span>2025.02.20</span>
+        <span class="ok">배송 완료</span>
+        <a class="btn" href="refund.html" data-key="body.refund">환불 신청</a>
+        <span></span>
+        <a class="btn soft" href="orders.html">배송 조회</a>
+      </article>
+      <article class="orow">
+        <div class="prod"><img class="thumb" src="assets/img/candle.svg" alt="" /><div><strong>소이 왁스 무드 캔들</strong><small>19,000원</small></div></div>
+        <span>2025.02.17</span>
+        <span class="ok">구매 확정</span>
+        <span></span>
+        <span></span>
+        <a class="btn soft" href="orders.html">배송 조회</a>
+      </article>
+      <article class="orow">
+        <div class="prod"><img class="thumb" src="assets/img/mug.svg" alt="" /><div><strong>아티장 핸드크래프트 머그</strong><small>24,500원</small></div></div>
+        <span>2025.02.14</span>
+        <span class="ok">구매 확정</span>
+        <span></span>
+        <span></span>
+        <a class="btn soft" href="orders.html">배송 조회</a>
+      </article>
+
+      <div class="pager"><span class="on">1</span><span>2</span><span>3</span></div>
+    </main>
+    <script src="assets/shop.js"></script>
+  </body>
+</html>

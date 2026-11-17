@@ -10,6 +10,7 @@ import { CandidateProbabilityList } from '../../shared/screenshot/CandidateProba
 import { ScreenshotViewer } from '../../shared/screenshot/ScreenshotViewer.tsx'
 import { SectionTitle } from '../../shared/SectionTitle.tsx'
 import { ColumnsIcon, HistoryIcon, SettingsIcon } from '../../shared/icons.tsx'
+import { RunGauge } from '../../shared/RunGauge.tsx'
 import { SelectedAction } from '../../shared/SelectedAction.tsx'
 import { selectedLabel, stepTime } from '../../shared/stepLabel.ts'
 import { StepMetricsPanel } from '../run-result/StepMetricsPanel.tsx'
@@ -105,6 +106,12 @@ function RunProgress({ runId }: { runId: string }) {
             <dd>{run.goal}</dd>
           </div>
         </dl>
+        <RunGauge
+          stepCount={run.progress.stepCount}
+          maxSteps={run.progress.maxSteps}
+          terminal={terminal}
+          status={run.status}
+        />
         {polling.status === 'failed' ? (
           <ErrorNotice error={polling.error} onRetry={polling.retry} />
         ) : polling.retrying ? (

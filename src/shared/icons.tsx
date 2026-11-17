@@ -31,6 +31,12 @@ export const PlusCircleIcon = (props: IconProps) => (
   </Svg>
 )
 
+export const MenuIcon = (props: IconProps) => (
+  <Svg {...props}>
+    <path d="M4 7h16M4 12h16M4 17h16" />
+  </Svg>
+)
+
 export const HistoryIcon = (props: IconProps) => (
   <Svg {...props}>
     <path d="M3 12a9 9 0 1 0 3-6.7" />

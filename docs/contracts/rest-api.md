@@ -25,7 +25,7 @@
 
 | Method | Endpoint | 화면 | 정본 |
 | --- | --- | --- | --- |
-| GET | `/api/presets` | 1 | `계약 §17.9` |
+| GET | `/api/presets` | - (화면에서 호출 안 함) | `계약 §17.9` |
 | GET | `/api/health` | 전체 | `계약 §17.8` |
 | GET | `/api/runs` | 1, 3 | `계약 §17.10` |
 | POST | `/api/runs` | 1 | `계약 §17.2`, `§5.1` |
@@ -39,7 +39,7 @@
 
 ### GET /api/presets
 
-응답은 `goals`(`goalId`, `goal`)와 `personas`(`personaId`, `persona`)뿐이다. 사이트·버전 이름·변경 내용·최대 탐색 횟수 범위는 응답에 없으므로 프론트 상수로 둔다. 변경 내용은 Before 상단 메뉴 라벨 `이용정보`가 After에서 `주문·환불`로 바뀐 한 곳이고(UX-Mirror-BE `scripts/build_shop.py`), 최대 탐색 횟수는 1~15에 기본 8이다. 서버도 같은 범위로 검사하며 범위 밖이면 `422 CONTRACT_VALIDATION_ERROR`다.
+목표·사용자 유형을 직접 입력하게 되면서 화면에서는 호출하지 않는다([OI-9](../operations/open_issue.md#oi-9)). API 함수(`src/api/presets.ts`)와 mock은 남겨 둔다. 응답은 `goals`(`goalId`, `goal`)와 `personas`(`personaId`, `persona`)뿐이다. 사이트·버전 이름·변경 내용·최대 탐색 횟수 범위는 응답에 없으므로 프론트 상수로 둔다. 변경 내용은 Before 상단 메뉴 라벨 `이용정보`가 After에서 `주문·환불`로 바뀐 한 곳이고(UX-Mirror-BE `scripts/build_shop.py`), 최대 탐색 횟수는 1~15에 기본 8이다. 서버도 같은 범위로 검사하며 범위 밖이면 `422 CONTRACT_VALIDATION_ERROR`다.
 - `testOnly` 목표는 기본 응답에 없고 프론트는 `?includeTest=true`를 쓰지 않는다.
 
 - 빈 배열이면 분석을 시작할 수 없으므로 시작 버튼을 비활성화하고 안내를 보인다.
@@ -60,19 +60,21 @@
 | --- | --- | --- |
 | `experimentKey` | O | 프론트가 첫 Run을 만들 때 생성하고, 같은 실험의 두 번째 Run은 같은 값을 다시 쓴다. `[A-Za-z0-9_-]` 1~64자(서버가 비교 결과를 이 이름의 파일로 저장한다). 예: `exp_20261116_153045` |
 | `variant` | O | `before` 또는 `after` |
-| `goalId` | O | `GET /api/presets`의 `goals` 중 선택 |
-| `personaId` | O | `GET /api/presets`의 `personas` 중 선택 |
+| `goalId` | △ | 보내지 않는다. 예전에 preset으로 만든 실험의 두 번째 Run만 첫 Run의 값을 그대로 보낸다. `goal`과 둘 중 하나만 |
+| `goal` + `verification` | O | 입력한 목표 문장과 성공 조건 `{ path, text, exact, scope }`. `goalId`와 둘 중 하나만 ([OI-9](../operations/open_issue.md#oi-9)) |
+| `personaId` | △ | 보내지 않는다. `goalId`와 같은 예외만 있다. `persona`와 둘 중 하나만 |
+| `persona` | O | 입력한 사용자 유형 문장. `personaId`와 둘 중 하나만 ([OI-9](../operations/open_issue.md#oi-9)) |
 | `maxSteps` | X | 사용자가 입력(1~15, 기본 8). 범위는 `계약 §5.1` |
 | `startPath`, `viewport`, `promptVersion` | X | 보내지 않는다(서버 기본값 사용) |
 
 - 성공은 `201`이고 `{ runId, experimentKey, variant, status: "READY", maxSteps, createdAt }`다.
-- 같은 `experimentKey`의 Before/After는 `goalId`, `personaId`, `maxSteps`를 같게 보낸다. 프론트는 첫 Run의 조건을 두 번째 요청에 그대로 재사용한다. `계약 §5.1`
+- 같은 `experimentKey`의 Before/After는 목표(`goalId` 또는 `goal`+`verification`), 사용자 유형(`personaId` 또는 `persona`), `maxSteps`를 같게 보낸다. 프론트는 첫 Run에 저장된 값을 두 번째 요청에 그대로 재사용한다. 다르면 서버가 `422`로 거부한다. `계약 §5.1`, [OI-9](../operations/open_issue.md#oi-9)
 
 | 오류 | `code` | 프론트 처리 |
 | --- | --- | --- |
 | 409 | `RUN_ALREADY_ACTIVE` | 다른 분석이 실행 중이라는 안내와 해당 Run 이동 링크 |
 | 409 | `EXPERIMENT_RUN_EXISTS` | 같은 키와 버전에 진행 중이거나 유효한 Run이 이미 있다는 안내와 결과 보기 링크. 기존 Run이 모두 `INVALID`일 때만 같은 키로 다시 실행할 수 있다 |
-| 422 | `CONTRACT_VALIDATION_ERROR` | 입력 오류 안내(키 형식, `maxSteps` 범위, 없는 목표·사용자 유형) |
+| 422 | `CONTRACT_VALIDATION_ERROR` | 입력 오류 안내와 서버 `message`(키 형식, `maxSteps` 범위, 없는 목표·사용자 유형, 직접 입력 문장의 빈 값·길이·금지 문자열, 성공 조건 오류, 첫 Run과 다른 입력) |
 | 503 | `BROWSER_ERROR` | 실행 환경 준비 실패 안내와 재시도 |
 
 ### GET /api/runs

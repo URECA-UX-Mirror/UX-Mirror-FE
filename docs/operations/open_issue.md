@@ -18,6 +18,7 @@
 | [OI-8](#oi-8) | 분석 대상 사이트 입력 | 장근창 | 입력란은 두되 요청에 싣지 않고, MORO MARKET 외 값은 안내 후 시작을 막음 |
 | [OI-7](#oi-7) | 저장된 실측 데이터 시연 | 정자비 | `/replay`에서 원본 `LIVE` Run을 조회해 재생, 서버 없는 시연은 P0 제외 |
 | [OI-9](#oi-9) | 목표·사용자 유형 직접 입력 | 정자비, 장근창 | 백엔드 구현(UX-Mirror-BE #39·#42·#44) 기준으로 요청·표시, 계약 v1.3.6 반영 전까지 임시 |
+| [OI-10](#oi-10) | 경로 지표 기준(basis)·우회 이동 | 정자비, 장근창 | 설계 v2.1 기준으로 optional로 받고, 없으면 `ALLOWED_PATHS`·`detourMoveCount: null` |
 
 ## 항목
 
@@ -56,3 +57,11 @@
 - 임시 결정: 프론트는 위 백엔드 동작을 기준으로 요청을 보내고 표시한다. 성공 조건의 도착 화면은 서버가 아직 실제 화면인지 검사하지 않으므로 화면에서 목록으로만 고른다.
 - 확인할 것: 계약 v1.3.6에 요청 필드·Run `verification`·비교 조건이 반영되면 `docs/contracts/`를 고치고 이 항목을 지운다.
 - 담당: 정자비(루프·프론트), 장근창(API).
+
+<a id="oi-10"></a>
+### OI-10 경로 지표 기준(basis)·우회 이동
+
+- 계약서(v1.3.5): `referencePathConfig`는 허용 경로(`allowedPaths`·`shortestAllowedSteps`)만 정의하고 `basis`·`detourMoveCount`는 없다.
+- 임시 결정: 설계 v2.1(3.1·3.2·4.1)에 따라 `referencePathConfig.basis`(`ALLOWED_PATHS` / `SITE_MAP`)와 `summary.detourMoveCount`를 optional로 받는다. `basis`가 없으면 `ALLOWED_PATHS`, 필드가 없는 과거 Run도 `ALLOWED_PATHS`, 명시적 `null`만 기준 없음이다. `detourMoveCount`가 없으면 `null`이다. SITE_MAP의 `distances` 등 세부 필드는 형식이 정해지지 않아 읽기만 하고 화면에 쓰지 않는다.
+- 확인할 것: 백엔드가 `basis`·`detourMoveCount`·SITE_MAP 설정 형식을 확정하고 계약서에 반영되면 `docs/contracts/`를 고치고 이 항목을 지운다.
+- 담당: 정자비(지표), 장근창(API).

@@ -16,6 +16,7 @@ import type {
   Size,
   Variant,
 } from '../api/dto/common.ts'
+import type { ReferenceBasis } from '../api/dto/run.ts'
 
 export type Open<T extends string> = T | (string & {})
 
@@ -102,6 +103,8 @@ export interface RunSummary {
   extraSteps: number | null
   extraNavigationCost: number | null
   attemptedExtraSteps: number | null
+  /** 사이트 지도 기준의 우회 이동 수. 값이 없으면 `null`이며 0으로 바꾸지 않는다 */
+  detourMoveCount: number | null
   executionTimeMs: number
   path: PathVisit[]
   detectedIssueTypes: Open<IssueType>[]
@@ -120,8 +123,11 @@ export interface Run {
   persona: string
   /** 저장된 성공 조건. 과거 Run에는 없을 수 있다(`null`) */
   verification: Verification | null
-  /** 허용 경로가 있는지. 없으면 경로 이탈·추가 단계·목표 경로 확률을 계산하지 않는다 */
-  hasReferencePath: boolean
+  /**
+   * 경로 지표 기준. `null`이면 기준이 없어 경로 이탈·추가 단계·목표 경로 확률을 계산하지 않는다.
+   * 필드가 없는 과거 Run은 `ALLOWED_PATHS`다.
+   */
+  referenceBasis: ReferenceBasis | null
   viewport: Size
   maxSteps: number
   status: Open<RunStatus>
@@ -346,6 +352,7 @@ export interface RunOutcome {
   extraSteps: number | null
   extraNavigationCost: number | null
   referencePathDeviationCount: number | null
+  detourMoveCount: number | null
   path: PathVisit[]
   detectedIssueTypes: Open<IssueType>[]
 }

@@ -18,6 +18,12 @@ export interface RunRecord {
   /** 직접 입력한 사용자 유형이면 `null` (그때는 `persona`가 있다) */
   personaId: string | null
   persona?: string
+  /**
+   * 경로 지표 기준. 생략하면 허용 경로(직접 입력한 목표는 기준 없음).
+   * `site-map` 사이트 지도, `none` 지도 오류로 기준 없음(`referencePathConfig: null`),
+   * `legacy` `basis` 없는 과거 허용 경로 설정
+   */
+  reference?: 'site-map' | 'none' | 'legacy'
   maxSteps: number
   /** 생성 시각(ms). 이 시각부터 경과 시간으로 상태가 전이한다 */
   createdAtMs: number

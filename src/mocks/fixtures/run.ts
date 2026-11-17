@@ -35,6 +35,22 @@ const ENTROPY_THRESHOLD = 0.9
 const iso = (ms: number) => new Date(ms).toISOString()
 const round = (value: number) => Math.round(value * 10000) / 10000
 
+/** 경로 지표 기준이 없는 Run인지(직접 입력한 목표이거나 지도 오류) */
+const hasNoReference = (rec: RunRecord): boolean =>
+  rec.goalId === null || rec.reference === 'none'
+
+const SITE_MAP_CONFIG = {
+  basis: 'SITE_MAP' as const,
+  version: 'sitemap-v1',
+}
+
+function referencePathConfig(rec: RunRecord): RunDto['referencePathConfig'] {
+  if (hasNoReference(rec)) return null
+  if (rec.reference === 'site-map') return SITE_MAP_CONFIG
+  if (rec.reference === 'legacy') return REFERENCE_PATH_CONFIG
+  return { basis: 'ALLOWED_PATHS', ...REFERENCE_PATH_CONFIG }
+}
+
 export const scenarioOf = (rec: RunRecord): ScenarioName =>
   rec.scenario ?? rec.variant
 
@@ -143,7 +159,7 @@ export function buildSteps(rec: RunRecord, count: number): StepDto[] {
     // 허용 경로로 이어지는 후보가 없으면 null이다. 0으로 바꾸지 않는다(metrics-and-goal.md).
     const goalPath = choices.candidates.filter((c) => c.onGoalPath)
     const goalPathProbability =
-      goalPath.length === 0 || rec.goalId === null
+      goalPath.length === 0 || hasNoReference(rec)
         ? null
         : round(goalPath.reduce((sum, c) => sum + c.probability, 0))
     const startedMs = rec.createdAtMs + START_MS + i * STEP_MS
@@ -260,7 +276,7 @@ function buildPath(rec: RunRecord): PathVisitDto[] {
 export function buildSummary(rec: RunRecord): RunSummaryDto {
   const specs = stepSpecs(scenarioOf(rec)).slice(0, stepLimit(rec))
   const stopped = isMaxStepsStopped(rec)
-  const noReference = rec.goalId === null
+  const noReference = hasNoReference(rec)
   const path = buildPath(rec)
   const modelBackCount = specs.filter((s) => s.selected === 'BACK').length
   const clickCount = specs.length - modelBackCount
@@ -295,6 +311,10 @@ export function buildSummary(rec: RunRecord): RunSummaryDto {
     attemptedExtraSteps: stopped || noReference
       ? null
       : Math.max(0, stepCount - SHORTEST_ALLOWED_STEPS),
+    // 우회 이동은 사이트 지도 기준에서만 있다. 지도 기준이 아니면 필드를 주지 않는다(백엔드 미반영 상태)
+    ...(rec.reference === 'site-map'
+      ? { detourMoveCount: stopped ? null : modelBackCount }
+      : {}),
     executionTimeMs: stepCount * STEP_MS,
     path,
     detectedIssueTypes: buildIssues(rec, Number.MAX_SAFE_INTEGER).items.map(
@@ -337,7 +357,7 @@ export function buildRun(rec: RunRecord, nowMs: number): RunDto {
     persona: rec.persona ?? persona.persona,
     verification: rec.verification ?? GOAL_VERIFICATION,
     // 직접 입력한 목표는 허용 경로가 없다 → 경로 기반 지표 null
-    referencePathConfig: rec.goalId === null ? null : REFERENCE_PATH_CONFIG,
+    referencePathConfig: referencePathConfig(rec),
     startPath: PAGES.home.path,
     viewport: VIEWPORT,
     limits: {
@@ -441,7 +461,7 @@ function issueItems(rec: RunRecord, createdAt: string): IssueDto[] {
     })
   }
   // 허용 경로가 없는 Run(직접 입력한 목표)은 추가 단계를 계산하지 않으므로 EXTRA_STEPS도 만들지 않는다(UX-Mirror-BE #44)
-  if (rec.goalId !== null && summary.extraSteps > 0) {
+  if (!hasNoReference(rec) && summary.extraSteps > 0) {
     issues.push({
       ...base,
       issueId: id(),

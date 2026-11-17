@@ -87,6 +87,8 @@ export interface RunOutcomeDto {
   extraSteps: number | null
   extraNavigationCost: number | null
   referencePathDeviationCount: number | null
+  /** 백엔드가 아직 주지 않으면 없다 */
+  detourMoveCount?: number | null
   path: PathVisitDto[]
   detectedIssueTypes: IssueType[]
 }

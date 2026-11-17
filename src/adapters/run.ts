@@ -1,6 +1,8 @@
 import type {
   CreateRunResponseDto,
   PathVisitDto,
+  ReferenceBasis,
+  ReferencePathConfigDto,
   RunDto,
   RunListDto,
   RunSummaryDto,
@@ -47,10 +49,19 @@ function toRunSummary(dto: RunSummaryDto): RunSummary {
     extraSteps: dto.extraSteps,
     extraNavigationCost: dto.extraNavigationCost,
     attemptedExtraSteps: dto.attemptedExtraSteps,
+    detourMoveCount: dto.detourMoveCount ?? null,
     executionTimeMs: dto.executionTimeMs,
     path: toPathVisits(dto.path),
     detectedIssueTypes: dto.detectedIssueTypes,
   }
+}
+
+/** 필드가 없는 과거 Run과 `basis`가 없는 값은 `ALLOWED_PATHS`, 명시적 `null`만 "없음"이다(설계 v2.1 4.1). */
+export function toReferenceBasis(
+  config: ReferencePathConfigDto | null | undefined,
+): ReferenceBasis | null {
+  if (config === null) return null
+  return config?.basis ?? 'ALLOWED_PATHS'
 }
 
 export function toRun(dto: RunDto): Run {
@@ -64,8 +75,7 @@ export function toRun(dto: RunDto): Run {
     personaId: dto.personaId,
     persona: dto.persona,
     verification: dto.verification ?? null,
-    // 필드가 없는 과거 Run은 preset 목표였으므로 허용 경로가 있다고 본다. 명시적 null만 "없음"이다
-    hasReferencePath: dto.referencePathConfig !== null,
+    referenceBasis: toReferenceBasis(dto.referencePathConfig),
     viewport: dto.viewport,
     maxSteps: dto.limits.maxSteps,
     status: dto.status,

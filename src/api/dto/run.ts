@@ -28,7 +28,7 @@ export interface RunDto {
   persona: string
   /** 저장된 성공 조건. 과거 Run에는 없을 수 있다 */
   verification?: VerificationDto | null
-  /** 허용 경로 설정. 직접 입력한 목표는 `null`(경로 기반 지표 계산 안 함) */
+  /** 경로 지표 기준 설정. 필드가 없으면 과거 Run(`ALLOWED_PATHS`), 명시적 `null`이면 기준 없음(경로 기반 지표 계산 안 함) */
   referencePathConfig?: ReferencePathConfigDto | null
   startPath: string
   viewport: Size
@@ -71,6 +71,8 @@ export interface RunSummaryDto {
   extraSteps: number | null
   extraNavigationCost: number | null
   attemptedExtraSteps: number | null
+  /** 사이트 지도 기준의 우회 이동 수. 백엔드가 아직 주지 않으면 없다 */
+  detourMoveCount?: number | null
   executionTimeMs: number
   path: PathVisitDto[]
   detectedIssueTypes: IssueType[]
@@ -120,11 +122,25 @@ export interface VerificationDto {
   scope: string
 }
 
-export interface ReferencePathConfigDto {
+/** 경로 지표 기준. `basis`가 없는 값은 `ALLOWED_PATHS`로 해석한다 (설계 v2.1 4.1) */
+export type ReferenceBasis = 'ALLOWED_PATHS' | 'SITE_MAP'
+
+export interface AllowedPathsConfigDto {
+  /** 없으면 `ALLOWED_PATHS` */
+  basis?: 'ALLOWED_PATHS'
   version: string
   allowedPaths: string[][]
   shortestAllowedSteps: number
 }
+
+/** 사이트 지도 기준. `distances` 등은 서버가 계산한 값이며 FE는 읽기만 한다 (OI-10) */
+export interface SiteMapConfigDto {
+  basis: 'SITE_MAP'
+  version: string
+  distances?: Record<string, number>
+}
+
+export type ReferencePathConfigDto = AllowedPathsConfigDto | SiteMapConfigDto
 
 /** 직접 입력한 목표의 성공 조건. `exact`·`scope`는 생략하면 서버 기본값 */
 export interface VerificationInputDto {

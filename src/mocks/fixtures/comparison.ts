@@ -138,6 +138,7 @@ function outcome(rec: RunRecord): RunOutcomeDto {
     extraSteps: s.extraSteps,
     extraNavigationCost: s.extraNavigationCost,
     referencePathDeviationCount: s.referencePathDeviationCount,
+    ...(s.detourMoveCount !== undefined ? { detourMoveCount: s.detourMoveCount } : {}),
     path: s.path,
     detectedIssueTypes: s.detectedIssueTypes,
   }

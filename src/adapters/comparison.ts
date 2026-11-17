@@ -84,6 +84,7 @@ function toRunOutcome(dto: RunOutcomeDto): RunOutcome {
     extraSteps: dto.extraSteps,
     extraNavigationCost: dto.extraNavigationCost,
     referencePathDeviationCount: dto.referencePathDeviationCount,
+    detourMoveCount: dto.detourMoveCount ?? null,
     path: toPathVisits(dto.path),
     detectedIssueTypes: dto.detectedIssueTypes,
   }

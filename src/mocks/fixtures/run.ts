@@ -10,6 +10,8 @@ import type {
 import type { RunRecord } from '../store.ts'
 import {
   GOAL,
+  GOAL_VERIFICATION,
+  REFERENCE_PATH_CONFIG,
   PAGES,
   PERSONAS,
   SHORTEST_ALLOWED_STEPS,
@@ -141,7 +143,7 @@ export function buildSteps(rec: RunRecord, count: number): StepDto[] {
     // 허용 경로로 이어지는 후보가 없으면 null이다. 0으로 바꾸지 않는다(metrics-and-goal.md).
     const goalPath = choices.candidates.filter((c) => c.onGoalPath)
     const goalPathProbability =
-      goalPath.length === 0
+      goalPath.length === 0 || rec.goalId === null
         ? null
         : round(goalPath.reduce((sum, c) => sum + c.probability, 0))
     const startedMs = rec.createdAtMs + START_MS + i * STEP_MS
@@ -258,6 +260,7 @@ function buildPath(rec: RunRecord): PathVisitDto[] {
 export function buildSummary(rec: RunRecord): RunSummaryDto {
   const specs = stepSpecs(scenarioOf(rec)).slice(0, stepLimit(rec))
   const stopped = isMaxStepsStopped(rec)
+  const noReference = rec.goalId === null
   const path = buildPath(rec)
   const modelBackCount = specs.filter((s) => s.selected === 'BACK').length
   const clickCount = specs.length - modelBackCount
@@ -282,14 +285,14 @@ export function buildSummary(rec: RunRecord): RunSummaryDto {
     systemBackCount: 0,
     backCount,
     revisitCount,
-    referencePathDeviationCount: 0,
+    referencePathDeviationCount: noReference ? null : 0,
     navigationCost,
-    // 목표에 도달하지 못하면 extraSteps 계열은 null이다(계약 §6.4)
-    extraSteps: stopped ? null : extraSteps,
-    extraNavigationCost: stopped
+    // 목표에 도달하지 못하거나 허용 경로가 없으면 extraSteps 계열은 null이다(계약 §6.4, UX-Mirror-BE #39)
+    extraSteps: stopped || noReference ? null : extraSteps,
+    extraNavigationCost: stopped || noReference
       ? null
       : Math.max(0, navigationCost - SHORTEST_ALLOWED_STEPS),
-    attemptedExtraSteps: stopped
+    attemptedExtraSteps: stopped || noReference
       ? null
       : Math.max(0, stepCount - SHORTEST_ALLOWED_STEPS),
     executionTimeMs: stepCount * STEP_MS,
@@ -329,9 +332,12 @@ export function buildRun(rec: RunRecord, nowMs: number): RunDto {
     temperature: 0,
     goalJudgmentMode: 'DOM_ONLY',
     goalId: rec.goalId,
-    goal: GOAL.goal,
-    personaId: persona.personaId,
-    persona: persona.persona,
+    goal: rec.goal ?? GOAL.goal,
+    personaId: rec.personaId === null ? null : persona.personaId,
+    persona: rec.persona ?? persona.persona,
+    verification: rec.verification ?? GOAL_VERIFICATION,
+    // 직접 입력한 목표는 허용 경로가 없다 → 경로 기반 지표 null
+    referencePathConfig: rec.goalId === null ? null : REFERENCE_PATH_CONFIG,
     startPath: PAGES.home.path,
     viewport: VIEWPORT,
     limits: {

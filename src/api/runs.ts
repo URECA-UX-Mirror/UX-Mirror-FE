@@ -29,8 +29,8 @@ export async function createRun(
   const body: CreateRunRequestDto = {
     experimentKey: input.experimentKey,
     variant: input.variant,
-    goalId: input.goalId,
-    personaId: input.personaId,
+    ...input.goal,
+    ...input.persona,
     ...(input.maxSteps === undefined ? {} : { maxSteps: input.maxSteps }),
   }
   return toCreatedRun(

@@ -86,7 +86,7 @@ export interface RunOutcomeDto {
   navigationCost: number
   extraSteps: number | null
   extraNavigationCost: number | null
-  referencePathDeviationCount: number
+  referencePathDeviationCount: number | null
   path: PathVisitDto[]
   detectedIssueTypes: IssueType[]
 }

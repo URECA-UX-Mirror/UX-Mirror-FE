@@ -21,7 +21,9 @@ import {
   allRuns,
   findExperimentRuns,
   findRun,
+  firstExperimentRun,
 } from '../store.ts'
+import type { RunRecord } from '../store.ts'
 
 // 오류 시나리오를 켜는 방법(화면 개발용):
 //   POST /api/runs 의 experimentKey가 `mock-fail-503`으로 시작하면 503 BROWSER_ERROR
@@ -31,6 +33,8 @@ import {
 //   run_mock_done_*(mock-done), run_mock_partial_*(mock-partial), run_mock_goback(모델 GO_BACK),
 //   run_mock_invalid → run_mock_invalid_retry(mock-invalid), run_mock_invalid_only(mock-invalid-run)
 //   run_mock_maxsteps(목표 미도달), run_mock_issue_pending|failed|empty(/issues 상태 고정) — fixtures/runResult.ts
+//   run_mock_direct_before(mock-direct): 목표·사용자 유형 직접 입력, 허용 경로 없음
+// 직접 입력 검사(UX-Mirror-BE #42와 같은 규칙): 빈 값·200자 초과·누출 금지 문자열·성공 조건 오류·첫 Run과 다른 입력은 422
 
 const ERROR_RUN_ID = 'run_mock_error'
 const EXPERIMENT_KEY_PATTERN = /^[A-Za-z0-9_-]{1,64}$/
@@ -51,6 +55,58 @@ async function readBody(request: Request): Promise<Partial<CreateRunRequestDto>>
 const validationError = (message: string) =>
   errorResponse(422, 'CONTRACT_VALIDATION_ERROR', message)
 
+// 서버(`uxm/leak.py` FORBIDDEN)와 같은 목록. 직접 입력 문장에 있으면 실행 전에 거부한다
+const FORBIDDEN = ['variant', 'before', 'after', 'testMode', 'testmode', 'nochange', 'deadend',
+  'experimentKey', 'data-test-goal', 'refund-entry', 'semanticKey', 'menu_', 'goalId']
+const SHOP_PAGES = ['home', 'mypage', 'support', 'orders', 'refund']
+
+type Inputs = Pick<RunRecord, 'goalId' | 'goal' | 'verification' | 'personaId' | 'persona'>
+
+function sentenceError(text: unknown, field: string): string | null {
+  if (typeof text !== 'string' || !text.trim()) return `${field}가 비어 있습니다.`
+  if (text.trim().length > 200) return `${field}는 200자 이하여야 합니다.`
+  const words = FORBIDDEN.filter((w) => text.includes(w))
+  return words.length ? `${field}에 쓸 수 없는 글자가 있습니다: ${words.join(', ')}` : null
+}
+
+/** 목표·사용자 유형 입력을 검사하고 저장할 값으로 정리한다. 오류면 문자열 */
+function resolveInputs(body: Partial<CreateRunRequestDto>): Inputs | string {
+  if ((body.goalId === undefined) === (body.goal === undefined)) return 'goalId와 goal 중 하나만 보내야 합니다.'
+  if ((body.personaId === undefined) === (body.persona === undefined)) return 'personaId와 persona 중 하나만 보내야 합니다.'
+  const inputs: Inputs = { goalId: null, personaId: null }
+  if (body.goalId !== undefined) {
+    if (body.verification) return 'goalId로 실행할 때는 verification을 보내지 않습니다.'
+    if (body.goalId !== 'refund') return '지원하지 않는 목표입니다'
+    inputs.goalId = body.goalId
+  } else {
+    const error = sentenceError(body.goal, 'goal')
+    if (error) return error
+    const v = body.verification
+    if (!v) return 'goal을 직접 입력할 때는 성공 조건(verification)이 필요합니다.'
+    const page = v.path?.trim().replace(/\/$/, '').replace(/^\/shop\//, '')
+    if (!v.path?.trim().startsWith('/shop/') || !SHOP_PAGES.includes(page)) return 'verification.path가 쇼핑몰 화면이 아닙니다.'
+    if (!v.text?.trim() || v.text.trim().length > 100) return 'verification.text는 1~100자여야 합니다.'
+    if (v.scope !== undefined && v.scope !== 'page' && v.scope !== 'main') return 'verification.scope는 page/main 중 하나여야 합니다.'
+    inputs.goal = (body.goal as string).trim()
+    inputs.verification = { type: 'PATH_AND_VISIBLE_TEXT', path: v.path.trim(), text: v.text.trim(),
+      exact: v.exact ?? false, scope: v.scope ?? 'page' }
+  }
+  if (body.personaId !== undefined) {
+    if (body.personaId !== 'novice-shopper') return '지원하지 않는 사용자 유형입니다'
+    inputs.personaId = body.personaId
+  } else {
+    const error = sentenceError(body.persona, 'persona')
+    if (error) return error
+    inputs.persona = (body.persona as string).trim()
+  }
+  return inputs
+}
+
+const sameInputs = (a: Inputs, b: Inputs) =>
+  a.goalId === b.goalId && (a.goal ?? null) === (b.goal ?? null) &&
+  a.personaId === b.personaId && (a.persona ?? null) === (b.persona ?? null) &&
+  JSON.stringify(a.verification ?? null) === JSON.stringify(b.verification ?? null)
+
 export const runsHandlers = [
   http.post(apiUrl('/api/runs'), async ({ request }) => {
     await delay(200)
@@ -68,14 +124,15 @@ export const runsHandlers = [
     if (
       !body.experimentKey ||
       !EXPERIMENT_KEY_PATTERN.test(body.experimentKey) ||
-      (body.variant !== 'before' && body.variant !== 'after') ||
-      !body.goalId ||
-      !body.personaId
+      (body.variant !== 'before' && body.variant !== 'after')
     ) {
       return validationError('요청 값이 올바르지 않습니다')
     }
-    if (body.goalId !== 'refund' || body.personaId !== 'novice-shopper') {
-      return validationError('지원하지 않는 목표 또는 사용자 유형입니다')
+    const inputs = resolveInputs(body)
+    if (typeof inputs === 'string') return validationError(inputs)
+    const first = firstExperimentRun(body.experimentKey)
+    if (first && !sameInputs(inputs, first)) {
+      return validationError('같은 experimentKey의 첫 실행과 입력이 다릅니다')
     }
     // maxSteps는 1~15 정수만 허용한다(계약 §5.1)
     if (
@@ -112,8 +169,7 @@ export const runsHandlers = [
       runId: `run_mock_${now.toString(36)}`,
       experimentKey: body.experimentKey,
       variant: body.variant,
-      goalId: body.goalId,
-      personaId: body.personaId,
+      ...inputs,
       maxSteps: body.maxSteps ?? 8,
       createdAtMs: now,
     }

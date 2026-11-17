@@ -261,6 +261,19 @@ export const GOAL = {
   goalId: 'refund',
   goal: '최근 구매한 상품의 환불 신청 화면 찾기',
 }
+/** preset 목표의 성공 조건. Run에는 기본값을 채운 형태로 저장된다(UX-Mirror-BE #42) */
+export const GOAL_VERIFICATION = {
+  type: 'PATH_AND_VISIBLE_TEXT',
+  path: '/shop/refund',
+  text: '환불 / 반품 신청',
+  exact: false,
+  scope: 'page',
+}
+export const REFERENCE_PATH_CONFIG = {
+  version: 'refpath-v1',
+  allowedPaths: [['home', 'orders', 'refund'], ['home', 'mypage', 'refund'], ['home', 'mypage', 'orders', 'refund']],
+  shortestAllowedSteps: 2,
+}
 export const PERSONAS = [
   {
     personaId: 'novice-shopper',

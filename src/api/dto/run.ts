@@ -20,10 +20,16 @@ export interface RunDto {
   promptVersion: string
   temperature: number
   goalJudgmentMode: GoalJudgmentMode
-  goalId: string
+  /** 직접 입력한 목표면 `null` */
+  goalId: string | null
   goal: string
-  personaId: string
+  /** 직접 입력한 사용자 유형이면 `null` */
+  personaId: string | null
   persona: string
+  /** 저장된 성공 조건. 과거 Run에는 없을 수 있다 */
+  verification?: VerificationDto | null
+  /** 허용 경로 설정. 직접 입력한 목표는 `null`(경로 기반 지표 계산 안 함) */
+  referencePathConfig?: ReferencePathConfigDto | null
   startPath: string
   viewport: Size
   limits: { maxSteps: number; modelTimeoutMs: number; runTimeoutMs: number }
@@ -59,7 +65,8 @@ export interface RunSummaryDto {
   systemBackCount: number
   backCount: number
   revisitCount: number
-  referencePathDeviationCount: number
+  /** 허용 경로가 없으면 `null` */
+  referencePathDeviationCount: number | null
   navigationCost: number
   extraSteps: number | null
   extraNavigationCost: number | null
@@ -104,12 +111,41 @@ export interface RunListDto {
   items: RunListItemDto[]
 }
 
-/** POST /api/runs 요청 (계약 §5.1, §17.2). 선택 필드는 보내지 않는다. */
+/** 성공 조건 (계약 §2.3). Run에는 `exact`·`scope` 기본값을 채워 저장한다 */
+export interface VerificationDto {
+  type: string
+  path: string
+  text: string
+  exact: boolean
+  scope: string
+}
+
+export interface ReferencePathConfigDto {
+  version: string
+  allowedPaths: string[][]
+  shortestAllowedSteps: number
+}
+
+/** 직접 입력한 목표의 성공 조건. `exact`·`scope`는 생략하면 서버 기본값 */
+export interface VerificationInputDto {
+  path: string
+  text: string
+  exact?: boolean
+  scope?: 'page' | 'main'
+}
+
+/**
+ * POST /api/runs 요청 (계약 §5.1, §17.2). 선택 필드는 보내지 않는다.
+ * 목표는 `goalId` 또는 `goal`+`verification`, 사용자 유형은 `personaId` 또는 `persona` 중 하나만 보낸다(UX-Mirror-BE #42).
+ */
 export interface CreateRunRequestDto {
   experimentKey: string
   variant: Variant
-  goalId: string
-  personaId: string
+  goalId?: string
+  goal?: string
+  verification?: VerificationInputDto
+  personaId?: string
+  persona?: string
   maxSteps?: number
 }
 

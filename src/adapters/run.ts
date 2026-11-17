@@ -9,6 +9,7 @@ import type {
 } from '../api/dto/index.ts'
 import type {
   CreatedRun,
+  Open,
   PathVisit,
   Run,
   RunListItem,
@@ -59,7 +60,7 @@ function toRunSummary(dto: RunSummaryDto): RunSummary {
 /** 필드가 없는 과거 Run과 `basis`가 없는 값은 `ALLOWED_PATHS`, 명시적 `null`만 "없음"이다(설계 v2.1 4.1). */
 export function toReferenceBasis(
   config: ReferencePathConfigDto | null | undefined,
-): ReferenceBasis | null {
+): Open<ReferenceBasis> | null {
   if (config === null) return null
   return config?.basis ?? 'ALLOWED_PATHS'
 }

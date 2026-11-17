@@ -127,7 +127,7 @@ export interface Run {
    * 경로 지표 기준. `null`이면 기준이 없어 경로 이탈·추가 단계·목표 경로 확률을 계산하지 않는다.
    * 필드가 없는 과거 Run은 `ALLOWED_PATHS`다.
    */
-  referenceBasis: ReferenceBasis | null
+  referenceBasis: Open<ReferenceBasis> | null
   viewport: Size
   maxSteps: number
   status: Open<RunStatus>

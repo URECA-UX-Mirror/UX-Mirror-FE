@@ -261,7 +261,7 @@ interface RunOutcome {                       // §15.8. Run.summary에서 복사
   navigationCost: number;
   extraSteps: number | null;
   extraNavigationCost: number | null;
-  referencePathDeviationCount: number;
+  referencePathDeviationCount: number; detourMoveCount?: number | null;  // OI-10
   path: PathVisit[];
   detectedIssueTypes: IssueType[];
 }

@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { toReferenceBasis, toRun } from '../src/adapters/run.ts'
+import { toComparison } from '../src/adapters/comparison.ts'
+import { buildComparison } from '../src/mocks/fixtures/comparison.ts'
 import { buildRun } from '../src/mocks/fixtures/run.ts'
 import { findRun } from '../src/mocks/store.ts'
 import {
@@ -59,6 +61,25 @@ describe('detourMoveCount 변환', () => {
     const summary = toRun(runOf('run_mock_mapfail')).summary
     expect(summary?.extraSteps).toBeNull()
     expect(summary?.detourMoveCount).toBeNull()
+  })
+})
+
+describe('비교 결과의 detourMoveCount 변환', () => {
+  const dtoOf = (beforeId: string, afterId: string) =>
+    buildComparison(findRun(beforeId)!, findRun(afterId)!, true)
+
+  it('있으면 그대로 두고 없으면 null이다', () => {
+    const dto = dtoOf('run_mock_sitemap', 'run_mock_done_after')
+    expect(dto.runComparison.before.detourMoveCount).toBeDefined()
+    const { before, after } = toComparison(dto).runComparison
+    expect(before.detourMoveCount).toBeGreaterThan(0)
+    expect(after.detourMoveCount).toBeNull()
+  })
+
+  it('DTO에 필드가 생략돼도 0이 아니라 null로 읽는다', () => {
+    const dto = dtoOf('run_mock_legacy_basis', 'run_mock_done_after')
+    expect(dto.runComparison.before).not.toHaveProperty('detourMoveCount')
+    expect(toComparison(dto).runComparison.before.detourMoveCount).toBeNull()
   })
 })
 

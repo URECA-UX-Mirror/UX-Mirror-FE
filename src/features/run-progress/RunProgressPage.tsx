@@ -250,7 +250,11 @@ function StepViewer({
             candidates={viewed.candidates}
             decision={viewed.decision}
           />
-          <StepMetricsPanel key={viewed.stepId} decision={viewed.decision} />
+          <StepMetricsPanel
+            key={viewed.stepId}
+            decision={viewed.decision}
+            basis={run.referenceBasis}
+          />
         </section>
       </div>
 

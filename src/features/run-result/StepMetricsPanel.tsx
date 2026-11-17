@@ -1,5 +1,7 @@
 import { useState } from 'react'
-import type { StepDecision } from '../../domain/types.ts'
+import type { ReferenceBasis } from '../../api/dto/run.ts'
+import { goalPathProbabilityHint } from '../../domain/referenceBasis.ts'
+import type { Open, StepDecision } from '../../domain/types.ts'
 import {
   formatMargin,
   formatProbability,
@@ -8,10 +10,12 @@ import {
 
 interface StepMetricsPanelProps {
   decision: StepDecision
+  /** 경로 지표 기준. 주면 목표 경로 확률에 기준별 설명을 붙인다(`undefined`면 붙이지 않는다) */
+  basis?: Open<ReferenceBasis> | null
 }
 
 /** Step의 `decision` 값을 그대로 표시한다. `null`은 0이 아니라 "계산 불가"다. 펼침 여부는 화면 상태다. */
-export function StepMetricsPanel({ decision }: StepMetricsPanelProps) {
+export function StepMetricsPanel({ decision, basis }: StepMetricsPanelProps) {
   const [open, setOpen] = useState(false)
   return (
     <section className="metrics-panel" aria-label="지표">
@@ -36,7 +40,12 @@ export function StepMetricsPanel({ decision }: StepMetricsPanelProps) {
             <dt>GO_BACK 확률</dt>
             <dd>{formatProbability(decision.goBackProbability)}</dd>
             <dt>목표 경로 확률</dt>
-            <dd>{formatProbability(decision.goalPathProbability)}</dd>
+            <dd>
+              {formatProbability(decision.goalPathProbability)}
+              {basis !== undefined ? (
+                <span className="metric-hint">{goalPathProbabilityHint(basis)}</span>
+              ) : null}
+            </dd>
             <dt>모델 판단 시간</dt>
             <dd>
               {decision.modelLatencyMs === null

@@ -65,3 +65,52 @@ it('허용 경로가 없는 Run(직접 입력한 목표)은 추가 이동을 0�
   expect(await screen.findByText('주문 내역 화면 찾기')).toBeTruthy()
   expect(screen.getByText('쇼핑몰을 처음 쓰는 사용자')).toBeTruthy()
 })
+
+async function openFullSummary(runId: string) {
+  renderResult(runId)
+  const summary = await screen.findByRole('region', { name: '요약' })
+  fireEvent.click(within(summary).getByRole('button', { name: '요약 전체 보기' }))
+  return summary
+}
+
+it('SITE_MAP Run은 기준 배지와 최단 경로 대비 추가 단계·우회 이동을 보이고 허용 경로 이탈은 사용 안 함이다', async () => {
+  const summary = await openFullSummary('run_mock_sitemap')
+  expect(within(summary).getByText('사이트 지도')).toBeTruthy()
+  expect(within(summary).getByText('최단 경로 대비 추가 단계')).toBeTruthy()
+  expect(within(summary).getByText('우회 이동')).toBeTruthy()
+  expect(within(summary).getByText('목표 거리가 줄지 않은 이동')).toBeTruthy()
+  expect(within(summary).getByText('사용 안 함')).toBeTruthy()
+  expect(within(summary).queryByText('추가 이동(extraSteps)')).toBeNull()
+  expect(summary.textContent).not.toMatch(/개선|단축/)
+})
+
+it('지도 오류 Run은 경로 지표를 계산하지 않음으로 보이고 0으로 바꾸지 않는다', async () => {
+  const summary = await openFullSummary('run_mock_mapfail')
+  expect(within(summary).getByText('기준 없음')).toBeTruthy()
+  expect(within(summary).getAllByText('계산하지 않음 (사이트 지도 오류)')).toHaveLength(2)
+})
+
+it('허용 경로 Run은 기존 표시를 유지하고 우회 이동 행이 없다', async () => {
+  const summary = await openFullSummary('run_mock_goback')
+  expect(within(summary).getByText('허용 경로')).toBeTruthy()
+  expect(within(summary).getByText('추가 이동(extraSteps)')).toBeTruthy()
+  expect(within(summary).queryByText('우회 이동')).toBeNull()
+})
+
+it('basis가 없는 과거 Run은 허용 경로로 읽는다', async () => {
+  const summary = await openFullSummary('run_mock_legacy_basis')
+  expect(within(summary).getByText('허용 경로')).toBeTruthy()
+  expect(within(summary).getByText('추가 이동(extraSteps)')).toBeTruthy()
+})
+
+it('목표 미도달 Run의 추가 이동은 해당 없음이다', async () => {
+  const summary = await openFullSummary('run_mock_maxsteps')
+  expect(within(summary).getAllByText('해당 없음').length).toBeGreaterThanOrEqual(2)
+})
+
+it('Step 지표의 목표 경로 확률에 기준별 설명이 붙는다', async () => {
+  renderResult('run_mock_sitemap')
+  const detail = await screen.findByRole('region', { name: '단계별 탐색 상세' })
+  fireEvent.click(await within(detail).findByRole('button', { name: /지표 펼치기/ }))
+  expect(within(detail).getByText(/목표에 더 가까워지는 클릭 후보들의 확률 합/)).toBeTruthy()
+})

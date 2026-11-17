@@ -6,10 +6,14 @@ import { SelectedAction } from '../../shared/SelectedAction.tsx'
 import { CandidateProbabilityList } from '../../shared/screenshot/CandidateProbabilityList.tsx'
 import { ScreenshotViewer } from '../../shared/screenshot/ScreenshotViewer.tsx'
 import { selectedLabel } from '../../shared/stepLabel.ts'
+import type { ReferenceBasis } from '../../api/dto/run.ts'
+import type { Open } from '../../domain/types.ts'
 import { StepMetricsPanel } from './StepMetricsPanel.tsx'
 
 interface PathPanelProps {
   runId: string
+  /** 경로 지표 기준(`Run.referenceBasis`) */
+  basis: Open<ReferenceBasis> | null
   path: PathVisit[]
   /** `null`이면 아직 조회 중이거나 실패했다 */
   steps: Step[] | null
@@ -52,6 +56,7 @@ function edgeLabel(next: PathVisit, steps: Step[] | null): string {
 
 export function PathPanel({
   runId,
+  basis,
   path,
   steps,
   stepsFailed,
@@ -201,7 +206,11 @@ export function PathPanel({
                 candidates={step.candidates}
                 decision={step.decision}
               />
-              <StepMetricsPanel key={step.stepId} decision={step.decision} />
+              <StepMetricsPanel
+                key={step.stepId}
+                decision={step.decision}
+                basis={basis}
+              />
             </div>
           </div>
         )}

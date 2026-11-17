@@ -76,6 +76,7 @@
 | SITE_MAP 추가 단계 지표 | 설계상 `extraSteps`·`extraNavigationCost`·`attemptedExtraSteps`는 지도상 최단 거리 기준이며 계산 불가 시 `null`이다. 지도 밖 화면으로 이동하면 `extraSteps`와 `detourMoveCount`는 `null`이다 | 설계 3.2·4.2 | 서버와 비교 응답 `RunOutcome`의 계산·null 조건 및 기준별 표시 방식 |
 | 지도 오류 | 설계상 지도 없음·검증 실패·Run 조건 불일치 시 실행은 허용하고 `referencePathConfig`와 경로 지표는 `null`이다 | 설계 3.2 | 서버의 지도 오류 처리 및 응답 형식 |
 | 직접 입력한 목표의 SITE_MAP 적용 | 직접 입력 목표에도 SITE_MAP이 적용될 수 있다고 보고, mock은 `goalId`가 `null`이어도 SITE_MAP을 유지한다 | 근거 없음, 임시 | 적용 범위가 맞는지, 직접 입력 목표의 기준이 무엇인지 |
+| 결과 화면의 `null` 기준 구분 | `referenceBasis`가 `null`이면 `goalId`가 `null`(직접 입력)은 "허용 경로 없음", preset 목표는 "사이트 지도 오류"로 표시한다. 직접 입력 목표의 지도 오류는 구분하지 못한다 | 근거 없음, 임시 | 응답에 기준 없음의 원인(허용 경로 없음·지도 오류)을 구분하는 값이 있는지 |
 | 우회 이동의 정의 | BACK을 뺀 모델 CLICK 이동 중 `d(이동 후) >= d(이동 전)`인 횟수로 mock을 만든다 | 설계 3.1 | 서버 계산과 일치하는지 |
 
 - 확인할 것: FE는 경로 기준을 `Run.referenceBasis`로 구분한다. 백엔드와 기준별 응답·표시 및 사이트 지도 생성·검증, 지원 화면 범위를 확인한다. 사이트 지도 변경은 계약 v1.3.7 제안이며, 위 항목은 백엔드 구현과 계약 확정 후 `docs/contracts/`와 mock에 반영하고 해당 행을 지운다. 모두 해소되면 이 항목을 지운다.

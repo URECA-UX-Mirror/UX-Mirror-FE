@@ -1,6 +1,10 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router'
-import { expect, it } from 'vitest'
+import { describe, expect, it } from 'vitest'
+import { RunComparison } from '../src/features/comparison/RunComparison.tsx'
+import { toComparison } from '../src/adapters/comparison.ts'
+import { buildComparison } from '../src/mocks/fixtures/comparison.ts'
+import { findRun } from '../src/mocks/store.ts'
 import { ComparisonPage } from '../src/features/comparison/ComparisonPage.tsx'
 import { KpiCards } from '../src/features/comparison/ComparisonSections.tsx'
 import type { Comparison } from '../src/domain/types.ts'
@@ -214,4 +218,41 @@ it('과거 Run 비교(허용 경로)는 기존 표시를 유지하고 우회 이
     '해당 없음',
     '해당 없음',
   ])
+})
+
+it('기준이 다른 비교는 지표 표의 목표 경로 확률 설명을 버전별로 보인다', async () => {
+  renderPage('mock-basis-mismatch')
+  await screen.findByText('Run 단위 비교')
+  await waitFor(() => expect(runRow('경로 지표 기준').textContent).toContain('허용 경로'))
+  const card = screenCard('home')
+  fireEvent.click(within(card).getByRole('button', { name: '지표 표 펼치기' }))
+  expect(within(card).getByText(/Before\(사이트 지도\): .*After\(허용 경로\): /)).toBeTruthy()
+})
+
+describe('RunComparison의 기준 경계값', () => {
+  const outcomes = () => {
+    const dto = buildComparison(findRun('run_mock_sitemap')!, findRun('run_mock_sitemap_after')!, true)
+    return toComparison(dto).runComparison
+  }
+  const cells = (label: string) =>
+    [...(screen.getByRole('rowheader', { name: label }).closest('tr') as HTMLElement).querySelectorAll('td')].map(
+      (td) => td.textContent,
+    )
+
+  it('기준 없음(null)이면 기준 없음으로 표시하고 우회 이동은 해당 없음, 이탈 횟수는 계산 불가다', () => {
+    const { before, after } = outcomes()
+    render(<RunComparison before={before} after={after} beforeBasis={null} afterBasis={null} />)
+    expect(cells('경로 지표 기준')).toEqual(['기준 없음', '기준 없음'])
+    expect(cells('우회 이동')).toEqual(['해당 없음', '해당 없음'])
+    expect(cells('기준 경로 이탈 횟수')).toEqual(['계산 불가', '계산 불가'])
+    expect(screen.getByRole('rowheader', { name: '추가 단계' })).toBeTruthy()
+  })
+
+  it('기준을 모르면(조회 실패) 기존 표시를 유지하고 기준은 -로 둔다', () => {
+    const { before, after } = outcomes()
+    render(<RunComparison before={before} after={after} />)
+    expect(cells('경로 지표 기준')).toEqual(['-', '-'])
+    expect(screen.getByRole('rowheader', { name: '추가 단계' })).toBeTruthy()
+    expect(cells('기준 경로 이탈 횟수')).not.toContain('사용 안 함')
+  })
 })

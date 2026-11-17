@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { referenceBasisLabel } from '../../domain/referenceBasis.ts'
+import { pathMetricNames, referenceBasisLabel } from '../../domain/referenceBasis.ts'
 import type { RunOutcome } from '../../domain/types.ts'
 import type { RunBasis } from './useComparisonData.ts'
 
@@ -25,6 +25,8 @@ interface Bases {
 }
 
 const SITE_MAP = 'SITE_MAP'
+// 사이트 지도 기준의 지표 이름은 결과 화면과 같은 헬퍼에서 가져온다
+const SITE_MAP_NAMES = pathMetricNames(SITE_MAP)!
 const NO_BASES: Bases = { before: undefined, after: undefined }
 
 /** 양쪽이 사이트 지도 기준일 때만 "최단 경로 대비" 이름을 쓴다. 허용 경로(과거 Run 포함)는 기존 이름을 유지한다 */
@@ -53,16 +55,16 @@ const ROWS: Row[] = [
     value: (o) => `${o.modelBackCount} / ${o.systemBackCount} / ${o.backCount}`,
   },
   {
-    label: (bases) => (bothSiteMap(bases) ? '최단 경로 대비 추가 단계' : '추가 단계'),
+    label: (bases) => (bothSiteMap(bases) ? SITE_MAP_NAMES.extraSteps : '추가 단계'),
     value: (o) => orNull(o.extraSteps),
   },
   {
     label: (bases) =>
-      bothSiteMap(bases) ? '최단 경로 대비 추가 탐색 비용' : '추가 탐색 비용',
+      bothSiteMap(bases) ? SITE_MAP_NAMES.extraNavigationCost : '추가 탐색 비용',
     value: (o) => orNull(o.extraNavigationCost),
   },
   {
-    label: () => '우회 이동',
+    label: () => SITE_MAP_NAMES.detourMoveCount!,
     // 사이트 지도 기준에서만 의미가 있다. 다른 기준은 값을 만들지 않는다
     value: (o, basis) =>
       basis === SITE_MAP || basis === undefined ? orNull(o.detourMoveCount) : '해당 없음',

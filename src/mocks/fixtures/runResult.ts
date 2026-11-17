@@ -88,7 +88,7 @@ export const RESULT_SEEDS: RunRecord[] = [
       verification: { type: 'PATH_AND_VISIBLE_TEXT', path: '/shop/orders', text: '주문 / 배송 조회', exact: false, scope: 'page' },
       personaId: null,
       persona: '쇼핑몰을 처음 쓰는 사용자',
-      scenario: 'to-orders',
+      scenario: 'to-orders-after',
       reference: 'site-map',
     },
     37,

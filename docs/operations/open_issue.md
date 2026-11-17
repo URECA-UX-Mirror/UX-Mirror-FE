@@ -62,6 +62,18 @@
 ### OI-10 경로 지표 기준(basis)·우회 이동
 
 - 계약서(v1.3.5): `referencePathConfig`는 허용 경로(`allowedPaths`·`shortestAllowedSteps`)만 정의하고 `basis`·`detourMoveCount`는 없다.
-- 임시 결정: 설계 v2.1(3.1·3.2·4.1)에 따라 `referencePathConfig.basis`(`ALLOWED_PATHS` / `SITE_MAP`)와 `summary.detourMoveCount`를 optional로 받는다. `basis`가 없으면 `ALLOWED_PATHS`, 필드가 없는 과거 Run도 `ALLOWED_PATHS`, 명시적 `null`만 기준 없음이다. `detourMoveCount`가 없으면 `null`이다. SITE_MAP 설정은 설계 v2.1 4.1의 `siteMapVersion`·`siteMapHash`·`startPageKey`·`goalPageKey`·`shortestSteps`·`distances`(화면별 거리, 도달 불가는 `null`)로 읽으며 화면에는 쓰지 않는다. 우회 이동은 BACK을 뺀 모델 CLICK 이동 중 거리가 줄지 않은 횟수이고(설계 3.1), mock도 이 정의를 따른다.
-- 확인할 것: 백엔드가 `basis`·`detourMoveCount`·SITE_MAP 설정 형식을 확정하고 계약서에 반영되면 `docs/contracts/`를 고치고 이 항목을 지운다.
+- 임시 결정: 설계 v2.1에 따라 `referencePathConfig.basis`와 `summary.detourMoveCount`(비교 결과의 Run 단위 값 포함)를 optional로 받고, 없으면 현재 동작을 유지한다. 백엔드에 새 필드가 없는 동안 FE는 값을 계산하지 않고 서버 값만 표시한다. 아래 표는 문제와 처리를 항목별로 적고, 협의로 확정되면 `docs/contracts/`를 고친 뒤 그 행을 지운다.
+
+| 문제 | 처리(임시) | 근거 | 백엔드와 확인할 것 |
+| --- | --- | --- | --- |
+| `basis`가 없는 설정, `referencePathConfig` 필드가 없는 과거 Run을 어떻게 읽을지 | 둘 다 `ALLOWED_PATHS`로 읽고, 명시적 `null`만 기준 없음으로 본다 | 설계 4.1 | 서버가 같은 규칙으로 보내는지 |
+| `detourMoveCount`가 없을 때의 값 | `null`로 읽고 0으로 바꾸지 않는다 | 근거 없음, 임시 | 허용 경로 기준 Run에서도 필드를 주는지, `null`을 주는지 |
+| 목표 미도달(`MAX_STEPS` 등) Run의 `detourMoveCount` | mock은 이동 기록으로 계산한다. 정의에 목표 도달 여부가 없고 `extraSteps`와 달리 최단 경로 비교가 필요 없기 때문이다 | 설계 3.1(미도달 정책은 근거 없음) | 미도달이면 `null`인지, 이동 기록으로 계산하는지 |
+| SITE_MAP 설정 필드 | `siteMapVersion`·`siteMapHash`·`startPageKey`·`goalPageKey`·`shortestSteps`·`distances`(도달 불가 화면은 `null`)로 읽고 화면에는 쓰지 않는다 | 설계 4.1 | 실제 응답의 필드명·`null` 표현 |
+| SITE_MAP 기준의 `referencePathDeviationCount` | 이탈 횟수는 허용 경로 개념이라 mock은 `null`로 둔다 | 근거 없음, 임시 | 서버가 `null`을 주는지, 다른 정의를 쓰는지 |
+| SITE_MAP 기준의 `goalPathProbability` | 허용 경로의 `onGoalPath`와 의미가 달라, mock은 목표까지의 거리가 줄어드는 후보만 합산한다 | 설계 3.2(합산 기준은 근거 없음) | 서버의 합산 기준이 같은지 |
+| 직접 입력한 목표의 SITE_MAP 적용 | 직접 입력 목표에도 SITE_MAP이 적용될 수 있다고 보고, mock은 `goalId`가 `null`이어도 SITE_MAP을 유지한다 | 근거 없음, 임시 | 적용 범위가 맞는지, 직접 입력 목표의 기준이 무엇인지 |
+| 우회 이동의 정의 | BACK을 뺀 모델 CLICK 이동 중 `d(이동 후) >= d(이동 전)`인 횟수로 mock을 만든다 | 설계 3.1 | 서버 계산과 일치하는지 |
+
+- 확인할 것: 위 표의 항목이 협의로 확정되면 계약서(v1.3.6 이후)에 반영하고, `docs/contracts/`와 mock을 고친 뒤 해당 행을 지운다. 모두 지워지면 이 항목을 지운다.
 - 담당: 정자비(지표), 장근창(API).

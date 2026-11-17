@@ -28,12 +28,20 @@ interface Bases {
 }
 
 const SITE_MAP = 'SITE_MAP'
-// 사이트 지도 기준의 지표 이름은 `referenceBasis.ts`의 헬퍼에서 가져온다
+const ALLOWED_PATHS = 'ALLOWED_PATHS'
+// 기준별 지표 이름은 `referenceBasis.ts`의 헬퍼에서 가져온다
 const SITE_MAP_NAMES = pathMetricNames(SITE_MAP)!
+const ALLOWED_PATHS_NAMES = pathMetricNames(ALLOWED_PATHS)!
 
-/** 양쪽이 사이트 지도 기준일 때만 "최단 경로 대비" 이름을 쓴다. 허용 경로(과거 Run 포함)는 기존 이름을 유지한다 */
-const bothSiteMap = ({ before, after }: Bases) =>
-  before === SITE_MAP && after === SITE_MAP
+/**
+ * 양쪽 기준이 같을 때만 그 기준의 이름을 쓴다(결과 화면과 같은 이름).
+ * 기준이 다르거나 모르면(조회 실패·기준 없음) 어느 한쪽 이름을 붙이면 다른 쪽에 틀리므로 중립 이름을 쓴다.
+ */
+function sharedNames({ before, after }: Bases) {
+  if (before === SITE_MAP && after === SITE_MAP) return SITE_MAP_NAMES
+  if (before === ALLOWED_PATHS && after === ALLOWED_PATHS) return ALLOWED_PATHS_NAMES
+  return null
+}
 
 const basisText = (basis: RunBasis) =>
   basis === undefined ? '-' : referenceBasisLabel(basis)
@@ -61,13 +69,12 @@ const ROWS: Row[] = [
   },
   {
     key: 'extra',
-    label: (bases) => (bothSiteMap(bases) ? SITE_MAP_NAMES.extraSteps : '추가 단계'),
+    label: (bases) => sharedNames(bases)?.extraSteps ?? '추가 단계',
     value: (o) => orNull(o.extraSteps),
   },
   {
     key: 'extraCost',
-    label: (bases) =>
-      bothSiteMap(bases) ? SITE_MAP_NAMES.extraNavigationCost : '추가 탐색 비용',
+    label: (bases) => sharedNames(bases)?.extraNavigationCost ?? '추가 탐색 비용',
     value: (o) => orNull(o.extraNavigationCost),
   },
   {

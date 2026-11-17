@@ -208,11 +208,13 @@ it('basis 불일치는 서버 message 그대로 실패 항목에 나온다', asy
   expect(screen.getByRole('rowheader', { name: '추가 단계' })).toBeTruthy()
 })
 
-it('과거 Run 비교(허용 경로)는 기존 표시를 유지하고 우회 이동 행이 없다', async () => {
+it('과거 Run 비교(허용 경로)는 결과 화면과 같은 허용 경로 이름을 쓰고 우회 이동 행이 없다', async () => {
   renderPage('mock-done')
   await screen.findByText('Run 단위 비교')
   await waitFor(() => expect(runRow('경로 지표 기준').textContent).toContain('허용 경로'))
-  expect(screen.getByRole('rowheader', { name: '추가 단계' })).toBeTruthy()
+  expect(screen.getByRole('rowheader', { name: '추가 이동(extraSteps)' })).toBeTruthy()
+  expect(screen.getByRole('rowheader', { name: '추가 이동 비용' })).toBeTruthy()
+  expect(screen.queryByRole('rowheader', { name: '추가 단계' })).toBeNull()
   expect(screen.getByRole('rowheader', { name: '기준 경로 이탈 횟수' })).toBeTruthy()
   expect(runRow('기준 경로 이탈 횟수').textContent).not.toContain('사용 안 함')
   // 허용 경로끼리의 비교에는 우회 이동 행이 없다

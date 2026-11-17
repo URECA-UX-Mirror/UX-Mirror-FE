@@ -44,14 +44,15 @@ it('탐색 경로는 노드 사이에 이동을 만든 행동을 보이고 노�
   expect(await within(detail).findByText('도착 화면 이미지 없음')).toBeTruthy()
 })
 
-it('검토 후보는 우선 검토·일반 검토 두 단계로만 보이고 카드마다 근거를 바로 보인다', async () => {
+it('검토 후보는 우선 검토·일반 검토 두 단계로만 보이고 항목을 열면 근거를 보인다', async () => {
   renderResult('run_mock_goback')
   const issues = await screen.findByRole('region', { name: '검토 후보' }, { timeout: 4000 })
   const cards = await within(issues).findAllByRole('listitem')
   expect(cards.length).toBeGreaterThan(0)
   for (const card of cards) {
     expect(card.textContent).toMatch(/우선 검토|일반 검토/)
-    expect(card.querySelector('.issue-evidence')).toBeTruthy()
   }
   expect(issues.textContent).not.toMatch(/높음|보통|참고/)
+  fireEvent.click(within(cards[0]).getByRole('button', { expanded: false }))
+  expect(within(issues).getByLabelText('Issue 근거')).toBeTruthy()
 })

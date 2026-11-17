@@ -2,6 +2,7 @@ import { fireEvent, render, screen, within } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { expect, it } from 'vitest'
 import { RunResultPage } from '../src/features/run-result/RunResultPage.tsx'
+import { formatPathMetric } from '../src/features/run-result/format.ts'
 
 function renderResult(runId: string) {
   return render(
@@ -113,4 +114,10 @@ it('Step 지표의 목표 경로 확률에 기준별 설명이 붙는다', async
   const detail = await screen.findByRole('region', { name: '단계별 탐색 상세' })
   fireEvent.click(await within(detail).findByRole('button', { name: /지표 펼치기/ }))
   expect(within(detail).getByText(/목표에 더 가까워지는 클릭 후보들의 확률 합/)).toBeTruthy()
+})
+
+it('formatPathMetric은 목표 도달 후의 null을 해당 없음이 아니라 계산 불가로 구분한다', () => {
+  expect(formatPathMetric(null, 'SITE_MAP', false, true)).toBe('계산 불가')
+  expect(formatPathMetric(null, 'SITE_MAP', false, false)).toBe('해당 없음')
+  expect(formatPathMetric(0, 'SITE_MAP', false, true)).toBe('0')
 })

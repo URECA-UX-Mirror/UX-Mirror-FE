@@ -137,14 +137,14 @@ export function RunSummaryPanel({ run, issues }: RunSummaryPanelProps) {
               {basis === 'SITE_MAP' ? (
                 <>
                   <dt>{names?.extraSteps}</dt>
-                  <dd>{formatPathMetric(summary.extraSteps, basis, directGoal)}</dd>
+                  <dd>{formatPathMetric(summary.extraSteps, basis, directGoal, summary.goalReached)}</dd>
                   <dt>{names?.extraNavigationCost}</dt>
                   <dd>
-                    {formatPathMetric(summary.extraNavigationCost, basis, directGoal)}
+                    {formatPathMetric(summary.extraNavigationCost, basis, directGoal, summary.goalReached)}
                   </dd>
                   <dt>{names?.detourMoveCount}</dt>
                   <dd>
-                    {formatPathMetric(summary.detourMoveCount, basis, directGoal)}
+                    {formatPathMetric(summary.detourMoveCount, basis, directGoal, summary.goalReached)}
                     <span className="metric-hint">목표 거리가 줄지 않은 이동</span>
                   </dd>
                   <dt>허용 경로 이탈</dt>
@@ -153,10 +153,10 @@ export function RunSummaryPanel({ run, issues }: RunSummaryPanelProps) {
               ) : (
                 <>
                   <dt>추가 이동(extraSteps)</dt>
-                  <dd>{formatPathMetric(summary.extraSteps, basis, directGoal)}</dd>
+                  <dd>{formatPathMetric(summary.extraSteps, basis, directGoal, summary.goalReached)}</dd>
                   <dt>추가 이동 비용</dt>
                   <dd>
-                    {formatPathMetric(summary.extraNavigationCost, basis, directGoal)}
+                    {formatPathMetric(summary.extraNavigationCost, basis, directGoal, summary.goalReached)}
                   </dd>
                 </>
               )}

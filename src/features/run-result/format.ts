@@ -37,13 +37,15 @@ export const NOT_USED = '사용 안 함'
  * 경로 지표 값. `null`의 이유를 기준으로 구분하며 0으로 바꾸지 않는다.
  * - 기준 없음 + 직접 입력한 목표: 허용 경로가 없다(`NO_REFERENCE_PATH`)
  * - 기준 없음 + preset 목표: 사이트 지도 오류로 계산하지 않았다(임시 구분, OI-10)
- * - 기준 있음: 목표 미도달이면 "해당 없음"
+ * - 기준 있음: 목표 미도달이면 "해당 없음", 도달했는데 `null`이면 계산할 수 없거나 서버가 주지 않은 값이라 "계산 불가"
  */
 export function formatPathMetric(
   value: number | null,
   basis: Open<ReferenceBasis> | null,
   directGoal: boolean,
+  goalReached: boolean,
 ): string {
   if (basis === null) return directGoal ? NO_REFERENCE_PATH : MAP_ERROR_NOT_COMPUTED
+  if (value === null && goalReached) return '계산 불가'
   return formatCount(value)
 }

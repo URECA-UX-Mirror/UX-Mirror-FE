@@ -101,8 +101,8 @@ button {
   gap: var(--um-space-1);
   min-height: 32px;
   padding: 0 var(--um-space-3);
-  border: 1px solid var(--um-border);
-  border-radius: var(--um-radius-control);
+  border: 1px solid var(--um-border-strong);
+  border-radius: var(--um-radius-pill);
   color: var(--um-text);
   background: var(--um-surface);
   font: inherit;
@@ -170,19 +170,27 @@ select:focus {
   flex-direction: column;
   min-height: 100vh;
   --um-topbar-height: 56px;
+  --um-gap: 12px;
 }
 
+/* 바닥 위에 떠 있는 알약형 상단 바 */
 .topbar {
   position: sticky;
-  top: 0;
+  top: var(--um-gap);
   z-index: 20;
   display: flex;
   align-items: center;
   gap: var(--um-space-4);
+  width: calc(100% - var(--um-gap) * 2);
+  max-width: var(--um-content-max);
   height: var(--um-topbar-height);
-  padding: 0 var(--um-space-4);
-  border-bottom: 1px solid var(--um-border);
-  background: var(--um-surface);
+  margin: var(--um-gap) auto 0;
+  padding: 0 var(--um-space-3);
+  border: 1px solid var(--um-border);
+  border-radius: var(--um-radius-pill);
+  background: rgb(255 255 255 / 88%);
+  backdrop-filter: blur(14px);
+  box-shadow: var(--um-shadow-card);
 }
 
 .topbar-toggle {
@@ -192,7 +200,7 @@ select:focus {
   height: 36px;
   padding: 0;
   border: 0;
-  border-radius: var(--um-radius-card);
+  border-radius: 50%;
   color: var(--um-text-secondary);
   background: transparent;
   cursor: pointer;
@@ -223,10 +231,11 @@ select:focus {
   place-items: center;
   width: 28px;
   height: 28px;
-  border-radius: var(--um-radius-card);
-  color: #fff;
-  background: var(--um-brand);
+  border-radius: 50%;
+  color: var(--um-highlight-ink);
+  background: var(--um-highlight);
   font-size: 14px;
+  font-weight: 800;
 }
 
 .breadcrumb {
@@ -263,16 +272,17 @@ select:focus {
   align-items: center;
   gap: 6px;
   padding: 6px 12px;
-  border: 1px solid var(--um-border);
-  border-radius: var(--um-radius-card);
-  color: var(--um-text);
+  border: 1px solid var(--um-brand);
+  border-radius: var(--um-radius-pill);
+  color: #fff;
+  background: var(--um-brand);
   font-size: 13px;
   font-weight: 600;
   white-space: nowrap;
 }
 
 .header-link:hover {
-  background: var(--um-surface-subtle);
+  background: var(--um-brand-hover);
   text-decoration: none;
 }
 
@@ -283,25 +293,29 @@ select:focus {
   min-width: 0;
 }
 
+/* 떠 있는 카드형 사이드바 */
 .app-sidebar {
   position: sticky;
-  top: var(--um-topbar-height);
+  top: calc(var(--um-topbar-height) + var(--um-gap) * 2);
   flex: none;
   align-self: flex-start;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   width: var(--um-sidebar-width);
-  height: calc(100vh - var(--um-topbar-height));
-  border-right: 1px solid var(--um-border);
+  height: calc(100vh - var(--um-topbar-height) - var(--um-gap) * 4);
+  margin: var(--um-gap) 0 var(--um-gap) var(--um-gap);
+  border: 1px solid var(--um-border);
+  border-radius: var(--um-radius-card);
   background: var(--um-surface);
+  box-shadow: var(--um-shadow-card);
   transition:
     margin-left 0.2s ease,
     visibility 0.2s;
 }
 
 [data-sidebar='closed'] .app-sidebar {
-  margin-left: calc(-1 * var(--um-sidebar-width) - 1px);
+  margin-left: calc(var(--um-sidebar-width) * -1);
   visibility: hidden;
 }
 
@@ -364,7 +378,7 @@ select:focus {
   align-items: center;
   gap: var(--um-space-3);
   padding: 10px 14px;
-  border-radius: var(--um-radius-card);
+  border-radius: var(--um-radius-pill);
   color: var(--um-text-secondary);
   font-weight: 500;
 }
@@ -380,13 +394,13 @@ select:focus {
 }
 
 .app-nav a[aria-current='page'] {
-  color: var(--um-brand-text);
-  background: var(--um-brand-soft);
+  color: var(--um-highlight-ink);
+  background: var(--um-highlight);
   font-weight: 600;
 }
 
 .app-nav a[aria-current='page'] .icon {
-  color: var(--um-accent);
+  color: var(--um-highlight-ink);
 }
 
 .sidebar-foot {
@@ -1085,15 +1099,24 @@ select:focus {
   }
 
   .layout-status {
+    flex-wrap: nowrap;
     margin-left: auto;
+  }
+
+  /* 좁은 화면의 상단 바는 좁아서 새 분석 버튼은 사이드바 메뉴로 갈음한다 */
+  .header-link {
+    display: none;
   }
 
   .app-sidebar {
     position: fixed;
-    top: var(--um-topbar-height);
-    left: 0;
+    top: calc(var(--um-topbar-height) + var(--um-gap) * 2);
+    left: var(--um-gap);
     z-index: 15;
-    margin-left: 0;
+    height: auto;
+    max-height: calc(100vh - var(--um-topbar-height) - var(--um-gap) * 4);
+    max-width: 85vw;
+    margin: 0;
     transition:
       transform 0.2s ease,
       visibility 0.2s;
@@ -1101,16 +1124,21 @@ select:focus {
 
   [data-sidebar='closed'] .app-sidebar {
     margin-left: 0;
-    transform: translateX(-100%);
+    transform: translateX(calc(-100% - var(--um-gap) * 2));
   }
 
-  [data-sidebar='open'] .sidebar-scrim {
+  /* 스크림은 <button>이라 전역 button 규칙(알약 모서리·호버 배경)을 되돌려야 한다 */
+  [data-sidebar='open'] .sidebar-scrim,
+  [data-sidebar='open'] .sidebar-scrim:hover:not(:disabled) {
     position: fixed;
     inset: var(--um-topbar-height) 0 0;
     z-index: 14;
     display: block;
+    min-height: 0;
+    padding: 0;
     border: 0;
-    background: rgb(0 0 0 / 55%);
+    border-radius: 0;
+    background: rgb(20 20 26 / 35%);
   }
 
   .layout-main {
@@ -1749,24 +1777,6 @@ select:focus {
   background: transparent;
 }
 
-.result-page .stat-grid {
-  gap: 0;
-  border: 1px solid var(--um-border);
-  border-radius: var(--um-radius-overlay);
-  background: var(--um-surface);
-}
-
-.result-page .stat-card {
-  border: 0;
-  border-left: 1px solid var(--um-border);
-  border-radius: 0;
-  background: transparent;
-}
-
-.result-page .stat-card:first-child {
-  border-left: 0;
-}
-
 .result-page .stat-value strong {
   font-size: 32px;
   line-height: 40px;
@@ -1800,18 +1810,6 @@ select:focus {
 
 .result-page .section-icon {
   display: none;
-}
-
-@media (max-width: 960px) {
-  .result-page .stat-card,
-  .result-page .stat-card:first-child {
-    border-left: 0;
-    border-top: 1px solid var(--um-border);
-  }
-
-  .result-page .stat-card:first-child {
-    border-top: 0;
-  }
 }
 
 /* 재생 화면: 열린 머리글 + 실행 목록을 줄 카드로 */
@@ -2042,75 +2040,6 @@ p {
 /* ---------- 라이트 테마 · 떠 있는 셸 (참고: devs7ud.io) ----------
    바닥(canvas) 위에 흰 카드가 떠 있고, 둥근 모서리·알약 버튼·노란 강조로 시선을 이끈다 */
 
-.app-shell {
-  --um-gap: 12px;
-}
-
-.topbar {
-  top: var(--um-gap);
-  width: calc(100% - var(--um-gap) * 2);
-  max-width: var(--um-content-max);
-  margin: var(--um-gap) auto 0;
-  padding: 0 var(--um-space-3);
-  border: 1px solid var(--um-border);
-  border-radius: var(--um-radius-pill);
-  background: rgb(255 255 255 / 88%);
-  backdrop-filter: blur(14px);
-  box-shadow: var(--um-shadow-card);
-}
-
-.topbar-toggle {
-  border-radius: 50%;
-}
-
-.layout-logo {
-  border-radius: 50%;
-  color: var(--um-highlight-ink);
-  background: var(--um-highlight);
-  font-weight: 800;
-}
-
-.header-link {
-  border-color: var(--um-brand);
-  border-radius: var(--um-radius-pill);
-  color: #fff;
-  background: var(--um-brand);
-}
-
-.header-link:hover {
-  background: var(--um-brand-hover);
-}
-
-.app-sidebar {
-  top: calc(var(--um-topbar-height) + var(--um-gap) * 2);
-  height: calc(100vh - var(--um-topbar-height) - var(--um-gap) * 4);
-  margin: var(--um-gap) 0 var(--um-gap) var(--um-gap);
-  border: 1px solid var(--um-border);
-  border-radius: var(--um-radius-card);
-  box-shadow: var(--um-shadow-card);
-}
-
-[data-sidebar='closed'] .app-sidebar {
-  margin-left: calc(var(--um-sidebar-width) * -1);
-}
-
-.sidebar-foot {
-  border-top: 1px solid var(--um-border);
-}
-
-.app-nav a {
-  border-radius: var(--um-radius-pill);
-}
-
-.app-nav a[aria-current='page'] {
-  color: var(--um-highlight-ink);
-  background: var(--um-highlight);
-}
-
-.app-nav a[aria-current='page'] .icon {
-  color: var(--um-highlight-ink);
-}
-
 /* 카드: 테두리는 옅게, 그림자로 떠 보이게 */
 .card,
 .result-section,
@@ -2120,22 +2049,11 @@ p {
   box-shadow: var(--um-shadow-card);
 }
 
-/* 버튼: 알약 모양. 선택 상태는 잉크색으로 채운다 */
-button {
-  border-radius: var(--um-radius-pill);
-  border-color: var(--um-border-strong);
-}
-
-.step-tabs button[aria-pressed='true'],
-.segmented button[aria-pressed='true'] {
+/* 선택 상태의 단계 탭은 잉크색으로 채운다 */
+.step-tabs button[aria-pressed='true'] {
   border-color: var(--um-brand);
   color: #fff;
   background: var(--um-brand);
-}
-
-.segmented {
-  overflow: hidden;
-  border-radius: var(--um-radius-pill);
 }
 
 /* 큰 제목은 굵고 촘촘하게 */
@@ -2155,13 +2073,6 @@ button {
 .comparison-page > section.comparison-run > h2::before,
 .new-analysis fieldset.card > legend::before {
   background: var(--um-highlight);
-}
-
-.delta-chip {
-  border-color: transparent;
-  color: var(--um-highlight-ink);
-  background: var(--um-highlight);
-  font-weight: 700;
 }
 
 /* 결과 요약 3개는 따로 떠 있는 카드, 첫 카드는 노란 강조 */
@@ -2189,23 +2100,6 @@ button {
 }
 
 @media (max-width: 767px) {
-  .app-sidebar {
-    top: calc(var(--um-topbar-height) + var(--um-gap) * 2);
-    left: var(--um-gap);
-    height: auto;
-    max-height: calc(100vh - var(--um-topbar-height) - var(--um-gap) * 4);
-    margin: 0;
-  }
-
-  [data-sidebar='closed'] .app-sidebar {
-    margin-left: 0;
-    transform: translateX(calc(-100% - var(--um-gap) * 2));
-  }
-
-  [data-sidebar='open'] .sidebar-scrim {
-    background: rgb(20 20 26 / 35%);
-  }
-
   .run-head h1,
   .comparison-page .page-header h1,
   .replay-page .page-header h1 {
@@ -2233,7 +2127,7 @@ button {
 .run-gauge {
   --gauge-color: var(--um-accent);
   margin-top: var(--um-space-4);
-  padding: var(--um-space-4) var(--um-space-5, 20px);
+  padding: var(--um-space-4) var(--um-space-6);
   border: 1px solid var(--um-border);
   border-radius: var(--um-radius-card);
   background: var(--um-surface);

@@ -127,7 +127,7 @@ src/
   mocks/                   # MSW. browser.ts, store.ts, errors.ts, fixtures/(run, scenario, runResult, comparison), handlers/(endpoint별)
   features/
     new-analysis/, run-progress/, run-result/, comparison/, replay/   # 화면별. 라우트는 App.tsx
-  shared/                  # Layout(상단 바·접이식 사이드바), SectionTitle(카드 제목 줄), icons, ProbabilityGauge, SelectedAction, stepLabel, EngineStatus, ErrorNotice, ResultOriginBadge, useHealth
+  shared/                  # Layout(상단 바·접이식 사이드바), SectionTitle(카드 제목 줄), RunGauge(탐색 진행 게이지), icons, ProbabilityGauge, SelectedAction, stepLabel, EngineStatus, ErrorNotice, ResultOriginBadge, useHealth
     screenshot/            # boxStyle.ts(좌표 변환), ScreenshotViewer, CandidateProbabilityList
     polling/               # poller.ts(간격·backoff 규칙), usePolling(범용 폴링 훅)
 public/
@@ -153,10 +153,11 @@ public/
 - 사이드바 너비는 `Layout`의 분할자(`role="separator"`)로 조절한다. 끌기, 방향키(±16px, Shift ±48px), `Home`/`End`(최소 200px·최대 420px), 두 번 누르면 기본 256px이고 값은 `localStorage`(`um.sidebar.width`)에 저장한다. 767px 이하에서는 조절하지 않는다.
 - 기본 버튼은 보조 스타일이고, 화면의 주 행동(`분석 시작`, `비교하기`)에만 `primary`를 쓴다. `분석 결과 보기`는 링크이므로 `run-result-link` 클래스로 같은 모양을 내고, 종료 전 비활성 버튼은 기본 스타일이다.
 - `[role='alert']`와 `.error-notice`는 오류 스타일이고 `.error-notice[role='status']`(예: 비교 준비 중)는 정보 스타일이다. `data-origin`(`LIVE`, `MOCK`, `SAVED_MEASURED`)과 `data-status`는 배지 색을 정한다. 색만으로 뜻을 전하지 않도록 배지에는 항상 글자를 함께 둔다.
-- 모든 화면은 같은 구조다. 제목 줄(`page-header`: `h1`과 출처·재생 배지) 아래에 카드가 쌓이고, 줄글·배지·칩을 카드 밖에 두지 않는다. 카드 안쪽 여백은 `--um-card-pad`(24px, 좁은 화면 16px) 하나라서 모든 카드의 글자 왼쪽 선이 같고, 카드 첫 줄은 구분선이 있는 제목 띠다. 정의 목록(`summary-grid`)은 라벨 열 너비(168px)가 모든 카드에서 같다.
-- 다크 배경에서 글자는 본문 `#f4f6fa`, 보조 `#d3dbe8`, 흐린 글자 `#aebad0`, 입력 안내 `#8f9db5` 이상만 쓴다. 본문은 14px/22px, `h1`은 22px, 카드 제목 띠는 15px이고 12px보다 작은 글자는 쓰지 않는다.
-- 다크모드 고정이다. 라이트 모드와 전환 기능을 만들지 않고 `tokens.css`는 `color-scheme: dark`와 다크 값만 둔다. 그림자·글로우·애니메이션 같은 효과는 쓰지 않고 면과 1px 테두리로만 구분한다.
-- 확률은 `ProbabilityGauge`(0~100% 고정 눈금)로 보이고 옆에 숫자를 적는다. 구간별로 색을 바꾸지 않는다(좋고 나쁨의 판정처럼 보이지 않게). Before는 시안, After는 주황으로 서로 대비되는 색이고 눈금선(25% 간격)과 채움 끝 마감선이 있다.
+- 모든 화면은 큰 제목(`page-header`: `h1`과 출처·재생 배지) 아래에 구역이 쌓인다. 구역은 두 종류다. 흰 카드(`card`, 24px 여백·그림자·제목 줄)와, 새 분석처럼 카드 없이 번호·세로선으로 여는 구역이다. 어느 쪽이든 줄글·배지·칩은 구역 안에 둔다. 카드 안쪽 여백은 `--um-card-pad`(24px, 좁은 화면 16px)로 같다. 정의 목록(`summary-grid`)은 라벨 열 너비(168px)가 모든 카드에서 같다.
+- 라이트 면 위에서 글자는 본문 `#3d414d`, 흐린 글자 `#666a77`(흰 면 위 4.5:1 이상), 제목·값 `#14141a`를 쓰고, 입력 안내·비활성(`#8a8e99`)만 그보다 옅다. 본문은 14px/22px, 카드 제목은 15~20px이고 12px보다 작은 글자는 쓰지 않는다. 화면 제목(`h1`)은 28~48px 굵게(800)다.
+- 라이트 고정이다. 다크 모드와 전환 기능을 만들지 않고 `tokens.css`는 `color-scheme: light`와 라이트 값만 둔다. 카드·사이드바·상단 바는 그림자(`--um-shadow-card`)와 옅은 1px 테두리로 떠 보이게 하고, 장식용 글로우는 쓰지 않는다. 진행 중임을 알리는 움직임(탐색 진행 게이지의 줄무늬, 상태 점)만 애니메이션을 쓰며 `prefers-reduced-motion`에서는 꺼진다.
+- 확률은 `ProbabilityGauge`(0~100% 고정 눈금)로 보이고 옆에 숫자를 적는다. 구간별로 색을 바꾸지 않는다(좋고 나쁨의 판정처럼 보이지 않게). Before는 청록, After는 주황으로 서로 대비되는 색이고 눈금선(25% 간격)과 채움 끝 마감선이 있다.
 - 스크린샷 위 후보 박스에는 윤곽선과 박스 바깥의 번호 태그만 올리고 확률 숫자는 올리지 않는다. 번호는 `CandidateProbabilityList`의 번호와 같고 확률은 그 목록에서 찾는다. 화면 맨 위에 붙은 박스는 태그를 박스 아래에 둔다. 비교 화면의 번호는 `candidateComparisons`의 행 순서를 기준으로 `semanticKey`가 같으면 두 버전에서 같다(`features/comparison/candidateNumbers.ts`).
 - 버전 비교의 화면별 비교는 보기 방식을 전환한다. "한눈에 보기"(기본)는 화면마다 Before·After를 같은 비율로 줄여 나란히 놓고 후보별 Before/After 게이지와 서버 증감 값을 표로 보인다. "하나씩 보기"(`SingleScreenView`)는 화면과 버전을 골라 한 장씩 크게 보이고 후보 확률 게이지를 옆에 둔다. 보기 방식과 선택은 화면 상태다. 증감에는 부호만 붙이고 화살표나 좋고 나쁨을 뜻하는 색은 쓰지 않는다.
-- 시안에 있어도 계약서·현재 API에 없는 요소(자유 URL 입력, 버전 추가 동작, 실행 이벤트 로그 등)는 화면에 만들지 않는다.
+- 시안에 있어도 계약서·현재 API에 없는 요소(버전 추가 동작, 실행 이벤트 로그 등)는 동작하게 만들지 않는다. 분석 사이트 입력란은 [OI-8](../operations/open_issue.md#oi-8)의 임시 결정에 따라 입력만 받고 요청에는 싣지 않는다.
+- 탐색 진행 게이지(`RunGauge`)는 최대 단계 수만큼 칸을 나누고 끝난 단계를 채운다. 진행 중이면 다음 칸이 줄무늬로 차오르고, 실행 대기(`READY`)이면 "탐색 시작 전"으로 칸을 비워 둔다. 종료되면 상태에 따라 초록(성공)·노랑(차단·최대 단계·시간 초과)·빨강(오류)이다. `progressbar` 역할로 값을 노출한다.

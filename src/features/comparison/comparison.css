@@ -48,8 +48,9 @@
 /* 보기 전환·화면 선택용 분할 버튼 */
 .segmented {
   display: inline-flex;
+  overflow: hidden;
   border: 1px solid var(--um-border);
-  border-radius: var(--um-radius-control);
+  border-radius: var(--um-radius-pill);
   background: var(--um-surface);
 }
 
@@ -65,8 +66,8 @@
 }
 
 .segmented button[aria-pressed='true'] {
-  color: var(--um-brand-text);
-  background: var(--um-brand-soft);
+  color: #fff;
+  background: var(--um-brand);
 }
 
 .comparison-single {
@@ -182,12 +183,13 @@
 .delta-chip {
   display: inline-block;
   padding: 2px var(--um-space-2);
-  border: 1px solid var(--um-border-strong);
+  border: 1px solid transparent;
   border-radius: var(--um-radius-control);
-  color: var(--um-text);
-  background: var(--um-surface-subtle);
+  color: var(--um-highlight-ink);
+  background: var(--um-highlight);
   font-family: var(--font-mono);
   font-size: 12px;
+  font-weight: 700;
   white-space: nowrap;
 }
 
@@ -386,6 +388,7 @@
   border: 1px solid var(--um-border);
   border-radius: var(--um-radius-card);
   background: var(--um-surface);
+  box-shadow: var(--um-shadow-card);
 }
 
 .kpi-head {
@@ -645,7 +648,7 @@
 /* 두 버전은 색 띠로 나뉘는 대결 구도 */
 .version-panel {
   border-width: 1px;
-  border-top: 3px solid var(--um-before);
+  border-top: 4px solid var(--um-before);
   background: var(--um-surface);
 }
 
@@ -660,7 +663,7 @@
 }
 
 .path-panel {
-  border-top: 3px solid var(--um-before);
+  border-top: 4px solid var(--um-before);
   background: var(--um-surface);
 }
 
@@ -670,73 +673,9 @@
   background: var(--um-surface);
 }
 
-/* 핵심 지표 3개는 한 줄로 이어진 띠 */
-.kpi-grid {
-  gap: 0;
-  border: 1px solid var(--um-border);
-  border-radius: var(--um-radius-overlay);
-  background: var(--um-surface);
-}
-
-.kpi-card {
-  border: 0;
-  border-left: 1px solid var(--um-border);
-  border-radius: 0;
-  background: transparent;
-}
-
-.kpi-card:first-child {
-  border-left: 0;
-}
-
-@media (max-width: 960px) {
-  .kpi-card,
-  .kpi-card:first-child {
-    border-left: 0;
-    border-top: 1px solid var(--um-border);
-  }
-
-  .kpi-card:first-child {
-    border-top: 0;
-  }
-}
-
 /* ---------- 라이트 · 카드가 떠 있는 구성 ---------- */
-
-.kpi-grid {
-  gap: var(--um-space-4);
-  border: 0;
-  background: transparent;
-}
-
-.kpi-card,
-.kpi-card:first-child {
-  border: 1px solid var(--um-border);
-  border-radius: var(--um-radius-card);
-  background: var(--um-surface);
-  box-shadow: var(--um-shadow-card);
-}
 
 .version-panel,
 .path-panel {
   box-shadow: var(--um-shadow-card);
-}
-
-.version-panel,
-.version-panel[data-side='after'],
-.path-panel,
-.path-panel[data-side='after'] {
-  border-top-width: 4px;
-}
-
-.segmented button[aria-pressed='true'] {
-  color: #fff;
-  background: var(--um-brand);
-}
-
-.delta-chip {
-  border-color: transparent;
-  color: var(--um-highlight-ink);
-  background: var(--um-highlight);
-  font-weight: 700;
 }

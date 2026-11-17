@@ -20,3 +20,12 @@ it('종료되면 진행 중 칸 없이 끝난 단계만 채워지고 최대 단�
   expect(screen.getByRole('progressbar').getAttribute('aria-valuenow')).toBe('4')
   expect(screen.getByText('탐색 종료')).toBeTruthy()
 })
+
+it('실행 대기(READY) 상태에서는 시작 전 문구만 보이고 차오르는 칸과 진행 점이 없다', () => {
+  const { container } = render(<RunGauge stepCount={0} maxSteps={3} terminal={false} status="READY" />)
+  const cells = [...container.querySelectorAll('.run-gauge-cell')].map((cell) => cell.getAttribute('data-state'))
+  expect(cells).toEqual(['pending', 'pending', 'pending'])
+  expect(screen.getByText('탐색 시작 전')).toBeTruthy()
+  expect(screen.queryByText('탐색 중')).toBeNull()
+  expect(container.querySelector('.run-gauge-dot')).toBeNull()
+})

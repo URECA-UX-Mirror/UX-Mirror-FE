@@ -679,3 +679,9 @@
 .path-panel {
   box-shadow: var(--um-shadow-card);
 }
+
+.comparison-page .metric-hint {
+  display: block;
+  font-weight: 400;
+  font-size: 0.85em;
+}

@@ -38,6 +38,11 @@ const CONDITION_CODES = [
   'RESULT_ORIGIN_MATCHED',
 ] as const
 
+const FAILED_MESSAGES: Partial<Record<(typeof CONDITION_CODES)[number], string>> = {
+  MAX_STEPS_MATCHED: '최대 탐색 횟수가 다릅니다',
+  REFERENCE_PATH_CONFIG_MATCHED: '경로 지표 기준이 다릅니다',
+}
+
 /** 지표 delta. `conditionsMatched=false`이면 값은 남기고 delta만 null이다(계약 §15.5). */
 function metrics(
   before: StepDto,
@@ -154,6 +159,8 @@ export function buildComparison(
   conditionsMatched: boolean,
   /** 응답의 `experimentKey`. 요청 경로의 키와 같아야 한다(시드 Run을 빌려 쓰는 경우를 위해 따로 받는다) */
   experimentKey: string = before.experimentKey,
+  /** 조건 불일치로 만들 때 실패시킬 조건 코드 */
+  failedCode: (typeof CONDITION_CODES)[number] = 'MAX_STEPS_MATCHED',
 ): ComparisonResultDto {
   const beforeReps = representatives(buildSteps(before, 99))
   const afterReps = representatives(buildSteps(after, 99))
@@ -217,12 +224,12 @@ export function buildComparison(
     comparisonStatus,
     conditionsMatched,
     conditionChecks: CONDITION_CODES.map((code) => {
-      const failed = !conditionsMatched && code === 'MAX_STEPS_MATCHED'
+      const failed = !conditionsMatched && code === failedCode
       return {
         code,
         matched: !failed,
         // 조건 불일치를 흉내 내는 mock이라 실제 Run의 설정값과 무관하게 차이만 알린다
-        message: failed ? '최대 탐색 횟수가 다릅니다' : null,
+        message: failed ? (FAILED_MESSAGES[code] ?? null) : null,
       }
     }),
     layoutMatched: conditionsMatched,

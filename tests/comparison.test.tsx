@@ -1,6 +1,10 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router'
-import { expect, it } from 'vitest'
+import { describe, expect, it } from 'vitest'
+import { RunComparison } from '../src/features/comparison/RunComparison.tsx'
+import { toComparison } from '../src/adapters/comparison.ts'
+import { buildComparison } from '../src/mocks/fixtures/comparison.ts'
+import { findRun } from '../src/mocks/store.ts'
 import { ComparisonPage } from '../src/features/comparison/ComparisonPage.tsx'
 import { KpiCards } from '../src/features/comparison/ComparisonSections.tsx'
 import type { Comparison } from '../src/domain/types.ts'
@@ -156,4 +160,99 @@ it('시작 화면 KPI는 home의 지표만 쓰고 없으면 다른 화면 값 �
   const homeCard = screen.getByText('시작 화면 후보 확률').closest('.kpi-card') as HTMLElement
   expect(homeCard.textContent).toContain('31.0%')
   expect(homeCard.textContent).toContain('72.0%')
+})
+
+const runRow = (label: string) => {
+  const th = screen.getByRole('rowheader', { name: label })
+  return th.closest('tr') as HTMLElement
+}
+
+it('SITE_MAP 비교는 기준·우회 이동·최단 경로 대비 이름을 보이고 이탈 횟수는 사용 안 함이다', async () => {
+  renderPage('mock-sitemap')
+  await screen.findByText('Run 단위 비교')
+  await waitFor(() => expect(runRow('경로 지표 기준').textContent).toContain('사이트 지도'))
+  const cells = (label: string) =>
+    [...runRow(label).querySelectorAll('td')].map((td) => td.textContent)
+  expect(cells('경로 지표 기준')).toEqual(['사이트 지도', '사이트 지도'])
+  expect(cells('우회 이동').every((text) => /^\d+$/.test(text ?? ''))).toBe(true)
+  // 값까지 확인한다: 서버 값은 숫자이거나 계산 불가다
+  expect(cells('최단 경로 대비 추가 단계').every((text) => /^(\d+|계산 불가)$/.test(text ?? ''))).toBe(true)
+  expect(cells('기준 경로 이탈 횟수')).toEqual(['사용 안 함', '사용 안 함'])
+  expect(screen.queryByRole('rowheader', { name: '추가 단계' })).toBeNull()
+  // 판정 문구·화살표를 만들지 않는다
+  const table = runRow('우회 이동').closest('table') as HTMLElement
+  expect(table.textContent).not.toMatch(/개선|악화|[↑↓▲▼]/)
+})
+
+it('SITE_MAP 비교의 지표 표는 목표 경로 확률에 기준 설명을 붙인다', async () => {
+  renderPage('mock-sitemap')
+  await screen.findByText('Run 단위 비교')
+  await waitFor(() => expect(runRow('경로 지표 기준').textContent).toContain('사이트 지도'))
+  const card = screenCard('home')
+  fireEvent.click(within(card).getByRole('button', { name: '지표 표 펼치기' }))
+  expect(within(card).getByText(/사이트 지도에서 목표에 더 가까워지는 클릭 후보들의 확률 합/)).toBeTruthy()
+})
+
+it('basis 불일치는 서버 message 그대로 실패 항목에 나온다', async () => {
+  renderPage('mock-basis-mismatch')
+  expect(await screen.findByText('비교 조건이 일치하지 않습니다')).toBeTruthy()
+  expect(screen.getByText('REFERENCE_PATH_CONFIG_MATCHED')).toBeTruthy()
+  expect(screen.getByText(/경로 지표 기준이 다릅니다/)).toBeTruthy()
+  await waitFor(() =>
+    expect([...runRow('경로 지표 기준').querySelectorAll('td')].map((td) => td.textContent)).toEqual([
+      '사이트 지도',
+      '허용 경로',
+    ]),
+  )
+  // 기준이 다르면 "최단 경로 대비" 이름으로 바꾸지 않는다
+  expect(screen.getByRole('rowheader', { name: '추가 단계' })).toBeTruthy()
+})
+
+it('과거 Run 비교(허용 경로)는 기존 표시를 유지하고 우회 이동 행이 없다', async () => {
+  renderPage('mock-done')
+  await screen.findByText('Run 단위 비교')
+  await waitFor(() => expect(runRow('경로 지표 기준').textContent).toContain('허용 경로'))
+  expect(screen.getByRole('rowheader', { name: '추가 단계' })).toBeTruthy()
+  expect(screen.getByRole('rowheader', { name: '기준 경로 이탈 횟수' })).toBeTruthy()
+  expect(runRow('기준 경로 이탈 횟수').textContent).not.toContain('사용 안 함')
+  // 허용 경로끼리의 비교에는 우회 이동 행이 없다
+  expect(screen.queryByRole('rowheader', { name: '우회 이동' })).toBeNull()
+})
+
+it('기준이 다른 비교는 지표 표의 목표 경로 확률 설명을 버전별로 보인다', async () => {
+  renderPage('mock-basis-mismatch')
+  await screen.findByText('Run 단위 비교')
+  await waitFor(() => expect(runRow('경로 지표 기준').textContent).toContain('허용 경로'))
+  const card = screenCard('home')
+  fireEvent.click(within(card).getByRole('button', { name: '지표 표 펼치기' }))
+  expect(within(card).getByText(/Before\(사이트 지도\): .*After\(허용 경로\): /)).toBeTruthy()
+})
+
+describe('RunComparison의 기준 경계값', () => {
+  const outcomes = () => {
+    const dto = buildComparison(findRun('run_mock_sitemap')!, findRun('run_mock_sitemap_after')!, true)
+    return toComparison(dto).runComparison
+  }
+  const cells = (label: string) =>
+    [...(screen.getByRole('rowheader', { name: label }).closest('tr') as HTMLElement).querySelectorAll('td')].map(
+      (td) => td.textContent,
+    )
+
+  it('기준 없음(null)이면 기준 없음으로 표시하고 우회 이동 행은 없으며 이탈 횟수는 계산 불가다', () => {
+    const { before, after } = outcomes()
+    render(<RunComparison before={before} after={after} beforeBasis={null} afterBasis={null} />)
+    expect(cells('경로 지표 기준')).toEqual(['기준 없음', '기준 없음'])
+    expect(screen.queryByRole('rowheader', { name: '우회 이동' })).toBeNull()
+    expect(cells('기준 경로 이탈 횟수')).toEqual(['계산 불가', '계산 불가'])
+    expect(screen.getByRole('rowheader', { name: '추가 단계' })).toBeTruthy()
+  })
+
+  it('기준을 모르면(조회 실패) 기존 표시를 유지하고 기준은 -로 둔다', () => {
+    const { before, after } = outcomes()
+    render(<RunComparison before={before} after={after} />)
+    expect(cells('경로 지표 기준')).toEqual(['-', '-'])
+    expect(screen.queryByRole('rowheader', { name: '우회 이동' })).toBeNull()
+    expect(screen.getByRole('rowheader', { name: '추가 단계' })).toBeTruthy()
+    expect(cells('기준 경로 이탈 횟수')).not.toContain('사용 안 함')
+  })
 })

@@ -74,8 +74,8 @@
 | --- | --- | --- |
 | 409 | `RUN_ALREADY_ACTIVE` | 다른 분석이 실행 중이라는 안내와 해당 Run 이동 링크 |
 | 409 | `EXPERIMENT_RUN_EXISTS` | 같은 키와 버전에 진행 중이거나 유효한 Run이 이미 있다는 안내와 결과 보기 링크. 기존 Run이 모두 `INVALID`일 때만 같은 키로 다시 실행할 수 있다 |
-| 422 | `CONTRACT_VALIDATION_ERROR` | 입력 오류 안내와 서버 `message`(키 형식, `maxSteps` 범위, 없는 목표·사용자 유형, 직접 입력 문장의 빈 값·길이·금지 문자열, 성공 조건 오류, 첫 Run과 다른 입력) |
-| 503 | `BROWSER_ERROR` | 실행 환경 준비 실패 안내와 재시도 |
+| 422 | `CONTRACT_VALIDATION_ERROR` | 서버 `message`(키 형식, `maxSteps` 범위, 없는 목표·사용자 유형, 직접 입력 문장의 빈 값·길이·금지 문자열, 성공 조건 오류, 첫 Run과 다른 입력)를 그대로 보이고 입력 수정을 안내한다. 재시도 버튼은 두지 않는다 |
+| 503 | `BROWSER_ERROR` | 서버 `message`를 보이고 Run이 생성되지 않았음을 안내한다. 메시지가 비어 있으면 "도착 화면을 확인하지 못했습니다"를 보인다. `retryable`이면 같은 버전의 실행 재시도 버튼을 보인다 |
 
 ### GET /api/runs
 

@@ -58,7 +58,7 @@ it('POST /api/runs로 만든 직접 입력 Run은 도착 화면 시나리오를 
 })
 
 it('허용 경로가 없는 Run은 요약의 추가 단계가 null이고 EXTRA_STEPS 이슈도 없다', () => {
-  for (const rec of allRuns().filter((item) => item.goalId === null)) {
+  for (const rec of allRuns().filter((item) => item.goalId === null && item.reference !== 'site-map')) {
     const run = buildRun(rec, FAR_FUTURE)
     expect([rec.runId, run.referencePathConfig, run.summary?.extraSteps]).toEqual([rec.runId, null, null])
     const types = buildIssues(rec, FAR_FUTURE).items.map((issue) => issue.issueType)

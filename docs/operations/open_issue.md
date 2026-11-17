@@ -17,7 +17,7 @@
 | [OI-3](#oi-3) | 도착 화면 스크린샷 조회 | 정자비, 장근창 | 이미지 없이 표시 |
 | [OI-8](#oi-8) | 분석 대상 사이트 입력 | 장근창 | 입력란은 두되 요청에 싣지 않고, MORO MARKET 외 값은 안내 후 시작을 막음 |
 | [OI-7](#oi-7) | 저장된 실측 데이터 시연 | 정자비 | `/replay`에서 원본 `LIVE` Run을 조회해 재생, 서버 없는 시연은 P0 제외 |
-| [OI-9](#oi-9) | 목표·사용자 유형 직접 입력 | 정자비, 장근창 | 백엔드 구현(UX-Mirror-BE #39·#42·#44) 기준으로 요청·표시, 계약 v1.3.6 반영 전까지 임시 |
+| [OI-9](#oi-9) | 목표·사용자 유형 직접 입력과 사이트 지도 지표 | 정자비, 장근창 | 직접 입력은 백엔드 구현 기준으로 표시; 사이트 지도 지표·사전 검사는 미구현 설계 |
 
 ## 항목
 
@@ -54,9 +54,13 @@
 - 계약서(v1.3.5): `POST /api/runs`는 `goalId`·`personaId`만 받고 문구는 preset에서 복사한다(`§5.1`, `§17.2`).
 - 백엔드 구현: UX-Mirror-BE #42에서 `goal`+`verification`, `persona` 직접 입력을 받는다(ID와 둘 중 하나만, 빈 값·200자 초과·누출 금지 문자열·성공 조건 오류는 `422`, 같은 `experimentKey`의 두 번째 Run은 첫 Run과 입력이 같아야 함). Run에는 `verification`이 항상 저장되고(preset 실행도 복사), 직접 입력한 목표는 `referencePathConfig: null`이다. #39(루프)는 경로 기반 지표를 `null`로, #44(비교)는 `GOAL_MATCHED`를 목표 문장+`verification`, `PERSONA_MATCHED`를 문장 기준으로 판정하고 `verification`이 없는 과거 Run은 확인 불가로 처리한다.
 - 임시 결정: 프론트는 위 백엔드 동작을 기준으로 요청을 보내고 표시한다. 성공 조건의 도착 화면은 서버가 아직 실제 화면인지 검사하지 않으므로 화면에서 목록으로만 고른다.
-- 임시 결정(사이트 지도 기반 경로 지표 설계 v2.1, 백엔드 미구현): `referencePathConfig.basis`는 `ALLOWED_PATHS` 또는 `SITE_MAP`이며, `basis`가 없는 과거 Run은 `ALLOWED_PATHS`로 해석한다. `SITE_MAP` 구성에는 `siteMapVersion`, `siteMapHash`, `startPageKey`, `goalPageKey`, `shortestSteps`, `distances`를 둔다. 직접 입력한 목표의 도착 화면이 지원 화면이면 사이트 지도 기준 경로 지표를 계산하는 방향이다.
-- 임시 결정(설계 v2.1): `summary.detourMoveCount`는 `SITE_MAP`에서만 계산하고 그 밖에는 `null`이다. `referencePathDeviationCount`는 `ALLOWED_PATHS`에서만 계산한다. `goalPathProbability`는 `ALLOWED_PATHS`에서는 허용 경로의 다음 화면으로 이어지는 후보 확률 합, `SITE_MAP`에서는 목표까지의 지도상 거리가 줄어드는 후보 확률 합이다. 계산할 수 없으면 `null`, 계산 가능하지만 해당 후보가 없으면 `0`으로 구분한다.
-- 임시 결정(설계 v2.1): 실행 전 Before·After 도착 화면에서 성공 조건 글자를 검사한다. 글자가 없으면 `422 CONTRACT_VALIDATION_ERROR`, 화면을 읽지 못하면 재시도 가능한 `503 BROWSER_ERROR`로 Run을 만들지 않는다. 지도 없음·검증 실패·조건 불일치 시에는 `referencePathConfig: null`과 경로 지표 `null`로 처리한다.
-- 확인할 것: 사이트 지도 생성·검증과 지원 화면 범위, `basis` 및 신규 지표의 응답 형식, 실행 전 검사의 오류 메시지를 백엔드 구현과 계약 v1.3.6에서 확정한다.
+- 미구현 설계(v2.1): 직접 입력 목표 중 지원 화면을 도착 화면으로 선택한 Run에 사이트 지도 기준 지표를 도입한다. `referencePathConfig.basis`는 `ALLOWED_PATHS` 또는 `SITE_MAP`이며, `basis`가 없는 과거 Run은 `ALLOWED_PATHS`로 해석한다. `SITE_MAP`에는 `siteMapVersion`, `siteMapHash`, `startPageKey`, `goalPageKey`, `shortestSteps`, `distances`를 둔다. 구현과 계약 확정 전까지 프론트는 위 기존 동작을 유지한다.
+- 미구현 설계(v2.1): `SITE_MAP`의 `extraSteps`·`extraNavigationCost`·`attemptedExtraSteps`는 지도상 최단 거리 기준으로 계산하고 계산할 수 없으면 `null`이다. `detourMoveCount`는 목표 거리가 줄지 않은 CLICK 이동 수로 `SITE_MAP`에서만 계산하며, `referencePathDeviationCount`는 `ALLOWED_PATHS`에서만 계산한다. 지도 밖 화면으로 이동한 Run의 `extraSteps`와 `detourMoveCount`는 `null`이다.
+- 미구현 설계(v2.1): `goalPathProbability`는 `ALLOWED_PATHS`에서 허용 경로의 다음 화면으로 이어지는 후보 확률 합이고, 기존처럼 해당 후보가 없으면 `null`이다. `SITE_MAP`에서는 목표까지의 거리가 줄어드는 CLICK 후보의 확률 합이며 모든 CLICK 후보의 목적지 거리를 확인했고 해당 후보가 없으면 `0`, 하나라도 거리를 모르면 부분합 없이 `null`이다.
+- 미구현 설계(v2.1): 실행 전 지원 도착 화면과 Before·After의 성공 조건 글자를 검사한다. 화면을 읽었으나 글자가 없거나 완성된 지도에서 도착 경로가 없으면 `422`, 화면을 읽지 못하면 재시도 가능한 `503 BROWSER_ERROR`로 Run을 만들지 않는다. 지도 파일이 없거나 검증에 실패하거나 Run 조건과 맞지 않는 지도 오류는 실행을 허용하되 `referencePathConfig`와 경로 지표를 `null`로 둔다. 사전 검사의 실행 경로 반영은 테스트 통과 후다.
+- 확인할 것(기존 구현): UX-Mirror-BE #39·#42·#44의 직접 입력 요청 필드, Run `verification`, 비교 조건을 계약 v1.3.6에 반영할지 확인한다.
+- 확인할 것(사이트 지도 지표): 기존 허용 경로의 `null` 규칙과 신규 사이트 지도의 `0`·`null` 규칙을 위처럼 분리했다. 백엔드와 기준별 계산 및 응답 형식, 사이트 지도 생성·검증과 지원 화면 범위를 확인한다. 사이트 지도 변경은 계약 v1.3.7 제안이다.
+- 확인할 것(결과·비교 표시): `SITE_MAP`에도 추가 단계 계열을 계산하는 설계를 기록했다. 현재 프론트의 `hasReferencePath`는 설정 존재 여부만 구분하므로, 백엔드와 `RunOutcome`의 값과 기준별 표시·분기 방식을 확인한다.
+- 확인할 것(사전 검사): 글자 없음·도달 불가, 화면 확인 실패, 지도 오류의 처리를 위처럼 구분했다. 백엔드와 오류 코드·메시지 및 실제 구현을 확인한다.
 - 담당: 정자비(루프·프론트), 장근창(API).
-- 백엔드 구현 후 `docs/contracts/`로 옮기고 이 항목을 지운다.
+- 각 내용은 백엔드 구현과 해당 계약 확정 후 `docs/contracts/`에 반영하고, 미결정 사항이 모두 해소되면 이 항목을 지운다.

@@ -3,12 +3,14 @@ import { apiUrl } from '../../api/client.ts'
 import { errorResponse } from '../errors.ts'
 import { buildComparison } from '../fixtures/comparison.ts'
 import { buildIssues, getTiming } from '../fixtures/run.ts'
-import { findExperimentRuns, type RunRecord } from '../store.ts'
+import { findExperimentRuns, findRun, type RunRecord } from '../store.ts'
 
 // 응답 종류를 고르는 방법(화면 개발용): experimentKey로 고른다.
 //   mock-done          COMPLETED  — 두 버전이 같은 화면(home, orders)만 방문
 //   mock-partial       PARTIAL    — Before만 마이페이지 방문(NOT_VISITED_IN_AFTER)
 //   mock-mismatch      PARTIAL    — conditionsMatched=false (mock-done의 Run을 쓴다)
+//   mock-sitemap       COMPLETED/PARTIAL — 양쪽 모두 사이트 지도 기준(SITE_MAP). 우회 이동 행이 보인다
+//   mock-basis-mismatch PARTIAL   — Before=사이트 지도, After=허용 경로. REFERENCE_PATH_CONFIG_MATCHED 실패
 //   mock-invalid-run   409 COMPARISON_RUN_INVALID — 한쪽에 VALID Run이 없음
 //   mock-error         500 ANALYSIS_ERROR
 //   그 밖의 키          POST /api/runs 로 만든 Run을 비교한다. Before(3단계)와 After(2단계)라 PARTIAL이 나온다.
@@ -27,6 +29,16 @@ export const comparisonsHandlers = [
 
     if (key === 'mock-error') {
       return errorResponse(500, 'ANALYSIS_ERROR', '비교 분석에 실패했습니다', true)
+    }
+    if (key === 'mock-basis-mismatch') {
+      const before = findRun('run_mock_sitemap')
+      const after = findRun('run_mock_done_after')
+      if (!before || !after) {
+        return errorResponse(404, 'RUN_NOT_FOUND', '비교 대상을 찾을 수 없습니다')
+      }
+      return HttpResponse.json(
+        buildComparison(before, after, false, key, 'REFERENCE_PATH_CONFIG_MATCHED'),
+      )
     }
     const mismatch = key === 'mock-mismatch'
     const lookupKey = mismatch ? 'mock-done' : key

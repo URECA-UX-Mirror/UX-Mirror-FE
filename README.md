@@ -34,6 +34,8 @@ npm test           # 자동 테스트 1회 실행
 
 mock 모드에서 ③ 결과 화면(`/runs/:runId/result`)은 시드 Run으로 확인한다: `run_mock_done_before`(정상), `run_mock_goback`(모델 GO_BACK), `run_mock_maxsteps`(목표 미도달), `run_mock_invalid`·`run_mock_invalid_only`(무효 처리), `run_mock_issue_pending`·`run_mock_issue_failed`·`run_mock_issue_empty`(Issue 분석 상태), `run_mock_direct_before`(목표·사용자 유형 직접 입력, 허용 경로 없음. 실험 키 `mock-direct`), `run_mock_sitemap`(사이트 지도 기준·우회 이동 있음), `run_mock_mapfail`(지도 오류로 경로 기준 없음), `run_mock_legacy_basis`(`basis` 없는 과거 Run).
 
+④ 비교 화면은 mock 모드에서 `/comparisons/mock-sitemap`(양쪽 사이트 지도 기준, 우회 이동 행 표시), `/comparisons/mock-basis-mismatch`(기준 불일치로 `REFERENCE_PATH_CONFIG_MATCHED` 실패), `/comparisons/mock-done`(허용 경로)으로 확인한다. 비교 응답에는 기준이 없어 각 Run(`GET /api/runs/{runId}`)의 기준을 읽어 Run 단위 비교에 표시한다.
+
 새 UX 분석은 고정 사이트 MORO MARKET의 버전별 실행을 지원한다. 탐색 목표·사용자 유형은 문장으로 직접 입력하고, 성공 조건(도착 화면·보여야 할 글자)을 함께 입력한다. 엔진 상태가 `READY`로 확인된 경우에만 시작할 수 있다. 기존 실험 키를 입력하고 조회하면 서버에서 실행 기록과 분석 조건을 불러온다. 실행 시작 후 진행 화면 주소의 `experimentKey`로 같은 실험을 다시 열 수 있다.
 
 화면별 상태 관리, 요청·응답 형식, bbox 변환은 [docs/README.md](docs/README.md)의 문서를 따른다.

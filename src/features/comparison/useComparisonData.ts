@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState } from 'react'
 import { isAbortError } from '../../api/client.ts'
 import { getComparison } from '../../api/comparisons.ts'
-import { getRunSteps } from '../../api/runs.ts'
-import type { Comparison, Step } from '../../domain/types.ts'
+import { getRun, getRunSteps } from '../../api/runs.ts'
+import type { ReferenceBasis } from '../../api/dto/run.ts'
+import type { Comparison, Open, Step } from '../../domain/types.ts'
 
 interface Loaded {
   token: string
@@ -85,4 +86,33 @@ export function useRunSteps(runId: string): RunStepsState {
     failed: current?.failed ?? false,
     loading: current === null,
   }
+}
+
+/** 한 Run의 경로 지표 기준. `undefined`는 아직 받지 못했거나 조회에 실패한 경우이고, `null`은 기준 없음이다 */
+export type RunBasis = Open<ReferenceBasis> | null | undefined
+
+interface BasisLoaded {
+  runId: string
+  basis: RunBasis
+}
+
+/**
+ * 비교 응답에는 기준(`basis`)이 없으므로 각 Run의 `GET /api/runs/{runId}`에서 읽는다.
+ * 실패해도 비교 값은 계속 보이도록 `undefined`로 두고 기존 표시를 유지한다.
+ */
+export function useRunBasis(runId: string): RunBasis {
+  const [loaded, setLoaded] = useState<BasisLoaded | null>(null)
+
+  useEffect(() => {
+    const controller = new AbortController()
+    getRun(runId, controller.signal)
+      .then((run) => setLoaded({ runId, basis: run.referenceBasis }))
+      .catch((error: unknown) => {
+        if (isAbortError(error)) return
+        setLoaded({ runId, basis: undefined })
+      })
+    return () => controller.abort()
+  }, [runId])
+
+  return loaded?.runId === runId ? loaded.basis : undefined
 }

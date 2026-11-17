@@ -157,3 +157,61 @@ it('시작 화면 KPI는 home의 지표만 쓰고 없으면 다른 화면 값 �
   expect(homeCard.textContent).toContain('31.0%')
   expect(homeCard.textContent).toContain('72.0%')
 })
+
+const runRow = (label: string) => {
+  const th = screen.getByRole('rowheader', { name: label })
+  return th.closest('tr') as HTMLElement
+}
+
+it('SITE_MAP 비교는 기준·우회 이동·최단 경로 대비 이름을 보이고 이탈 횟수는 사용 안 함이다', async () => {
+  renderPage('mock-sitemap')
+  await screen.findByText('Run 단위 비교')
+  await waitFor(() => expect(runRow('경로 지표 기준').textContent).toContain('사이트 지도'))
+  const cells = (label: string) =>
+    [...runRow(label).querySelectorAll('td')].map((td) => td.textContent)
+  expect(cells('경로 지표 기준')).toEqual(['사이트 지도', '사이트 지도'])
+  expect(cells('우회 이동').every((text) => /^\d+$/.test(text ?? ''))).toBe(true)
+  expect(cells('최단 경로 대비 추가 단계').length).toBe(2)
+  expect(cells('기준 경로 이탈 횟수')).toEqual(['사용 안 함', '사용 안 함'])
+  expect(screen.queryByRole('rowheader', { name: '추가 단계' })).toBeNull()
+  // 판정 문구·화살표를 만들지 않는다
+  const table = runRow('우회 이동').closest('table') as HTMLElement
+  expect(table.textContent).not.toMatch(/개선|악화|[↑↓▲▼]/)
+})
+
+it('SITE_MAP 비교의 지표 표는 목표 경로 확률에 기준 설명을 붙인다', async () => {
+  renderPage('mock-sitemap')
+  await screen.findByText('Run 단위 비교')
+  await waitFor(() => expect(runRow('경로 지표 기준').textContent).toContain('사이트 지도'))
+  const card = screenCard('home')
+  fireEvent.click(within(card).getByRole('button', { name: '지표 표 펼치기' }))
+  expect(within(card).getByText(/사이트 지도에서 목표에 더 가까워지는 클릭 후보들의 확률 합/)).toBeTruthy()
+})
+
+it('basis 불일치는 서버 message 그대로 실패 항목에 나온다', async () => {
+  renderPage('mock-basis-mismatch')
+  expect(await screen.findByText('비교 조건이 일치하지 않습니다')).toBeTruthy()
+  expect(screen.getByText('REFERENCE_PATH_CONFIG_MATCHED')).toBeTruthy()
+  expect(screen.getByText(/경로 지표 기준이 다릅니다/)).toBeTruthy()
+  await waitFor(() =>
+    expect([...runRow('경로 지표 기준').querySelectorAll('td')].map((td) => td.textContent)).toEqual([
+      '사이트 지도',
+      '허용 경로',
+    ]),
+  )
+  // 기준이 다르면 "최단 경로 대비" 이름으로 바꾸지 않는다
+  expect(screen.getByRole('rowheader', { name: '추가 단계' })).toBeTruthy()
+})
+
+it('과거 Run 비교(허용 경로)는 기존 표시를 유지하고 우회 이동은 해당 없음이다', async () => {
+  renderPage('mock-done')
+  await screen.findByText('Run 단위 비교')
+  await waitFor(() => expect(runRow('경로 지표 기준').textContent).toContain('허용 경로'))
+  expect(screen.getByRole('rowheader', { name: '추가 단계' })).toBeTruthy()
+  expect(screen.getByRole('rowheader', { name: '기준 경로 이탈 횟수' })).toBeTruthy()
+  expect(runRow('기준 경로 이탈 횟수').textContent).not.toContain('사용 안 함')
+  expect([...runRow('우회 이동').querySelectorAll('td')].map((td) => td.textContent)).toEqual([
+    '해당 없음',
+    '해당 없음',
+  ])
+})

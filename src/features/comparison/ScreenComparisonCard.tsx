@@ -9,7 +9,8 @@ import {
   NULL_TEXT,
   type MetricKind,
 } from './format.ts'
-import type { RunStepsState } from './useComparisonData.ts'
+import { goalPathProbabilityHint, referenceBasisLabel } from '../../domain/referenceBasis.ts'
+import type { RunBasis, RunStepsState } from './useComparisonData.ts'
 
 /** 서버가 준 `reason` 코드의 안내 문구. 목록에 없는 코드는 코드를 그대로 보인다 */
 const REASON_TEXT: Record<string, string> = {
@@ -44,7 +45,23 @@ const METRIC_ROWS: {
   { key: 'goalPathProbability', label: '목표 경로 확률', kind: 'probability' },
 ]
 
-function MetricsTable({ metrics }: { metrics: ScreenMetrics }) {
+/** 기준 설명. 두 Run의 기준이 같으면 한 문장, 다르면 버전별로 보인다. 기준을 모르면(`undefined`) 붙이지 않는다 */
+function goalPathHint(before: RunBasis, after: RunBasis): string | null {
+  if (before === undefined || after === undefined) return null
+  if (before === after) return goalPathProbabilityHint(before)
+  return `Before(${referenceBasisLabel(before)}): ${goalPathProbabilityHint(before)} / After(${referenceBasisLabel(after)}): ${goalPathProbabilityHint(after)}`
+}
+
+function MetricsTable({
+  metrics,
+  beforeBasis,
+  afterBasis,
+}: {
+  metrics: ScreenMetrics
+  beforeBasis: RunBasis
+  afterBasis: RunBasis
+}) {
+  const hint = goalPathHint(beforeBasis, afterBasis)
   return (
     <div className="comparison-table-scroll">
     <table className="comparison-metrics">
@@ -59,7 +76,12 @@ function MetricsTable({ metrics }: { metrics: ScreenMetrics }) {
       <tbody>
         {METRIC_ROWS.map(({ key, label, kind }) => (
           <tr key={key}>
-            <th scope="row">{label}</th>
+            <th scope="row">
+              {label}
+              {key === 'goalPathProbability' && hint ? (
+                <span className="muted metric-hint">{hint}</span>
+              ) : null}
+            </th>
             <td>{formatMetric(metrics[key].before, kind)}</td>
             <td>{formatMetric(metrics[key].after, kind)}</td>
             <td>{formatDelta(metrics[key].delta, kind)}</td>
@@ -118,6 +140,8 @@ interface ScreenComparisonCardProps {
   afterRunId: string
   beforeSteps: RunStepsState
   afterSteps: RunStepsState
+  beforeBasis?: RunBasis
+  afterBasis?: RunBasis
 }
 
 export function ScreenComparisonCard({
@@ -126,6 +150,8 @@ export function ScreenComparisonCard({
   afterRunId,
   beforeSteps,
   afterSteps,
+  beforeBasis,
+  afterBasis,
 }: ScreenComparisonCardProps) {
   // 지표 표 펼침 여부는 화면 상태다
   const [metricsOpen, setMetricsOpen] = useState(false)
@@ -230,7 +256,13 @@ export function ScreenComparisonCard({
           >
             {metricsOpen ? '지표 표 접기' : '지표 표 펼치기'}
           </button>
-          {metricsOpen ? <MetricsTable metrics={screen.metrics} /> : null}
+          {metricsOpen ? (
+            <MetricsTable
+              metrics={screen.metrics}
+              beforeBasis={beforeBasis}
+              afterBasis={afterBasis}
+            />
+          ) : null}
         </>
       )}
     </article>

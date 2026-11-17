@@ -54,5 +54,9 @@
 - 계약서(v1.3.5): `POST /api/runs`는 `goalId`·`personaId`만 받고 문구는 preset에서 복사한다(`§5.1`, `§17.2`).
 - 백엔드 구현: UX-Mirror-BE #42에서 `goal`+`verification`, `persona` 직접 입력을 받는다(ID와 둘 중 하나만, 빈 값·200자 초과·누출 금지 문자열·성공 조건 오류는 `422`, 같은 `experimentKey`의 두 번째 Run은 첫 Run과 입력이 같아야 함). Run에는 `verification`이 항상 저장되고(preset 실행도 복사), 직접 입력한 목표는 `referencePathConfig: null`이다. #39(루프)는 경로 기반 지표를 `null`로, #44(비교)는 `GOAL_MATCHED`를 목표 문장+`verification`, `PERSONA_MATCHED`를 문장 기준으로 판정하고 `verification`이 없는 과거 Run은 확인 불가로 처리한다.
 - 임시 결정: 프론트는 위 백엔드 동작을 기준으로 요청을 보내고 표시한다. 성공 조건의 도착 화면은 서버가 아직 실제 화면인지 검사하지 않으므로 화면에서 목록으로만 고른다.
-- 확인할 것: 계약 v1.3.6에 요청 필드·Run `verification`·비교 조건이 반영되면 `docs/contracts/`를 고치고 이 항목을 지운다.
+- 임시 결정(사이트 지도 기반 경로 지표 설계 v2.1, 백엔드 미구현): `referencePathConfig.basis`는 `ALLOWED_PATHS` 또는 `SITE_MAP`이며, `basis`가 없는 과거 Run은 `ALLOWED_PATHS`로 해석한다. `SITE_MAP` 구성에는 `siteMapVersion`, `siteMapHash`, `startPageKey`, `goalPageKey`, `shortestSteps`, `distances`를 둔다. 직접 입력한 목표의 도착 화면이 지원 화면이면 사이트 지도 기준 경로 지표를 계산하는 방향이다.
+- 임시 결정(설계 v2.1): `summary.detourMoveCount`는 `SITE_MAP`에서만 계산하고 그 밖에는 `null`이다. `referencePathDeviationCount`는 `ALLOWED_PATHS`에서만 계산한다. `goalPathProbability`는 `ALLOWED_PATHS`에서는 허용 경로의 다음 화면으로 이어지는 후보 확률 합, `SITE_MAP`에서는 목표까지의 지도상 거리가 줄어드는 후보 확률 합이다. 계산할 수 없으면 `null`, 계산 가능하지만 해당 후보가 없으면 `0`으로 구분한다.
+- 임시 결정(설계 v2.1): 실행 전 Before·After 도착 화면에서 성공 조건 글자를 검사한다. 글자가 없으면 `422 CONTRACT_VALIDATION_ERROR`, 화면을 읽지 못하면 재시도 가능한 `503 BROWSER_ERROR`로 Run을 만들지 않는다. 지도 없음·검증 실패·조건 불일치 시에는 `referencePathConfig: null`과 경로 지표 `null`로 처리한다.
+- 확인할 것: 사이트 지도 생성·검증과 지원 화면 범위, `basis` 및 신규 지표의 응답 형식, 실행 전 검사의 오류 메시지를 백엔드 구현과 계약 v1.3.6에서 확정한다.
 - 담당: 정자비(루프·프론트), 장근창(API).
+- 백엔드 구현 후 `docs/contracts/`로 옮기고 이 항목을 지운다.

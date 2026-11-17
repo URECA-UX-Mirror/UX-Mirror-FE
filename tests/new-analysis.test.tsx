@@ -161,7 +161,7 @@ it('직접 입력한 기존 실험은 입력이 첫 Run 값으로 잠기고 v2�
     experimentKey: 'mock-direct',
     variant: 'after',
     goal: '주문 내역 화면 찾기',
-    verification: { path: '/shop/orders', text: '주문/배송 조회', exact: false, scope: 'page' },
+    verification: { path: '/shop/orders', text: '주문 / 배송 조회', exact: false, scope: 'page' },
     persona: '쇼핑몰을 처음 쓰는 사용자',
     maxSteps: 8,
   })

@@ -10,11 +10,12 @@
 //   after  : 홈 → 주문 내역 → (환불 신청 화면 도착)               모델 선택 2회
 //   direct : before와 같은 버전이지만 홈 본문 카드로 바로 주문 내역에 감 (after와 방문 화면이 같아 비교가 COMPLETED)
 //   goback : 홈 → 마이페이지 → (뒤로) 홈 → 주문 내역 → (도착)      모델 GO_BACK과 재방문 포함
+//   to-orders : 홈 → 마이페이지 → (주문 내역 도착)                  직접 입력 목표 "주문 내역 화면 찾기"용. 환불 화면으로 가지 않는다
 
 import type { BoundingBox, Variant } from '../../api/dto/index.ts'
 
 export type PageKey = 'home' | 'mypage' | 'orders' | 'support' | 'refund'
-export type ScenarioName = Variant | 'direct' | 'goback'
+export type ScenarioName = Variant | 'direct' | 'goback' | 'to-orders'
 
 export interface PageDef {
   path: string
@@ -243,6 +244,12 @@ export function stepSpecs(scenario: ScenarioName): StepSpec[] {
       return [
         { pageKey: 'home', choices: homeChoices('after'), selected: 'option_01' },
         { pageKey: 'orders', choices: ordersChoices('after'), selected: 'option_01' },
+      ]
+    case 'to-orders':
+      // 실제 실행(직접 입력 "주문 내역 화면 찾기", Before)과 같은 경로: 마이페이지의 주문 내역 링크로 orders에 도착
+      return [
+        { pageKey: 'home', choices: homeChoices('before'), selected: 'option_02' },
+        { pageKey: 'mypage', choices: mypageChoices(false), selected: 'option_02' },
       ]
     case 'goback':
       return [

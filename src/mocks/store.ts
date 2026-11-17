@@ -85,7 +85,9 @@ const SEEDS: RunRecord[] = [
     variant: 'before',
     goalId: null,
     goal: '주문 내역 화면 찾기',
-    verification: { type: 'PATH_AND_VISIBLE_TEXT', path: '/shop/orders', text: '주문/배송 조회', exact: false, scope: 'page' },
+    scenario: 'to-orders',
+    // 실제 orders 화면 제목과 같아야 한다(띄어쓰기 포함). 탭 제목의 `주문/배송 조회`는 화면에 보이지 않는다
+    verification: { type: 'PATH_AND_VISIBLE_TEXT', path: '/shop/orders', text: '주문 / 배송 조회', exact: false, scope: 'page' },
     personaId: null,
     persona: '쇼핑몰을 처음 쓰는 사용자',
   }, 25),

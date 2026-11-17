@@ -14,14 +14,6 @@ interface Row {
   value: (outcome: RunOutcome) => ReactNode
 }
 
-const ISSUE_TYPES: { type: string; label: string }[] = [
-  { type: 'CHOICE_AMBIGUITY', label: '선택 모호성' },
-  { type: 'REFERENCE_PATH_DEVIATION', label: '기준 경로 이탈' },
-  { type: 'REPEATED_VISIT', label: '반복 방문' },
-  { type: 'EXTRA_STEPS', label: '추가 단계' },
-  { type: 'GOAL_NOT_REACHED', label: '목표 화면 미도달' },
-]
-
 const ROWS: Row[] = [
   {
     label: '목표 화면 도달',
@@ -45,24 +37,9 @@ const ROWS: Row[] = [
     label: '기준 경로 이탈 횟수',
     value: (o) => o.referencePathDeviationCount,
   },
-  {
-    label: '탐색 경로',
-    value: (o) =>
-      o.path.length === 0 ? (
-        '-'
-      ) : (
-        <ol className="path-list">
-          {o.path.map((visit) => (
-            <li key={visit.sequence}>
-              {visit.pageKey} <span className="muted">({visit.path})</span>
-            </li>
-          ))}
-        </ol>
-      ),
-  },
 ]
 
-/** Run 단위 비교. before/after를 나란히만 보이고 증감·화살표를 만들지 않는다(P0). */
+/** Run 단위 비교. before/after를 나란히만 보이고 증감·화살표를 만들지 않는다(P0). 경로·검토 항목은 별도 섹션이다 */
 export function RunComparison({ before, after }: RunComparisonProps) {
   return (
     <section className="comparison-run">
@@ -82,21 +59,6 @@ export function RunComparison({ before, after }: RunComparisonProps) {
               <th scope="row">{row.label}</th>
               <td>{row.value(before)}</td>
               <td>{row.value(after)}</td>
-            </tr>
-          ))}
-          {ISSUE_TYPES.map(({ type, label }) => (
-            <tr key={type}>
-              <th scope="row">검토 후보: {label}</th>
-              <td>
-                {before.detectedIssueTypes.includes(type)
-                  ? '탐지됨'
-                  : '탐지되지 않음'}
-              </td>
-              <td>
-                {after.detectedIssueTypes.includes(type)
-                  ? '탐지됨'
-                  : '탐지되지 않음'}
-              </td>
             </tr>
           ))}
         </tbody>

@@ -113,3 +113,27 @@ it('ANALYSIS_ERROR는 다시 시도 버튼을 보인다', async () => {
   expect(await screen.findByText('비교 분석 중 오류가 발생했습니다')).toBeTruthy()
   expect(screen.getByRole('button', { name: '다시 시도' })).toBeTruthy()
 })
+
+it('하나씩 보기는 화면과 버전을 골라 한 장씩 보이고 한눈에 보기로 돌아온다', async () => {
+  renderPage('mock-done')
+  await screen.findByText(/모든 화면을 비교했습니다/)
+  fireEvent.click(screen.getByRole('button', { name: '하나씩 보기' }))
+  expect(screen.queryByRole('heading', { name: /화면:/ })).toBeNull()
+  const side = screen.getByRole('group', { name: '버전 선택' })
+  expect(within(side).getByRole('button', { name: 'Before' }).getAttribute('aria-pressed')).toBe('true')
+  fireEvent.click(within(side).getByRole('button', { name: 'After' }))
+  expect(within(side).getByRole('button', { name: 'After' }).getAttribute('aria-pressed')).toBe('true')
+  const pages = screen.getByRole('group', { name: '화면 선택' })
+  expect(within(pages).getAllByRole('button').length).toBeGreaterThan(0)
+  fireEvent.click(screen.getByRole('button', { name: '한눈에 보기' }))
+  expect(screen.getAllByRole('heading', { name: /화면:/ }).length).toBeGreaterThan(0)
+})
+
+it('후보별 확률 비교는 Before·After 게이지를 같은 눈금으로 보인다', async () => {
+  renderPage('mock-done')
+  await screen.findByText(/모든 화면을 비교했습니다/)
+  const card = screenCard('home')
+  const rows = card.querySelectorAll('.comparison-candidates tbody tr')
+  expect(rows.length).toBeGreaterThan(0)
+  for (const row of rows) expect(row.querySelectorAll('.pair-row .gauge')).toHaveLength(2)
+})

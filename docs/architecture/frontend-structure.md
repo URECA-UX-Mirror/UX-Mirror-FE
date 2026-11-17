@@ -35,7 +35,7 @@
 
 - `runId`를 URL에 담아 새로고침 뒤에도 복원한다. 폴링 규칙은 [실행 상태와 폴링](../contracts/run-lifecycle.md)을 따른다.
 - 탐색 화면은 원본 스크린샷 위에 후보 bbox와 확률을 겹쳐 그린다([스크린샷과 bbox](../contracts/screenshot-bbox.md)). 열람 중인 단계가 최신이 아니면 "기록 열람 중" 안내와 최신 단계 이동 버튼을 보인다.
-- 아직 실행되지 않은 단계는 서버 데이터가 없으므로 `maxSteps`로 대기 칸을 만들고, 종료된 Run은 대기 칸을 만들지 않는다. 진행도는 `Run.progress`를 쓴다.
+- 화면은 위에서 아래로 실행 정보 카드(상태, 출처, 실행 ID, 버전, `Step n / 최대`, 현재 화면, 목표, 분석 결과 보기), 탐색 화면(단계 탭, 브라우저 바, 스크린샷)과 AI 선택 결과(선택된 행동, 후보 확률 게이지, 지표)의 2단, 탐색 기록(단계별 카드)이다. 아직 실행되지 않은 단계는 서버 데이터가 없으므로 진행 중인 Run에만 남은 단계를 한 장의 대기 카드로 보이고, 종료된 Run은 만들지 않는다. 진행도는 `Run.progress`를 쓴다.
 - 실행 이벤트 로그와 Playwright 상태는 `/events`가 `P1`이라 표시하지 않는다.
 - 분석 결과 보기는 Run이 종료 상태일 때만 활성화한다.
 - 구현은 `features/run-progress/`다. `useRunProgress`가 폴링마다 Run → `/steps` 순서로 조회해(종료 응답 뒤 `/steps`가 마지막 조회가 된다) `usePolling`에 넘기고, `/steps`는 서버 순서를 유지하되 같은 `stepId`는 덮어쓴다. 열람 중인 단계는 직접 고른 `stepId`만 기억하고(없으면 최신을 따라간다), 최신 단계를 다시 고르면 따라가기로 돌아간다. 상태 문구는 `statusLabel.ts`다.
@@ -44,12 +44,13 @@
 
 ### 3. UX 탐색 분석 결과
 
+- 화면은 위에서 아래로 실행 정보 카드(상태, 출처, 실행 ID, 버전, 실행 일시, 사용자 유형, 목표, 버전 비교 보기 링크), 요약 카드 3개(목표 달성, 탐색 단계, UX 검토 후보)와 접힌 전체 요약, AI 탐색 경로(노드 사이에 그 이동을 만든 행동), 단계별 탐색 상세(스크린샷과 의사결정 2단), UX 검토 후보 카드, 다른 실행 보기다.
 - 요약(종료 상태, 목표 달성, 탐색 단계, CLICK·GO_BACK 횟수, 검토 후보 수)은 `Run.summary`를 그대로 쓴다.
-- 탐색 경로의 노드는 `summary.path`(`PathVisit`)다. `PathVisit.stepId`는 그 노드에 **들어오게 만든** Step이다(시작 화면과 시스템 BACK은 `null`, `계약 §6.4`). 한 노드의 화면에서 모델이 판단한 Step은 **다음 노드의 `stepId`**이므로, 노드를 고르면 다음 노드의 `stepId`로 Step·스크린샷·확률·지표를 찾는다. 다음 노드가 없거나(도착 화면) 그 `stepId`가 `null`이면 이미지 없이 표시한다. [OI-3](../operations/open_issue.md#oi-3)
+- 탐색 경로의 노드는 `summary.path`(`PathVisit`)다. `PathVisit.stepId`는 그 노드에 **들어오게 만든** Step이다(시작 화면과 시스템 BACK은 `null`, `계약 §6.4`). 한 노드의 화면에서 모델이 판단한 Step은 **다음 노드의 `stepId`**(노드 사이 화살표의 `CLICK [후보 이름]`도 이 Step에서 가져온다)이므로, 노드를 고르면 다음 노드의 `stepId`로 Step·스크린샷·확률·지표를 찾는다. 다음 노드가 없거나(도착 화면) 그 `stepId`가 `null`이면 이미지 없이 표시한다. [OI-3](../operations/open_issue.md#oi-3)
 - 모델 GO_BACK으로 돌아온 노드(`enteredBy = GO_BACK`)는 "이전 화면 복귀"로 구분한다. 선택한 Step의 스크린샷·후보 확률은 공용 뷰어와 `CandidateProbabilityList`를 쓰고, 지표 패널(`decision` 값, `null`은 "계산 불가")은 접힘이 기본이다.
 - 요약의 `extraSteps` 계열은 목표 미도달이면 `null`이라 "해당 없음"으로 표시한다. `validity = INVALID`이면 "무효 처리된 실행"과 `invalidReason`을 보이고 `replacementRunId`가 있으면 그 Run의 결과 화면 링크를 둔다.
 - "다른 실행 보기"는 `GET /api/runs?experimentKey=`의 목록이다. 조회에 실패해도 화면의 나머지는 동작한다.
-- Issue는 `GET /api/runs/{runId}/issues`의 서버 순서를 그대로 쓰고 프론트가 다시 정렬하지 않는다. `PENDING`이면 이 응답만 최대 5회 다시 조회하고 멈춘 뒤 수동 재시도 버튼을 보인다. `evidence` 키의 표시 이름은 `features/run-result/issueLabels.ts`의 상수이며 표에 없는 키는 키 이름 그대로 보인다(`임시`).
+- Issue는 `GET /api/runs/{runId}/issues`의 서버 순서를 그대로 쓰고 카드마다 설명과 근거를 바로 보이며 프론트가 다시 정렬하지 않는다. `PENDING`이면 이 응답만 최대 5회 다시 조회하고 멈춘 뒤 수동 재시도 버튼을 보인다. `evidence` 키의 표시 이름은 `features/run-result/issueLabels.ts`의 상수이며 표에 없는 키는 키 이름 그대로 보인다(`임시`).
 - Run이 종료 전이면 결과 대신 진행 화면(`/runs/:runId`) 링크를 보이고, `404`이면 "실행을 찾을 수 없습니다"와 새 분석 링크를 보인다.
 
 ### 4. 버전 비교
@@ -116,7 +117,7 @@
 ```
 src/
   config/env.ts            # VITE_API_BASE_URL, VITE_USE_MOCK을 한 곳에서 읽기
-  styles/tokens.css        # 디자인 토큰(CSS 변수), Pretendard 로딩, 포커스·모션 기본값
+  styles/tokens.css        # 디자인 토큰(CSS 변수), 글꼴 로딩, 포커스·모션 기본값
   api/
     client.ts              # fetch 래퍼, ApiError(ErrorDetail 변환), apiUrl
     runs.ts, presets.ts, comparisons.ts, health.ts   # endpoint 함수, screenshotUrl
@@ -126,7 +127,7 @@ src/
   mocks/                   # MSW. browser.ts, store.ts, errors.ts, fixtures/(run, scenario, screenshot, runResult, comparison), handlers/(endpoint별)
   features/
     new-analysis/, run-progress/, run-result/, comparison/, replay/   # 화면별. 라우트는 App.tsx
-  shared/                  # Layout(사이드바·헤더), EngineStatus, ErrorNotice, ResultOriginBadge, useHealth
+  shared/                  # Layout(사이드바·헤더), SectionTitle(카드 제목 줄), icons, ProbabilityGauge, SelectedAction, stepLabel, EngineStatus, ErrorNotice, ResultOriginBadge, useHealth
     screenshot/            # boxStyle.ts(좌표 변환), ScreenshotViewer, CandidateProbabilityList
     polling/               # poller.ts(간격·backoff 규칙), usePolling(범용 폴링 훅)
 public/
@@ -138,8 +139,14 @@ public/
 ## 스타일
 
 - 디자인 토큰은 `src/styles/tokens.css`의 CSS 변수(`--um-*`)이며 `src/index.css`가 가져온다. 색·간격·라운딩은 이 변수로만 참조하고 컴포넌트 CSS에 색 값을 새로 쓰지 않는다. 값의 출처는 Stitch 시안 v5의 `DESIGN.md`(팀 확정 전 안)다.
-- 글꼴은 영문·숫자 Inter(`@fontsource-variable/inter`), 한글 Pretendard(`pretendard`)다. Inter에 한글 글리프가 없어 글꼴 스택에서 Pretendard로 이어진다. 코드·ID·배지는 JetBrains Mono(`@fontsource-variable/jetbrains-mono`)를 쓴다.
+- 글꼴 변수는 `--font-sans`와 `--font-mono`다. `--font-sans`는 Inter(400·500·600·700, `@fontsource-variable/inter`)를 먼저 선언해 영문·숫자는 Inter, 한글은 Pretendard(`pretendard`)로 그려지고 폴백은 `-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif`다. ID·코드·배지는 `--font-mono`(JetBrains Mono 400·500·600, `@fontsource-variable/jetbrains-mono`)이고 `.mono`, `.badge-mono`로 쓴다. 모노 스택에 Pretendard를 끼워 배지 안 한글이 시스템 고정폭 글꼴로 떨어지지 않게 한다. 확률·단계·표 수치와 `.num`에는 `font-variant-numeric: tabular-nums`를 적용한다.
 - 레이아웃은 좌측 사이드바(`Layout`)와 상단 헤더다. 사이드바 메뉴는 주소 인자 없이 열 수 있는 화면(새 UX 분석, 저장된 결과 재생)만 두고, 진행·결과·비교 화면은 화면 안의 링크로 들어간다. 767px 이하에서는 사이드바가 위쪽 띠가 된다.
 - 기본 버튼은 보조 스타일이고, 화면의 주 행동(`분석 시작`, `비교하기`)에만 `primary`를 쓴다. `분석 결과 보기`는 링크이므로 `run-result-link` 클래스로 같은 모양을 내고, 종료 전 비활성 버튼은 기본 스타일이다.
 - `[role='alert']`와 `.error-notice`는 오류 스타일이고 `.error-notice[role='status']`(예: 비교 준비 중)는 정보 스타일이다. `data-origin`(`LIVE`, `MOCK`, `SAVED_MEASURED`)과 `data-status`는 배지 색을 정한다. 색만으로 뜻을 전하지 않도록 배지에는 항상 글자를 함께 둔다.
+- 모든 화면은 같은 구조다. 제목 줄(`page-header`: `h1`과 출처·재생 배지) 아래에 카드가 쌓이고, 줄글·배지·칩을 카드 밖에 두지 않는다. 카드 안쪽 여백은 `--um-card-pad`(24px, 좁은 화면 16px) 하나라서 모든 카드의 글자 왼쪽 선이 같고, 카드 첫 줄은 구분선이 있는 제목 띠다. 정의 목록(`summary-grid`)은 라벨 열 너비(168px)가 모든 카드에서 같다.
+- 다크 배경에서 글자는 본문 `#f4f6fa`, 보조 `#d3dbe8`, 흐린 글자 `#aebad0`, 입력 안내 `#8f9db5` 이상만 쓴다. 본문은 14px/22px, `h1`은 22px, 카드 제목 띠는 15px이고 12px보다 작은 글자는 쓰지 않는다.
+- 다크모드 고정이다. 라이트 모드와 전환 기능을 만들지 않고 `tokens.css`는 `color-scheme: dark`와 다크 값만 둔다. 그림자·글로우·애니메이션 같은 효과는 쓰지 않고 면과 1px 테두리로만 구분한다.
+- 확률은 `ProbabilityGauge`(0~100% 고정 눈금)로 보이고 옆에 숫자를 적는다. 구간별로 색을 바꾸지 않는다(좋고 나쁨의 판정처럼 보이지 않게). Before는 시안, After는 주황으로 서로 대비되는 색이고 눈금선(25% 간격)과 채움 끝 마감선이 있다.
+- 스크린샷 위 후보 박스에는 윤곽선과 박스 바깥의 번호 태그만 올리고 확률 숫자는 올리지 않는다. 번호는 `CandidateProbabilityList`의 번호와 같고 확률은 그 목록에서 찾는다. 화면 맨 위에 붙은 박스는 태그를 박스 아래에 둔다. 비교 화면의 번호는 `candidateComparisons`의 행 순서를 기준으로 `semanticKey`가 같으면 두 버전에서 같다(`features/comparison/candidateNumbers.ts`).
+- 버전 비교의 화면별 비교는 보기 방식을 전환한다. "한눈에 보기"(기본)는 화면마다 Before·After를 같은 비율로 줄여 나란히 놓고 후보별 Before/After 게이지와 서버 증감 값을 표로 보인다. "하나씩 보기"(`SingleScreenView`)는 화면과 버전을 골라 한 장씩 크게 보이고 후보 확률 게이지를 옆에 둔다. 보기 방식과 선택은 화면 상태다. 증감에는 부호만 붙이고 화살표나 좋고 나쁨을 뜻하는 색은 쓰지 않는다.
 - 시안에 있어도 계약서·현재 API에 없는 요소(자유 URL 입력, 버전 추가 동작, 실행 이벤트 로그 등)는 화면에 만들지 않는다.

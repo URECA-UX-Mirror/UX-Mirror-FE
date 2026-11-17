@@ -8,6 +8,9 @@ import type { Preset, Run, RunListItem, Variant } from '../../domain/types.ts'
 import { ErrorNotice } from '../../shared/ErrorNotice.tsx'
 import { ResultOriginBadge } from '../../shared/ResultOriginBadge.tsx'
 import { useHealth } from '../../shared/useHealth.ts'
+import { SectionTitle } from '../../shared/SectionTitle.tsx'
+import { CompareIcon, GlobeIcon, LayersIcon, SettingsIcon } from '../../shared/icons.tsx'
+import { statusLabel } from '../run-progress/statusLabel.ts'
 import { createExperimentKey, SITE, STEPS, VERSIONS } from './constants.ts'
 import './new-analysis.css'
 
@@ -127,19 +130,47 @@ function NewAnalysisContent() {
   }
 
   const code = isApiError(submitError) ? submitError.code : null
+  const stepValue = firstRun?.maxSteps ?? maxSteps
+  function adjustSteps(delta: number) {
+    const base = typeof stepValue === 'number' ? stepValue : STEPS.default
+    setMaxSteps(Math.min(STEPS.max, Math.max(STEPS.min, base + delta)))
+  }
+
+  // 시작을 막는 상태와 오류 안내. 제목 아래에 모아 보인다
+  const notices = (
+    <>
+      {presetError ? <ErrorNotice error={presetError} onRetry={() => setPresetVersion((v) => v + 1)} /> : !preset ? <p role="status">프리셋을 불러오는 중입니다.</p> : !preset.goals.length || !preset.personas.length ? <p role="alert">선택할 목표 또는 사용자 유형이 없어 분석을 시작할 수 없습니다.</p> : null}
+      {!validSteps && <p role="alert">최대 탐색 횟수는 1~15 사이의 정수여야 합니다.</p>}
+      {firstRunState === 'error' && <p role="alert">기존 분석 조건을 확인할 수 없습니다. 실험 키를 다시 입력해 주세요.</p>}
+      {engineNotReady && !health.loading && <p role="alert">엔진이 준비되지 않아 분석을 시작할 수 없습니다. <button type="button" onClick={health.reload}>다시 확인</button></p>}
+      {activeRun && <p role="alert">다른 분석이 실행 중입니다. <Link to={`/runs/${encodeURIComponent(activeRun)}`}>진행 중인 Run 보기</Link></p>}
+      {!!health.error && <p role="status">엔진 상태를 확인할 수 없습니다. <button type="button" onClick={health.reload}>다시 확인</button></p>}
+      {submitError ? <div role="alert">{code === 'RUN_ALREADY_ACTIVE' ? <p>다른 분석이 실행 중입니다. {activeRun && <Link to={`/runs/${encodeURIComponent(activeRun)}`}>진행 중인 Run 보기</Link>}</p> : code === 'EXPERIMENT_RUN_EXISTS' ? <p>같은 버전의 실행이 이미 있습니다. {Object.values(results).flat().filter((r) => r.validity === 'VALID').map((r) => <Link key={r.runId} to={`/runs/${encodeURIComponent(r.runId)}/result`}>{r.runId} 결과 보기 </Link>)}</p> : code === 'CONTRACT_VALIDATION_ERROR' ? <p>입력한 분석 조건을 확인해 주세요.</p> : isApiError(submitError) && submitError.status === 503 ? <p>실행 환경을 준비하지 못했습니다. 다시 시도해 주세요.</p> : <ErrorNotice error={submitError} />}</div> : null}
+    </>
+  )
+
   return (
     <section className="new-analysis">
       <header className="page-header">
         <h1>새 UX 분석</h1>
-        <p className="page-lead">{SITE.name}의 두 버전을 같은 조건으로 분석합니다.</p>
+        <p className="page-lead">{SITE.name}의 두 버전을 같은 조건으로 분석하고 결과를 비교합니다.</p>
       </header>
+
       <section className="card" aria-label="분석 대상">
-        <h2>분석 대상</h2>
-        <p>분석 사이트: {SITE.name}. 각 버전의 분석을 시작하면 해당 버전의 사이트가 사용됩니다.</p>
-        <p><Link to="/replay">저장된 결과 보기</Link></p>
+        <SectionTitle
+          icon={<GlobeIcon />}
+          title="분석 대상"
+          action={<Link to="/replay" className="section-link">저장된 결과 보기</Link>}
+        />
+        <dl className="target-site">
+          <dt>분석 사이트</dt>
+          <dd className="mono">{SITE.name}</dd>
+        </dl>
+        <p className="muted">각 버전의 분석을 시작하면 해당 버전의 사이트가 사용됩니다. 현재는 {SITE.name} 테스트 사이트만 분석할 수 있습니다.</p>
       </section>
+
       <section className="card" aria-label="실험">
-        <h2>실험</h2>
+        <SectionTitle icon={<CompareIcon />} title="실험" aside="실험 키 하나로 두 버전이 묶입니다" />
         <div className="key-row">
           <label>실험 키 <input value={keyInput} placeholder="새 실험은 비워 두세요" onChange={(e) => setKeyInput(e.target.value)} /></label>
           <button type="button" disabled={!KEY_PATTERN.test(keyInput)} onClick={() => selectExperiment(keyInput)}>조회</button>
@@ -149,35 +180,113 @@ function NewAnalysisContent() {
         {!validKey && <p role="alert">주소의 실험 키가 올바르지 않습니다.</p>}
         <p className="muted">기존 실험 키를 입력하면 서버에서 실행 기록과 분석 조건을 불러옵니다.</p>
       </section>
-      {presetError ? <ErrorNotice error={presetError} onRetry={() => setPresetVersion((v) => v + 1)} /> : !preset ? <p>프리셋을 불러오는 중입니다.</p> : !preset.goals.length || !preset.personas.length ? <p role="alert">선택할 목표 또는 사용자 유형이 없어 분석을 시작할 수 없습니다.</p> : null}
-      <fieldset disabled={!preset || !!firstId}>
-        <legend>분석 조건</legend>
-        <label>목표 <select value={firstRun?.goalId ?? goalId} onChange={(e) => setGoalId(e.target.value)}>{preset?.goals.map((g) => <option key={g.goalId} value={g.goalId}>{g.goal}</option>)}</select></label>
-        <label>사용자 유형 <select value={firstRun?.personaId ?? personaId} onChange={(e) => setPersonaId(e.target.value)}>{preset?.personas.map((p) => <option key={p.personaId} value={p.personaId}>{p.persona}</option>)}</select></label>
-        <label>최대 탐색 횟수 <input type="number" min={STEPS.min} max={STEPS.max} value={firstRun?.maxSteps ?? maxSteps} onChange={(e) => setMaxSteps(e.target.value === '' ? '' : Number(e.target.value))} /></label>
+
+      {notices}
+
+      <fieldset className="card" disabled={!preset || !!firstId}>
+        <legend>
+          <span className="section-icon"><SettingsIcon /></span>
+          분석 조건
+          <span className="section-aside">{firstId ? '기존 실험의 조건으로 고정됩니다' : '두 버전에 같은 조건이 적용됩니다'}</span>
+        </legend>
+        <div className="conditions-grid">
+          <label className="condition-tile">
+            <span>탐색 목표</span>
+            <select value={firstRun?.goalId ?? goalId} onChange={(e) => setGoalId(e.target.value)}>{preset?.goals.map((g) => <option key={g.goalId} value={g.goalId}>{g.goal}</option>)}</select>
+          </label>
+          <label className="condition-tile">
+            <span>사용자 유형</span>
+            <select value={firstRun?.personaId ?? personaId} onChange={(e) => setPersonaId(e.target.value)}>{preset?.personas.map((p) => <option key={p.personaId} value={p.personaId}>{p.persona}</option>)}</select>
+          </label>
+        </div>
+        <div className="steps-row">
+          <div>
+            <label htmlFor="max-steps" className="steps-label">최대 탐색 횟수</label>
+            <p className="muted">AI가 목표 화면을 탐색할 때 허용되는 최대 단계 수입니다. (허용 범위: {STEPS.min}~{STEPS.max}회)</p>
+          </div>
+          <div className="stepper">
+            <button type="button" aria-label="탐색 횟수 줄이기" disabled={typeof stepValue === 'number' && stepValue <= STEPS.min} onClick={() => adjustSteps(-1)}>-</button>
+            <input id="max-steps" type="number" min={STEPS.min} max={STEPS.max} value={stepValue} onChange={(e) => setMaxSteps(e.target.value === '' ? '' : Number(e.target.value))} />
+            <button type="button" aria-label="탐색 횟수 늘리기" disabled={typeof stepValue === 'number' && stepValue >= STEPS.max} onClick={() => adjustSteps(1)}>+</button>
+          </div>
+        </div>
       </fieldset>
-      {!validSteps && <p role="alert">최대 탐색 횟수는 1~15 사이의 정수여야 합니다.</p>}
-      {firstRunState === 'error' && <p role="alert">기존 분석 조건을 확인할 수 없습니다. 실험 키를 다시 입력해 주세요.</p>}
-      {engineNotReady && !health.loading && <p role="alert">엔진이 준비되지 않아 분석을 시작할 수 없습니다. <button type="button" onClick={health.reload}>다시 확인</button></p>}
-      {activeRun && <p role="alert">다른 분석이 실행 중입니다. <Link to={`/runs/${encodeURIComponent(activeRun)}`}>진행 중인 Run 보기</Link></p>}
-      {!!health.error && <p>엔진 상태를 확인할 수 없습니다. <button type="button" onClick={health.reload}>다시 확인</button></p>}
-      {submitError ? <div role="alert">{code === 'RUN_ALREADY_ACTIVE' ? <p>다른 분석이 실행 중입니다. {activeRun && <Link to={`/runs/${encodeURIComponent(activeRun)}`}>진행 중인 Run 보기</Link>}</p> : code === 'EXPERIMENT_RUN_EXISTS' ? <p>같은 버전의 실행이 이미 있습니다. {Object.values(results).flat().filter((r) => r.validity === 'VALID').map((r) => <Link key={r.runId} to={`/runs/${encodeURIComponent(r.runId)}/result`}>{r.runId} 결과 보기 </Link>)}</p> : code === 'CONTRACT_VALIDATION_ERROR' ? <p>입력한 분석 조건을 확인해 주세요.</p> : isApiError(submitError) && submitError.status === 503 ? <p>실행 환경을 준비하지 못했습니다. 다시 시도해 주세요.</p> : <ErrorNotice error={submitError} />}</div> : null}
-      <h2>버전</h2>
-      <div className="version-list">{VERSIONS.map(({ variant, name, change }) => {
-        const runs = results[variant]
-        const run = runs[0]
-        const validRun = variant === 'before' ? validBefore : validAfter
-        const canCreate = runs.every((item) => item.validity === 'INVALID')
-        return <article key={variant}><h3>{name}</h3><p>{change}</p>{listState[variant] === 'loading' ? <p>실행 기록 조회 중</p> : listState[variant] === 'error' ? <p>실행 기록: 확인 불가</p> : run ? <><p>마지막 Run: <Link to={`/runs/${encodeURIComponent(run.runId)}`}>{run.runId}</Link> <ResultOriginBadge origin={run.resultOrigin} /></p><p>분석 상태: {run.status}</p><p>실행 유효성: {run.validity ?? '확인 중'}</p><p>목표 화면 도달: {run.goalReached === null ? '확인 불가' : run.goalReached ? '도달' : '미도달'}</p></> : <p>실행 기록 없음</p>}{run?.validity === 'INVALID' && (validRun ? <p>이전 유효 Run: <Link to={`/runs/${encodeURIComponent(validRun.runId)}/result`}>{validRun.runId}</Link></p> : <p>유효한 실행이 없습니다. 재분석해 주세요.</p>)}<button type="button" className="primary" disabled={!ready || (variant === 'after' && !validBefore) || !canCreate} onClick={() => void start(variant)}>분석 시작</button></article>
-      })}</div>
-      {listFailed && validKey && <button type="button" onClick={() => setListVersion((v) => v + 1)}>실행 기록 다시 조회</button>}
-      <button type="button" disabled>+ 버전 추가</button> <span>v3 (준비 중)</span>
+
+      <section className="card" aria-label="버전별 분석">
+        <SectionTitle
+          icon={<LayersIcon />}
+          title="버전별 분석"
+          aside="분석할 버전을 선택하고 AI 탐색을 실행합니다"
+          action={<button type="button" disabled title="P0에서는 두 버전 비교만 지원합니다">+ 버전 추가</button>}
+        />
+        <div className="comparison-table-scroll">
+          <table className="version-table">
+            <thead>
+              <tr>
+                <th scope="col">버전</th>
+                <th scope="col">변경 내용</th>
+                <th scope="col">마지막 Run</th>
+                <th scope="col">분석 상태</th>
+                <th scope="col">실행 유효성</th>
+                <th scope="col">목표 화면 도달</th>
+                <th scope="col" className="col-action">작업</th>
+              </tr>
+            </thead>
+            <tbody>
+              {VERSIONS.map(({ variant, name, change }) => {
+                const runs = results[variant]
+                const run = runs[0]
+                const validRun = variant === 'before' ? validBefore : validAfter
+                const canCreate = runs.every((item) => item.validity === 'INVALID')
+                const state = listState[variant]
+                return (
+                  <tr key={variant} data-variant={variant}>
+                    <th scope="row"><span className="version-dot" data-variant={variant} />{name}</th>
+                    <td><span className="change-chip" data-variant={variant}>{change}</span></td>
+                    {state === 'loading' ? (
+                      <td colSpan={4} className="muted">실행 기록 조회 중</td>
+                    ) : state === 'error' ? (
+                      <td colSpan={4} className="muted">실행 기록: 확인 불가</td>
+                    ) : run ? (
+                      <>
+                        <td><Link to={`/runs/${encodeURIComponent(run.runId)}`} className="run-id">{run.runId}</Link> <ResultOriginBadge origin={run.resultOrigin} /></td>
+                        <td>{statusLabel({ status: run.status, error: null })}</td>
+                        <td>
+                          {run.validity ?? '확인 중'}
+                          {run.validity === 'INVALID' && (validRun ? <small className="cell-note">이전 유효 Run: <Link to={`/runs/${encodeURIComponent(validRun.runId)}/result`}>{validRun.runId}</Link></small> : <small className="cell-note">유효한 실행이 없습니다. 재분석해 주세요.</small>)}
+                        </td>
+                        <td>{run.goalReached === null ? '확인 불가' : run.goalReached ? '도달' : '미도달'}</td>
+                      </>
+                    ) : (
+                      <td colSpan={4} className="muted">실행 기록 없음</td>
+                    )}
+                    <td className="col-action">
+                      {run && state === 'ready' ? <Link to={isTerminalStatus(run.status) ? `/runs/${encodeURIComponent(run.runId)}/result` : `/runs/${encodeURIComponent(run.runId)}`}>{isTerminalStatus(run.status) ? '결과 보기' : '진행 보기'}</Link> : null}
+                      <button type="button" className="primary" disabled={!ready || (variant === 'after' && !validBefore) || !canCreate} onClick={() => void start(variant)}>분석 시작</button>
+                    </td>
+                  </tr>
+                )
+              })}
+              <tr className="row-future">
+                <th scope="row"><span className="version-dot" />v3 (예정)</th>
+                <td colSpan={5}>상단 GNB 직관 검색 바 통합</td>
+                <td className="col-action"><button type="button" disabled>비활성</button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        {listFailed && validKey && <p><button type="button" onClick={() => setListVersion((v) => v + 1)}>실행 기록 다시 조회</button></p>}
+      </section>
+
       <section className="card" aria-label="버전 비교">
-        <h2>버전 비교</h2>
-        <label>첫 번째 버전 <select value={compareA} onChange={(e) => setCompareA(e.target.value as Variant)}>{VERSIONS.map((v) => <option value={v.variant} key={v.variant}>{v.name}</option>)}</select></label>
-        <label>두 번째 버전 <select value={compareB} onChange={(e) => setCompareB(e.target.value as Variant)}>{VERSIONS.map((v) => <option value={v.variant} key={v.variant}>{v.name}</option>)}</select></label>
+        <SectionTitle icon={<CompareIcon />} title="버전 비교" aside="1:1 차이 분석" />
+        <p className="muted">두 버전의 AI 탐색 결과를 비교합니다. 같은 조건으로 분석이 끝난 두 버전을 골라 주세요.</p>
+        <div className="compare-row">
+          <label>첫 번째 버전 <select value={compareA} onChange={(e) => setCompareA(e.target.value as Variant)}>{VERSIONS.map((v) => <option value={v.variant} key={v.variant}>{v.name}</option>)}</select></label>
+          <label>두 번째 버전 <select value={compareB} onChange={(e) => setCompareB(e.target.value as Variant)}>{VERSIONS.map((v) => <option value={v.variant} key={v.variant}>{v.name}</option>)}</select></label>
+          <button type="button" className="primary" disabled={!bothFinished || compareA === compareB || !experimentKey || keyInput !== experimentKey} onClick={() => navigate(`/comparisons/${encodeURIComponent(experimentKey)}`)}>비교하기</button>
+        </div>
         {compareA === compareB && <p role="alert">서로 다른 버전을 선택해 주세요.</p>}
-        <button type="button" className="primary" disabled={!bothFinished || compareA === compareB || !experimentKey || keyInput !== experimentKey} onClick={() => navigate(`/comparisons/${encodeURIComponent(experimentKey)}`)}>비교하기</button>
       </section>
     </section>
   )

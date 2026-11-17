@@ -7,49 +7,59 @@
 @import 'pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css';
 
 :root {
+  /* 다크 고정. 라이트 모드와 전환하지 않는다 */
+  color-scheme: dark;
+
   /* 색: 면과 구분선 */
-  --um-canvas: #f8fafc;
-  --um-surface: #fff;
-  --um-surface-subtle: #f1f5f9;
-  --um-border: #e2e8f0;
-  --um-border-strong: #cbd5e1;
+  --um-canvas: #0b0f1a;
+  --um-surface: #111827;
+  --um-surface-subtle: #1b2535;
+  --um-border: #2c3a52;
+  --um-border-strong: #43536f;
 
   /* 색: 글자 */
-  --um-text: #0f172a;
-  --um-text-secondary: #475569;
-  --um-text-muted: #64748b;
-  --um-text-placeholder: #94a3b8;
+  --um-text: #f4f6fa;
+  --um-text-secondary: #d3dbe8;
+  --um-text-muted: #aebad0;
+  --um-text-placeholder: #8f9db5;
 
-  /* 색: 행동(브랜드) */
+  /* 색: 행동(브랜드). 채움은 brand, 다크 면 위의 글자·윤곽은 accent를 쓴다 */
   --um-brand: #4f46e5;
-  --um-brand-hover: #4338ca;
-  --um-brand-soft: #eef2ff;
-  --um-brand-border: #c7d2fe;
-  --um-brand-text: #3730a3;
+  --um-brand-hover: #6366f1;
+  --um-accent: #818cf8;
+  --um-accent-strong: #a5b4fc;
+  --um-brand-soft: rgb(99 102 241 / 16%);
+  --um-brand-border: rgb(129 140 248 / 40%);
+  --um-brand-text: #dbe1ff;
 
   /* 색: 상태. 배경·글자·테두리 세트 */
-  --um-success: #059669;
-  --um-success-bg: #ecfdf5;
-  --um-success-text: #065f46;
-  --um-success-border: #a7f3d0;
-  --um-warning: #d97706;
-  --um-warning-bg: #fffbeb;
-  --um-warning-text: #92400e;
-  --um-warning-border: #fde68a;
-  --um-danger: #dc2626;
-  --um-danger-bg: #fef2f2;
-  --um-danger-text: #991b1b;
-  --um-danger-border: #fecaca;
-  --um-info-bg: #eef2ff;
-  --um-info-text: #3730a3;
-  --um-info-border: #c7d2fe;
+  --um-success: #34d399;
+  --um-success-bg: rgb(52 211 153 / 12%);
+  --um-success-text: #86efc4;
+  --um-success-border: rgb(52 211 153 / 35%);
+  --um-warning: #fbbf24;
+  --um-warning-bg: rgb(251 191 36 / 12%);
+  --um-warning-text: #fde68a;
+  --um-warning-border: rgb(251 191 36 / 35%);
+  --um-danger: #f87171;
+  --um-danger-bg: rgb(248 113 113 / 12%);
+  --um-danger-text: #fecaca;
+  --um-danger-border: rgb(248 113 113 / 35%);
+  --um-info-bg: rgb(99 102 241 / 16%);
+  --um-info-text: #dbe1ff;
+  --um-info-border: rgb(129 140 248 / 40%);
 
-  /* 글꼴. 영문·숫자는 Inter, 한글은 Inter에 글리프가 없어 Pretendard로 이어진다.
-     코드·ID·배지는 JetBrains Mono를 쓴다 */
-  --um-font: 'Inter Variable', Inter, 'Pretendard Variable', Pretendard,
-    system-ui, -apple-system, 'Segoe UI', 'Malgun Gothic', sans-serif;
-  --um-font-mono: 'JetBrains Mono Variable', 'JetBrains Mono', ui-monospace,
-    'Cascadia Mono', Consolas, 'Pretendard Variable', monospace;
+  /* 비교 막대 색: 서로 보색 계열이라 한눈에 구분된다(Before 시안, After 주황). 좋고 나쁨을 뜻하지 않는다 */
+  --um-before: #22d3ee;
+  --um-after: #fb923c;
+
+  /* 글꼴. Inter를 먼저 선언해 영문·숫자는 Inter(400·500·600·700), 한글은 Pretendard로 그려진다.
+     ID·코드·배지는 JetBrains Mono(400·500·600). 모노 스택의 Pretendard는 배지 안 한글용이다 */
+  --font-sans: 'Inter Variable', Inter, 'Pretendard Variable', Pretendard,
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono Variable', 'JetBrains Mono',
+    'Pretendard Variable', Pretendard, ui-monospace, SFMono-Regular, Menlo,
+    monospace;
 
   /* 간격 */
   --um-space-1: 4px;
@@ -66,18 +76,17 @@
   --um-radius-pill: 9999px;
 
   /* 그림자 */
-  --um-shadow-card: 0 1px 2px 0 rgb(15 23 42 / 4%);
-  --um-shadow-hover: 0 4px 6px -1px rgb(15 23 42 / 6%),
-    0 2px 4px -2px rgb(15 23 42 / 4%);
+  --um-shadow-card: none;
+  --um-shadow-hover: none;
 
-  /* 레이아웃 */
-  --um-sidebar-width: 240px;
+  /* 레이아웃. 카드 안쪽 여백은 모든 카드 종류가 같다(좁은 화면에서는 16px) */
+  --um-card-pad: 24px;
+  --um-sidebar-width: 256px;
   --um-content-max: 1440px;
 
-  font: 14px/20px var(--um-font);
+  font: 14px/22px var(--font-sans);
   color: var(--um-text);
   background: var(--um-canvas);
-  font-variant-numeric: tabular-nums;
 }
 
 :focus-visible {
@@ -92,5 +101,11 @@
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+  }
+}
+
+@media (max-width: 767px) {
+  :root {
+    --um-card-pad: 16px;
   }
 }

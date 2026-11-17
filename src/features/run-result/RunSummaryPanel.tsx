@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Link } from 'react-router'
 import type { IssueList, Run } from '../../domain/types.ts'
 import { formatCount } from './format.ts'
@@ -20,12 +21,36 @@ function issueCountText(issues: IssueList | null): string {
   }
 }
 
+function StatCard({
+  label,
+  value,
+  unit,
+  note,
+}: {
+  label: string
+  value: string
+  unit?: string
+  note: string
+}) {
+  return (
+    <div className="stat-card">
+      <span className="stat-label">{label}</span>
+      <p className="stat-value">
+        <strong>{value}</strong>
+        {unit ? <span>{unit}</span> : null}
+      </p>
+      <p className="stat-note">{note}</p>
+    </div>
+  )
+}
+
 /** `Run.summary`를 그대로 표시한다. 계산하거나 보정하지 않는다. */
 export function RunSummaryPanel({ run, issues }: RunSummaryPanelProps) {
   const { summary } = run
+  // 전체 요약 표 펼침 여부는 화면 상태다
+  const [open, setOpen] = useState(false)
   return (
-    <section className="result-section" aria-label="요약">
-      <h2>요약</h2>
+    <section className="result-summary" aria-label="요약">
       {run.validity === 'INVALID' ? (
         <div role="alert" className="invalid-notice">
           <strong>무효 처리된 실행</strong>
@@ -48,32 +73,66 @@ export function RunSummaryPanel({ run, issues }: RunSummaryPanelProps) {
         </div>
       ) : null}
       {summary ? (
-        <dl className="summary-grid">
-          <dt>종료 상태</dt>
-          <dd>
-            {run.status}
-            {run.terminationReason ? ` (${run.terminationReason})` : ''}
-          </dd>
-          <dt>목표 화면 도달</dt>
-          <dd>{summary.goalReached ? '도달' : '도달하지 못함'}</dd>
-          <dt>탐색 단계</dt>
-          <dd>
-            {summary.stepCount} / 최대 {run.maxSteps}
-          </dd>
-          <dt>CLICK 횟수</dt>
-          <dd>{summary.clickCount}</dd>
-          <dt>GO_BACK 횟수</dt>
-          <dd>
-            {summary.backCount} (모델 {summary.modelBackCount} · 시스템{' '}
-            {summary.systemBackCount})
-          </dd>
-          <dt>추가 이동(extraSteps)</dt>
-          <dd>{formatCount(summary.extraSteps)}</dd>
-          <dt>추가 이동 비용</dt>
-          <dd>{formatCount(summary.extraNavigationCost)}</dd>
-          <dt>검토 후보 수</dt>
-          <dd>{issueCountText(issues)}</dd>
-        </dl>
+        <>
+          <div className="stat-grid">
+            <StatCard
+              label="목표 달성"
+              value={summary.goalReached ? '도달' : '도달하지 못함'}
+              note={
+                summary.goalReached
+                  ? '목표 화면에 도달했습니다'
+                  : '정해진 단계 안에 목표 화면에 도달하지 못했습니다'
+              }
+            />
+            <StatCard
+              label="탐색 단계"
+              value={String(summary.stepCount)}
+              unit={`단계 / 최대 ${run.maxSteps}`}
+              note={`CLICK ${summary.clickCount}회 · GO_BACK ${summary.backCount}회 (모델 ${summary.modelBackCount} · 시스템 ${summary.systemBackCount})`}
+            />
+            <StatCard
+              label="UX 검토 후보"
+              value={issueCountText(issues)}
+              note="AI 탐색 기록 기반의 선별 항목이며 실제 결함 확정이 아닙니다"
+            />
+          </div>
+          <button
+            type="button"
+            className="summary-toggle"
+            aria-expanded={open}
+            onClick={() => setOpen((value) => !value)}
+          >
+            {open ? '요약 전체 접기' : '요약 전체 보기'}
+          </button>
+          {open ? (
+            <dl className="summary-grid summary-full">
+              <dt>종료 상태</dt>
+              <dd>
+                {run.status}
+                {run.terminationReason ? ` (${run.terminationReason})` : ''}
+              </dd>
+              <dt>목표 화면 도달</dt>
+              <dd>{summary.goalReached ? '도달' : '도달하지 못함'}</dd>
+              <dt>탐색 단계</dt>
+              <dd>
+                {summary.stepCount} / 최대 {run.maxSteps}
+              </dd>
+              <dt>CLICK 횟수</dt>
+              <dd>{summary.clickCount}</dd>
+              <dt>GO_BACK 횟수</dt>
+              <dd>
+                {summary.backCount} (모델 {summary.modelBackCount} · 시스템{' '}
+                {summary.systemBackCount})
+              </dd>
+              <dt>추가 이동(extraSteps)</dt>
+              <dd>{formatCount(summary.extraSteps)}</dd>
+              <dt>추가 이동 비용</dt>
+              <dd>{formatCount(summary.extraNavigationCost)}</dd>
+              <dt>검토 후보 수</dt>
+              <dd>{issueCountText(issues)}</dd>
+            </dl>
+          ) : null}
+        </>
       ) : (
         <p>요약 정보가 없습니다</p>
       )}

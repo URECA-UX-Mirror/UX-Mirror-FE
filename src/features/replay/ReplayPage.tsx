@@ -4,6 +4,8 @@ import { VERSIONS } from '../new-analysis/constants.ts'
 import { ErrorNotice } from '../../shared/ErrorNotice.tsx'
 import { usePolling } from '../../shared/polling/usePolling.ts'
 import { ResultOriginBadge } from '../../shared/ResultOriginBadge.tsx'
+import { HistoryIcon } from '../../shared/icons.tsx'
+import { SectionTitle } from '../../shared/SectionTitle.tsx'
 import { isTerminalStatus } from '../../domain/runStatus.ts'
 import { REPLAY_EXPERIMENT_KEY } from './constants.ts'
 import { ReplayNotice } from './ReplayNotice.tsx'
@@ -32,15 +34,19 @@ export function ReplayPage() {
 
   return (
     <section className="replay-page">
-      <h1>저장된 결과 재생</h1>
-      {runs.data && runs.data.length > 0 ? (
-        <ReplayNotice
-          experimentKey={REPLAY_EXPERIMENT_KEY}
-          origins={runs.data.map((run) => run.resultOrigin)}
-        />
-      ) : null}
-      <p>과거에 실행한 결과를 읽기만 하며 새 실행을 만들지 않습니다.</p>
-      <p className="muted">experimentKey: {REPLAY_EXPERIMENT_KEY}</p>
+      <header className="page-header">
+        <div className="page-title-row">
+          <h1>저장된 결과 재생</h1>
+          {runs.data && runs.data.length > 0 ? (
+            <ReplayNotice
+              experimentKey={REPLAY_EXPERIMENT_KEY}
+              origins={runs.data.map((run) => run.resultOrigin)}
+            />
+          ) : null}
+        </div>
+        <p className="page-lead">과거에 실행한 결과를 읽기만 하며 새 실행을 만들지 않습니다.</p>
+        <p className="page-lead">experimentKey: {REPLAY_EXPERIMENT_KEY}</p>
+      </header>
 
       {runs.status === 'failed' ? (
         <ErrorNotice error={runs.error} onRetry={runs.retry} />
@@ -51,25 +57,38 @@ export function ReplayPage() {
       ) : runs.data.length === 0 ? (
         <p role="status">저장된 실행이 없습니다</p>
       ) : (
-        <ul className="replay-runs">
-          {VERSIONS.map(({ variant, name }) =>
-            runs.data!
-              .filter((run) => run.variant === variant)
-              .map((run) => (
-                <li key={run.runId}>
-                  {name} · <span className="run-id">{run.runId}</span>{' '}
-                  <ResultOriginBadge origin={run.resultOrigin} />{' '}
-                  <Link to={`/runs/${encodeURIComponent(run.runId)}`}>진행 보기</Link>{' '}
-                  <Link to={`/runs/${encodeURIComponent(run.runId)}/result`}>결과 보기</Link>
-                </li>
-              )),
-          )}
-        </ul>
+        <section className="card" aria-label="저장된 실행">
+          <SectionTitle
+            icon={<HistoryIcon />}
+            title="저장된 실행"
+            aside="진행·결과·비교 화면으로 연결됩니다"
+          />
+          <ul className="replay-runs">
+            {VERSIONS.map(({ variant, name }) =>
+              runs.data!
+                .filter((run) => run.variant === variant)
+                .map((run) => (
+                  <li key={run.runId}>
+                    <span className="replay-version">{name}</span>
+                    <span className="replay-run">
+                      <span className="run-id">{run.runId}</span>
+                      <ResultOriginBadge origin={run.resultOrigin} />
+                    </span>
+                    <span className="replay-links">
+                      <Link to={`/runs/${encodeURIComponent(run.runId)}`}>진행 보기</Link>
+                      <Link to={`/runs/${encodeURIComponent(run.runId)}/result`}>결과 보기</Link>
+                    </span>
+                  </li>
+                )),
+            )}
+          </ul>
+          {comparable ? (
+            <p className="card-footer">
+              <Link to={`/comparisons/${key}`}>버전 비교 보기</Link>
+            </p>
+          ) : null}
+        </section>
       )}
-
-      {comparable ? (
-        <Link to={`/comparisons/${key}`}>버전 비교 보기</Link>
-      ) : null}
     </section>
   )
 }

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router'
 import type { IssueList, Run } from '../../domain/types.ts'
-import { formatCount } from './format.ts'
+import { formatCount, NO_REFERENCE_PATH } from './format.ts'
 
 interface RunSummaryPanelProps {
   run: Run
@@ -125,9 +125,9 @@ export function RunSummaryPanel({ run, issues }: RunSummaryPanelProps) {
                 {summary.systemBackCount})
               </dd>
               <dt>추가 이동(extraSteps)</dt>
-              <dd>{formatCount(summary.extraSteps)}</dd>
+              <dd>{run.hasReferencePath ? formatCount(summary.extraSteps) : NO_REFERENCE_PATH}</dd>
               <dt>추가 이동 비용</dt>
-              <dd>{formatCount(summary.extraNavigationCost)}</dd>
+              <dd>{run.hasReferencePath ? formatCount(summary.extraNavigationCost) : NO_REFERENCE_PATH}</dd>
               <dt>검토 후보 수</dt>
               <dd>{issueCountText(issues)}</dd>
             </dl>

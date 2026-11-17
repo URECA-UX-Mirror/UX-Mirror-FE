@@ -35,7 +35,7 @@ const ROWS: Row[] = [
   { label: '추가 탐색 비용', value: (o) => orNull(o.extraNavigationCost) },
   {
     label: '기준 경로 이탈 횟수',
-    value: (o) => o.referencePathDeviationCount,
+    value: (o) => orNull(o.referencePathDeviationCount),
   },
 ]
 

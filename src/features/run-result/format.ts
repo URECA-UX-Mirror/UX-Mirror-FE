@@ -17,6 +17,9 @@ export function formatProbability(value: number | null): string {
   return value === null ? '계산 불가' : formatPercent(value)
 }
 
+/** 허용 경로가 없는 Run(직접 입력한 목표)의 경로 기반 지표. 0이나 "해당 없음"이 아니라 계산하지 않은 값이다. */
+export const NO_REFERENCE_PATH = '계산 불가 (허용 경로 없음)'
+
 /** 개수. `null`(목표 미도달의 `extraSteps` 계열)은 0이 아니라 "해당 없음"이다. */
 export function formatCount(value: number | null): string {
   return value === null ? NOT_APPLICABLE : String(value)

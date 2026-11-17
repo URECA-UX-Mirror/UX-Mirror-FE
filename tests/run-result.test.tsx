@@ -56,3 +56,12 @@ it('검토 후보는 우선 검토·일반 검토 두 단계로만 보이고 항
   fireEvent.click(within(cards[0]).getByRole('button', { expanded: false }))
   expect(within(issues).getByLabelText('Issue 근거')).toBeTruthy()
 })
+
+it('허용 경로가 없는 Run(직접 입력한 목표)은 추가 이동을 0이 아니라 계산 불가로 보인다', async () => {
+  renderResult('run_mock_direct_before')
+  const summary = await screen.findByRole('region', { name: '요약' })
+  fireEvent.click(within(summary).getByRole('button', { name: '요약 전체 보기' }))
+  expect(within(summary).getAllByText('계산 불가 (허용 경로 없음)')).toHaveLength(2)
+  expect(await screen.findByText('주문 내역 화면 찾기')).toBeTruthy()
+  expect(screen.getByText('쇼핑몰을 처음 쓰는 사용자')).toBeTruthy()
+})

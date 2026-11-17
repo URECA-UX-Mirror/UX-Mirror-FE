@@ -1,23 +1,41 @@
 import { useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router'
 import { isAbortError, isApiError } from '../../api/client.ts'
-import { getPresets } from '../../api/presets.ts'
 import { createRun, getRun, listRuns } from '../../api/runs.ts'
 import { isTerminalStatus } from '../../domain/runStatus.ts'
-import type { Preset, Run, RunListItem, Variant } from '../../domain/types.ts'
+import type { GoalInput, PersonaInput, Run, RunListItem, Variant } from '../../domain/types.ts'
 import { ErrorNotice } from '../../shared/ErrorNotice.tsx'
 import { ResultOriginBadge } from '../../shared/ResultOriginBadge.tsx'
 import { useHealth } from '../../shared/useHealth.ts'
 import { SectionTitle } from '../../shared/SectionTitle.tsx'
 import { CompareIcon, GlobeIcon, LayersIcon, SettingsIcon } from '../../shared/icons.tsx'
 import { statusLabel } from '../run-progress/statusLabel.ts'
-import { createExperimentKey, SITE, STEPS, VERSIONS } from './constants.ts'
+import { createExperimentKey, GOAL_PAGES, INPUT_LIMITS, SCOPES, SITE, STEPS, VERSIONS } from './constants.ts'
 import './new-analysis.css'
 
 type Results = Record<Variant, RunListItem[]>
 type LoadState = 'loading' | 'ready' | 'error'
 type ListResult = { token: string; status: 'ready' | 'error'; runs: RunListItem[] }
 const KEY_PATTERN = /^[A-Za-z0-9_-]{1,64}$/
+type Scope = 'page' | 'main'
+
+const isSentence = (text: string, max: number) => text.trim() !== '' && text.trim().length <= max
+
+/**
+ * 기존 실험의 첫 Run 입력. 두 번째 버전은 이 값을 그대로 보낸다(같은 실험 키는 입력이 같아야 함).
+ * 화면은 직접 입력만 받지만, 예전에 preset ID로 만든 실험은 ID를 그대로 보내야 서버가 같은 입력으로 본다.
+ */
+function goalInputOf(run: Run): GoalInput | null {
+  if (run.goalId) return { goalId: run.goalId }
+  const v = run.verification
+  if (!v) return null
+  const scope = v.scope === 'page' || v.scope === 'main' ? v.scope : undefined
+  return { goal: run.goal, verification: { path: v.path, text: v.text, exact: v.exact, ...(scope ? { scope } : {}) } }
+}
+
+function personaInputOf(run: Run): PersonaInput {
+  return run.personaId ? { personaId: run.personaId } : { persona: run.persona }
+}
 
 export function NewAnalysisPage() {
   const location = useLocation()
@@ -32,11 +50,12 @@ function NewAnalysisContent() {
   const [keyDraft, setKeyDraft] = useState({ locationKey: location.key, value: experimentKey })
   const keyInput = keyDraft.locationKey === location.key ? keyDraft.value : experimentKey
   const setKeyInput = (value: string) => setKeyDraft({ locationKey: location.key, value })
-  const [preset, setPreset] = useState<Preset | null>(null)
-  const [presetError, setPresetError] = useState<unknown>(null)
-  const [presetVersion, setPresetVersion] = useState(0)
-  const [goalId, setGoalId] = useState('')
-  const [personaId, setPersonaId] = useState('')
+  // 탐색 목표·사용자 유형·성공 조건은 직접 입력한다 (UX-Mirror-FE #26)
+  const [goalText, setGoalText] = useState('')
+  const [goalPage, setGoalPage] = useState<string>(GOAL_PAGES[0].path)
+  const [goalPageText, setGoalPageText] = useState<string>(GOAL_PAGES[0].text)
+  const [goalScope, setGoalScope] = useState<Scope>('page')
+  const [personaText, setPersonaText] = useState('')
   const [maxSteps, setMaxSteps] = useState<number | ''>(STEPS.default)
   const [listResults, setListResults] = useState<Partial<Record<Variant, ListResult>>>({})
   const [listVersion, setListVersion] = useState(0)
@@ -48,17 +67,6 @@ function NewAnalysisContent() {
   const [compareA, setCompareA] = useState<Variant>('before')
   const [compareB, setCompareB] = useState<Variant>('after')
   const health = useHealth()
-
-  useEffect(() => {
-    const controller = new AbortController()
-    getPresets(controller.signal).then((data) => {
-      setPreset(data)
-      setGoalId((current) => data.goals.some((g) => g.goalId === current) ? current : data.goals[0]?.goalId ?? '')
-      setPersonaId((current) => data.personas.some((p) => p.personaId === current) ? current : data.personas[0]?.personaId ?? '')
-      setPresetError(null)
-    }).catch((error: unknown) => { if (!isAbortError(error)) setPresetError(error) })
-    return () => controller.abort()
-  }, [presetVersion])
 
   const validKey = !experimentKey || KEY_PATTERN.test(experimentKey)
   const listToken = JSON.stringify([experimentKey, listVersion, location.key])
@@ -108,8 +116,23 @@ function NewAnalysisContent() {
   const anyRunning = Object.values(results).some((runs) => runs.some((run) => !isTerminalStatus(run.status)))
   // 실행 요청에는 사이트가 없어 대상은 MORO MARKET으로 고정이다. 다른 값이면 시작할 수 없다(OI-8)
   const siteSupported = site.trim().toLowerCase() === SITE.name.toLowerCase()
-  const ready = siteSupported && !!preset && !!goalId && !!personaId && validSteps && validKey && keyInput === experimentKey && !submitting && !health.loading && health.health?.status === 'READY' && !activeRun && !anyLoading && !listFailed && !firstPending && !anyRunning
+  const formGoal: GoalInput | null =
+    isSentence(goalText, INPUT_LIMITS.sentence) && isSentence(goalPageText, INPUT_LIMITS.verificationText)
+      ? { goal: goalText.trim(), verification: { path: goalPage, text: goalPageText.trim(), scope: goalScope } }
+      : null
+  const formPersona: PersonaInput | null =
+    isSentence(personaText, INPUT_LIMITS.sentence) ? { persona: personaText.trim() } : null
+  const goalInput = firstRun ? goalInputOf(firstRun) : formGoal
+  const personaInput = firstRun ? personaInputOf(firstRun) : formPersona
+  const ready = siteSupported && !!goalInput && !!personaInput && validSteps && validKey && keyInput === experimentKey && !submitting && !health.loading && health.health?.status === 'READY' && !activeRun && !anyLoading && !listFailed && !firstPending && !anyRunning
   const bothFinished = !anyLoading && !listFailed && !!validBefore && !!validAfter && isTerminalStatus(validBefore.status) && isTerminalStatus(validAfter.status)
+
+  // 도착 화면을 고르면 그 화면의 제목을 성공 조건 글자로 채운다 (사용자가 고칠 수 있음)
+  function selectGoalPage(path: string) {
+    setGoalPage(path)
+    const page = GOAL_PAGES.find((item) => item.path === path)
+    if (page) setGoalPageText(page.text)
+  }
 
   function selectExperiment(key: string) {
     setKeyInput(key)
@@ -124,7 +147,8 @@ function NewAnalysisContent() {
     setSubmitting(true)
     setSubmitError(null)
     try {
-      const run = await createRun({ experimentKey: key, variant, goalId: firstRun?.goalId ?? goalId, personaId: firstRun?.personaId ?? personaId, maxSteps: firstRun?.maxSteps ?? (maxSteps === '' ? undefined : maxSteps) })
+      if (!goalInput || !personaInput) return
+      const run = await createRun({ experimentKey: key, variant, goal: goalInput, persona: personaInput, maxSteps: firstRun?.maxSteps ?? (maxSteps === '' ? undefined : maxSteps) })
       navigate(`/runs/${encodeURIComponent(run.runId)}?experimentKey=${encodeURIComponent(key)}`)
     } catch (error) {
       setSubmitError(error)
@@ -143,13 +167,13 @@ function NewAnalysisContent() {
   // 시작을 막는 상태와 오류 안내. 제목 아래에 모아 보인다
   const notices = (
     <>
-      {presetError ? <ErrorNotice error={presetError} onRetry={() => setPresetVersion((v) => v + 1)} /> : !preset ? <p role="status">프리셋을 불러오는 중입니다.</p> : !preset.goals.length || !preset.personas.length ? <p role="alert">선택할 목표 또는 사용자 유형이 없어 분석을 시작할 수 없습니다.</p> : null}
       {!validSteps && <p role="alert">최대 탐색 횟수는 1~15 사이의 정수여야 합니다.</p>}
+      {firstRun && !goalInput && <p role="alert">기존 실험의 성공 조건을 확인할 수 없어 같은 조건으로 실행할 수 없습니다. 새 실험으로 시작해 주세요.</p>}
       {firstRunState === 'error' && <p role="alert">기존 분석 조건을 확인할 수 없습니다. 실험 키를 다시 입력해 주세요.</p>}
       {engineNotReady && !health.loading && <p role="alert">엔진이 준비되지 않아 분석을 시작할 수 없습니다. <button type="button" onClick={health.reload}>다시 확인</button></p>}
       {activeRun && <p role="alert">다른 분석이 실행 중입니다. <Link to={`/runs/${encodeURIComponent(activeRun)}`}>진행 중인 Run 보기</Link></p>}
       {!!health.error && <p role="status">엔진 상태를 확인할 수 없습니다. <button type="button" onClick={health.reload}>다시 확인</button></p>}
-      {submitError ? <div role="alert">{code === 'RUN_ALREADY_ACTIVE' ? <p>다른 분석이 실행 중입니다. {activeRun && <Link to={`/runs/${encodeURIComponent(activeRun)}`}>진행 중인 Run 보기</Link>}</p> : code === 'EXPERIMENT_RUN_EXISTS' ? <p>같은 버전의 실행이 이미 있습니다. {Object.values(results).flat().filter((r) => r.validity === 'VALID').map((r) => <Link key={r.runId} to={`/runs/${encodeURIComponent(r.runId)}/result`}>{r.runId} 결과 보기 </Link>)}</p> : code === 'CONTRACT_VALIDATION_ERROR' ? <p>입력한 분석 조건을 확인해 주세요.</p> : isApiError(submitError) && submitError.status === 503 ? <p>실행 환경을 준비하지 못했습니다. 다시 시도해 주세요.</p> : <ErrorNotice error={submitError} />}</div> : null}
+      {submitError ? <div role="alert">{code === 'RUN_ALREADY_ACTIVE' ? <p>다른 분석이 실행 중입니다. {activeRun && <Link to={`/runs/${encodeURIComponent(activeRun)}`}>진행 중인 Run 보기</Link>}</p> : code === 'EXPERIMENT_RUN_EXISTS' ? <p>같은 버전의 실행이 이미 있습니다. {Object.values(results).flat().filter((r) => r.validity === 'VALID').map((r) => <Link key={r.runId} to={`/runs/${encodeURIComponent(r.runId)}/result`}>{r.runId} 결과 보기 </Link>)}</p> : code === 'CONTRACT_VALIDATION_ERROR' ? <p>입력한 분석 조건을 확인해 주세요.{isApiError(submitError) && submitError.message ? ` ${submitError.message}` : ''}</p> : isApiError(submitError) && submitError.status === 503 ? <p>실행 환경을 준비하지 못했습니다. 다시 시도해 주세요.</p> : <ErrorNotice error={submitError} />}</div> : null}
     </>
   )
 
@@ -200,22 +224,41 @@ function NewAnalysisContent() {
 
       {notices}
 
-      <fieldset className="card" disabled={!preset || !!firstId}>
+      <fieldset className="card" disabled={!!firstId}>
         <legend>
           <span className="section-icon"><SettingsIcon /></span>
           분석 조건
           <span className="section-aside">{firstId ? '기존 실험의 조건으로 고정됩니다' : '두 버전에 같은 조건이 적용됩니다'}</span>
         </legend>
         <div className="conditions-grid">
-          <label className="condition-tile">
-            <span>탐색 목표</span>
-            <select value={firstRun?.goalId ?? goalId} onChange={(e) => setGoalId(e.target.value)}>{preset?.goals.map((g) => <option key={g.goalId} value={g.goalId}>{g.goal}</option>)}</select>
-          </label>
-          <label className="condition-tile">
-            <span>사용자 유형</span>
-            <select value={firstRun?.personaId ?? personaId} onChange={(e) => setPersonaId(e.target.value)}>{preset?.personas.map((p) => <option key={p.personaId} value={p.personaId}>{p.persona}</option>)}</select>
-          </label>
+          <div className="condition-tile">
+            <SentenceInput title="탐색 목표" label="탐색 목표 문장" placeholder="예: 최근 구매한 상품의 환불 신청 화면 찾기" value={firstRun ? firstRun.goal : goalText} onChange={setGoalText} />
+          </div>
+          <div className="condition-tile">
+            <SentenceInput title="사용자 유형" label="사용자 유형 문장" placeholder="예: 온라인 쇼핑몰 이용 경험이 적은 사용자" value={firstRun ? firstRun.persona : personaText} onChange={setPersonaText} />
+          </div>
         </div>
+        <fieldset className="verification-box">
+          <legend>성공 조건</legend>
+          <p className="verification-lead">도착 화면에서 아래 글자가 보이면 목표에 도달한 것으로 판정합니다.</p>
+          <div className="verification-grid">
+            <label className="field">
+              <span className="field-head"><span>도착 화면</span></span>
+              <select value={firstRun?.verification?.path ?? goalPage} onChange={(e) => selectGoalPage(e.target.value)}>
+                {GOAL_PAGES.map((p) => <option key={p.path} value={p.path}>{p.label} ({p.path})</option>)}
+                {firstRun?.verification && !GOAL_PAGES.some((p) => p.path === firstRun.verification?.path) && <option value={firstRun.verification.path}>{firstRun.verification.path}</option>}
+              </select>
+            </label>
+            <SentenceInput title="화면에 보여야 할 글자" label="화면에 보여야 할 글자" placeholder="예: 환불 / 반품 신청" max={INPUT_LIMITS.verificationText} value={firstRun?.verification?.text ?? goalPageText} onChange={setGoalPageText} />
+            <label className="field">
+              <span className="field-head"><span>찾는 범위</span></span>
+              <select value={firstRun?.verification?.scope ?? goalScope} onChange={(e) => setGoalScope(e.target.value as Scope)}>
+                {SCOPES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
+              </select>
+            </label>
+          </div>
+          <p className="muted verification-note">직접 입력한 목표는 허용 경로가 없어 경로 이탈·추가 단계·목표 경로 확률은 계산하지 않습니다.</p>
+        </fieldset>
         <div className="steps-row">
           <div>
             <label htmlFor="max-steps" className="steps-label">최대 탐색 횟수</label>
@@ -306,5 +349,19 @@ function NewAnalysisContent() {
         {compareA === compareB && <p role="alert">서로 다른 버전을 선택해 주세요.</p>}
       </section>
     </section>
+  )
+}
+
+function SentenceInput({ title, label, placeholder, value, onChange, max = INPUT_LIMITS.sentence }: { title: string; label: string; placeholder: string; value: string; onChange: (text: string) => void; max?: number }) {
+  const length = value.trim().length
+  return (
+    <div className="field">
+      <div className="field-head">
+        <span>{title}</span>
+        <small className={length > max ? 'over' : 'muted'}>{length}/{max}자</small>
+      </div>
+      <input aria-label={label} value={value} placeholder={placeholder} onChange={(e) => onChange(e.target.value)} />
+      {length > max && <span role="alert" className="field-error">{label}은 {max}자 이하로 입력해 주세요.</span>}
+    </div>
   )
 }

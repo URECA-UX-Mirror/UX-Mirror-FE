@@ -95,7 +95,8 @@ export interface RunSummary {
   systemBackCount: number
   backCount: number
   revisitCount: number
-  referencePathDeviationCount: number
+  /** 허용 경로가 없으면 `null` */
+  referencePathDeviationCount: number | null
   navigationCost: number
   /** 목표에 도달하지 못하면 `null`. 0으로 바꾸지 않는다 */
   extraSteps: number | null
@@ -111,10 +112,16 @@ export interface Run {
   experimentKey: string
   variant: Open<Variant>
   resultOrigin: Open<ResultOrigin>
-  goalId: string
+  /** 직접 입력한 목표면 `null` */
+  goalId: string | null
   goal: string
-  personaId: string
+  /** 직접 입력한 사용자 유형이면 `null` */
+  personaId: string | null
   persona: string
+  /** 저장된 성공 조건. 과거 Run에는 없을 수 있다(`null`) */
+  verification: Verification | null
+  /** 허용 경로가 있는지. 없으면 경로 이탈·추가 단계·목표 경로 확률을 계산하지 않는다 */
+  hasReferencePath: boolean
   viewport: Size
   maxSteps: number
   status: Open<RunStatus>
@@ -157,11 +164,31 @@ export interface CreatedRun {
   createdAt: string
 }
 
+export interface Verification {
+  type: string
+  path: string
+  text: string
+  exact: boolean
+  scope: string
+}
+
+export interface VerificationInput {
+  path: string
+  text: string
+  exact?: boolean
+  scope?: 'page' | 'main'
+}
+
+/** 목표: preset ID 또는 직접 입력 문장 + 성공 조건 */
+export type GoalInput = { goalId: string } | { goal: string; verification: VerificationInput }
+/** 사용자 유형: preset ID 또는 직접 입력 문장 */
+export type PersonaInput = { personaId: string } | { persona: string }
+
 export interface CreateRunInput {
   experimentKey: string
   variant: Variant
-  goalId: string
-  personaId: string
+  goal: GoalInput
+  persona: PersonaInput
   maxSteps?: number
 }
 
@@ -318,7 +345,7 @@ export interface RunOutcome {
   navigationCost: number
   extraSteps: number | null
   extraNavigationCost: number | null
-  referencePathDeviationCount: number
+  referencePathDeviationCount: number | null
   path: PathVisit[]
   detectedIssueTypes: Open<IssueType>[]
 }

@@ -63,6 +63,9 @@ export function toRun(dto: RunDto): Run {
     goal: dto.goal,
     personaId: dto.personaId,
     persona: dto.persona,
+    verification: dto.verification ?? null,
+    // 필드가 없는 과거 Run은 preset 목표였으므로 허용 경로가 있다고 본다. 명시적 null만 "없음"이다
+    hasReferencePath: dto.referencePathConfig !== null,
     viewport: dto.viewport,
     maxSteps: dto.limits.maxSteps,
     status: dto.status,

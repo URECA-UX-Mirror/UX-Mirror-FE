@@ -33,10 +33,10 @@ interface Run {
   promptVersion: string;
   temperature: number;
   goalJudgmentMode: GoalJudgmentMode;
-  goalId: string;
-  goal: string;                      // 목표 문구(preset에서 복사됨)
-  personaId: string;
-  persona: string;
+  goalId: string | null;             // 직접 입력한 목표면 null (OI-9)
+  goal: string;                      // 목표 문구(preset에서 복사 또는 직접 입력)
+  personaId: string | null; persona: string;  // 직접 입력한 사용자 유형이면 personaId null (OI-9)
+  verification?: { type: string; path: string; text: string; exact: boolean; scope: string } | null; referencePathConfig?: object | null;  // 저장된 성공 조건, 직접 입력한 목표는 허용 경로 null (OI-9)
   startPath: string;
   viewport: { width: number; height: number };
   limits: { maxSteps: number; modelTimeoutMs: number; runTimeoutMs: number };
@@ -70,9 +70,9 @@ interface RunSummary {
   systemBackCount: number;
   backCount: number;                 // modelBackCount + systemBackCount
   revisitCount: number;
-  referencePathDeviationCount: number;
+  referencePathDeviationCount: number | null;  // 허용 경로가 없으면 null
   navigationCost: number;            // successfulNavigationClickCount + backCount
-  extraSteps: number | null;         // goalReached=false이면 null
+  extraSteps: number | null;         // goalReached=false이거나 허용 경로가 없으면 null
   extraNavigationCost: number | null;
   attemptedExtraSteps: number | null;
   executionTimeMs: number;
@@ -91,8 +91,8 @@ interface PathVisit {
 ```
 
 - `stepCount`(탐색 비용 기준)와 `stepRecordCount`(저장된 Step 수)는 다르다. 진행 표시는 `progress.stepCount / progress.maxSteps`를 쓴다.
-- `summary`의 `extraSteps` 계열은 목표에 도달하지 못하면 `null`이다. 0으로 바꾸지 않는다. `계약 §6.4`
-- `Run.limits`의 나머지 필드(`pageChangeTimeoutMs` 등)와 `thresholdConfig`, `analysisVersion`, `referencePathConfig`, `comparisonContext`는 프론트가 쓰지 않는다.
+- `summary`의 `extraSteps` 계열은 목표에 도달하지 못하면 `null`이다. 0으로 바꾸지 않는다. `계약 §6.4`. `referencePathConfig: null`(직접 입력한 목표)이면 `referencePathDeviationCount`, `extraSteps` 계열, Step의 `goalPathProbability`도 `null`이고, 프론트는 명시적 `null`일 때만(없는 필드는 과거 preset Run) "계산 불가 (허용 경로 없음)"으로 표시한다. [OI-9](../operations/open_issue.md#oi-9)
+- `Run.limits`의 나머지 필드(`pageChangeTimeoutMs` 등)와 `thresholdConfig`, `analysisVersion`, `comparisonContext`는 프론트가 쓰지 않는다.
 
 ## Step (`계약 §12`)
 

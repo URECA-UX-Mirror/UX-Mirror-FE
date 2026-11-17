@@ -13,7 +13,7 @@
 
 | # | 화면 | 사용 API | 화면 상태(서버 데이터 아님) |
 | --- | --- | --- | --- |
-| 1 | 새 UX 분석 | `GET /api/presets`, `GET /api/health`, `GET /api/runs`, `POST /api/runs` | 선택한 목표·사용자 유형·최대 탐색 횟수, 비교할 두 버전 선택 |
+| 1 | 새 UX 분석 | `GET /api/health`, `GET /api/runs`, `POST /api/runs` | 입력한 목표·사용자 유형·성공 조건, 최대 탐색 횟수, 비교할 두 버전 선택 |
 | 2 | AI 탐색 진행 | `GET /api/health`, `GET /api/runs/{runId}`, `/steps`, `/screenshots/{stepId}` | 열람 중인 stepId(기록 열람 / 최신) |
 | 3 | UX 탐색 분석 결과 | `GET /api/health`, `GET /api/runs`, `GET /api/runs/{runId}`, `/steps`, `/screenshots/{stepId}`, `/issues` | 선택한 경로 노드, 열린 Issue 상세, 지표 패널 펼침 |
 | 4 | 버전 비교 | `GET /api/health`, `GET /api/comparisons/{experimentKey}`, `/api/runs/{runId}/steps`, `/api/runs/{runId}/screenshots/{stepId}` | 지표 표 펼침 |
@@ -22,9 +22,10 @@
 
 ### 1. 새 UX 분석
 
-- 사이트(MORO MARKET)·버전 이름·변경 내용(Before `이용정보` → After `주문·환불`, 상단 메뉴 라벨 한 곳)·최대 탐색 횟수 범위(1~15, 기본 8)는 프리셋 응답에 없으므로 프론트 상수다. 목표·사용자 유형은 `GET /api/presets`에서 받는다.
+- 사이트(MORO MARKET)·버전 이름·변경 내용(Before `이용정보` → After `주문·환불`, 상단 메뉴 라벨 한 곳)·최대 탐색 횟수 범위(1~15, 기본 8)는 프론트 상수다. 목표·사용자 유형은 preset에서 고르지 않고 직접 입력하므로 `GET /api/presets`는 호출하지 않는다.
 - 분석 사이트는 입력란이다. 기본값은 MORO MARKET이며 입력값은 요청에 싣지 않는다. MORO MARKET이 아니거나 비어 있으면 안내를 보이고 분석 시작을 막는다([OI-8](../operations/open_issue.md#oi-8)). 실행할 버전에 따라 백엔드가 대상을 정한다.
-- 버전 표의 행은 `variant`(`before`, `after`)에 대응한다. 표시 이름은 `v1 (변경 전)`, `v2 (변경 후)`다. 두 Run은 같은 `experimentKey`로 묶고 `goalId`·`personaId`·`maxSteps`를 같게 보낸다.
+- 탐색 목표·사용자 유형은 문장으로 직접 입력한다(200자까지). 목표와 함께 성공 조건(도착 화면, 화면에 보여야 할 글자 100자까지, 찾는 범위)을 입력한다. 도착 화면을 고르면 그 화면에만 보이는 제목(`GOAL_PAGES`의 `text`, 예: `주문 / 배송 조회`)을 글자 칸에 채운다. 띄어쓰기까지 화면과 같아야 판정되기 때문이다. 정확 일치는 입력받지 않고 보내지 않는다(서버 기본값 `false`, 부분 일치). 도착 화면은 서버가 실제 화면인지 검사하지 않으므로 `GOAL_PAGES` 목록에서만 고르고, 시작 화면(home)은 뺀다. 금지 문자열 등 서버 `422`는 `message`를 그대로 보인다. [OI-9](../operations/open_issue.md#oi-9)
+- 버전 표의 행은 `variant`(`before`, `after`)에 대응한다. 표시 이름은 `v1 (변경 전)`, `v2 (변경 후)`다. 두 Run은 같은 `experimentKey`로 묶고 목표·사용자 유형·`maxSteps`를 같게 보낸다. 기존 실험이면 입력 칸을 첫 Run에 저장된 문장·성공 조건으로 채워 잠그고 두 번째 요청에 그대로 쓴다. 예전에 preset ID로 만든 실험은 서버가 같은 입력으로 보도록 그 ID(`goalId`·`personaId`)를 그대로 보낸다. 저장된 성공 조건이 없어 목표를 다시 만들 수 없으면 안내하고 시작을 막는다.
 - 행의 "마지막 Run ID·분석 상태·목표 달성 상태"는 `GET /api/runs?experimentKey=&variant=`의 첫 항목(최신 Run)으로 채운다.
 - 기존 실험 키를 입력하고 조회 버튼을 눌러 서버의 실행 기록을 조회하고 첫 Run의 조건을 다음 Run에 재사용한다. 시작 후 진행 화면 주소에도 실험 키를 남긴다.
 - `+ 버전 추가`와 `v3` 행은 `P1`이라 비활성으로 둔다.
@@ -48,7 +49,7 @@
 - 요약(종료 상태, 목표 달성, 탐색 단계, CLICK·GO_BACK 횟수, 검토 후보 수)은 `Run.summary`를 그대로 쓴다.
 - 탐색 경로의 노드는 `summary.path`(`PathVisit`)다. `PathVisit.stepId`는 그 노드에 **들어오게 만든** Step이다(시작 화면과 시스템 BACK은 `null`, `계약 §6.4`). 한 노드의 화면에서 모델이 판단한 Step은 **다음 노드의 `stepId`**(노드 사이 화살표의 `CLICK [후보 이름]`도 이 Step에서 가져온다)이므로, 노드를 고르면 다음 노드의 `stepId`로 Step·스크린샷·확률·지표를 찾는다. 다음 노드가 없거나(도착 화면) 그 `stepId`가 `null`이면 이미지 없이 표시한다. [OI-3](../operations/open_issue.md#oi-3)
 - 모델 GO_BACK으로 돌아온 노드(`enteredBy = GO_BACK`)는 "이전 화면 복귀"로 구분한다. 선택한 Step의 스크린샷·후보 확률은 공용 뷰어와 `CandidateProbabilityList`를 쓰고, 지표 패널(`decision` 값, `null`은 "계산 불가")은 접힘이 기본이다.
-- 요약의 `extraSteps` 계열은 목표 미도달이면 `null`이라 "해당 없음"으로 표시한다. `validity = INVALID`이면 "무효 처리된 실행"과 `invalidReason`을 보이고 `replacementRunId`가 있으면 그 Run의 결과 화면 링크를 둔다.
+- 요약의 `extraSteps` 계열은 목표 미도달이면 `null`이라 "해당 없음"으로 표시한다. 허용 경로가 없는 Run(`referencePathConfig: null`)은 "계산 불가 (허용 경로 없음)"으로 표시한다. `validity = INVALID`이면 "무효 처리된 실행"과 `invalidReason`을 보이고 `replacementRunId`가 있으면 그 Run의 결과 화면 링크를 둔다.
 - "다른 실행 보기"는 `GET /api/runs?experimentKey=`의 목록이다. 조회에 실패해도 화면의 나머지는 동작한다.
 - Issue 상세에서는 `relatedStepIds`를 선택해 해당 Step의 스크린샷과 후보 확률을 확인한다. 경로 노드에 나타나지 않는 화면 변화 없는 Step도 확인할 수 있다. Step 조회 실패 시 재시도한다. Issue의 `evidence`는 선택한 Step에 따라 바뀌지 않으며, 일부 값이 최초 관찰 기준임을 표시한다.
 - Issue는 `GET /api/runs/{runId}/issues`의 서버 순서를 그대로 쓰고 프론트가 다시 정렬하지 않는다. `PENDING`이면 이 응답만 최대 5회 다시 조회하고 멈춘 뒤 수동 재시도 버튼을 보인다. `evidence` 키의 표시 이름은 `features/run-result/issueLabels.ts`의 상수이며 표에 없는 키는 키 이름 그대로 보인다(`임시`).

@@ -440,7 +440,8 @@ function issueItems(rec: RunRecord, createdAt: string): IssueDto[] {
       reviewPriority: 'PRIORITY_REVIEW',
     })
   }
-  if (summary.extraSteps > 0) {
+  // 허용 경로가 없는 Run(직접 입력한 목표)은 추가 단계를 계산하지 않으므로 EXTRA_STEPS도 만들지 않는다(UX-Mirror-BE #44)
+  if (rec.goalId !== null && summary.extraSteps > 0) {
     issues.push({
       ...base,
       issueId: id(),

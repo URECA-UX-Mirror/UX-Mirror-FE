@@ -10,12 +10,16 @@
 //   after  : 홈 → 주문 내역 → (환불 신청 화면 도착)               모델 선택 2회
 //   direct : before와 같은 버전이지만 홈 본문 카드로 바로 주문 내역에 감 (after와 방문 화면이 같아 비교가 COMPLETED)
 //   goback : 홈 → 마이페이지 → (뒤로) 홈 → 주문 내역 → (도착)      모델 GO_BACK과 재방문 포함
-//   to-orders : 홈 → 마이페이지 → (주문 내역 도착)                  직접 입력 목표 "주문 내역 화면 찾기"용. 환불 화면으로 가지 않는다
+//   to-* : 직접 입력한 목표용. 성공 조건의 도착 화면(orders·mypage·support)에서 끝나고 환불 화면으로 가지 않는다
+//     to-orders(Before): 홈 → 마이페이지 → 주문 내역      to-orders-after: 홈 → 주문·환불 → 주문 내역
+//     to-mypage(-after): 홈 → 마이페이지                  to-support(-after): 홈 → 고객센터
+//   도착 화면이 환불 신청이면 before/after 시나리오를 그대로 쓴다 (scenarioForGoal)
 
 import type { BoundingBox, Variant } from '../../api/dto/index.ts'
 
 export type PageKey = 'home' | 'mypage' | 'orders' | 'support' | 'refund'
-export type ScenarioName = Variant | 'direct' | 'goback' | 'to-orders'
+export type ScenarioName = Variant | 'direct' | 'goback'
+  | 'to-orders' | 'to-orders-after' | 'to-mypage' | 'to-mypage-after' | 'to-support' | 'to-support-after'
 
 export interface PageDef {
   path: string
@@ -251,6 +255,14 @@ export function stepSpecs(scenario: ScenarioName): StepSpec[] {
         { pageKey: 'home', choices: homeChoices('before'), selected: 'option_02' },
         { pageKey: 'mypage', choices: mypageChoices(false), selected: 'option_02' },
       ]
+    case 'to-orders-after':
+      return [{ pageKey: 'home', choices: homeChoices('after'), selected: 'option_01' }]
+    case 'to-mypage':
+    case 'to-mypage-after':
+      return [{ pageKey: 'home', choices: homeChoices(scenario === 'to-mypage' ? 'before' : 'after'), selected: 'option_02' }]
+    case 'to-support':
+    case 'to-support-after':
+      return [{ pageKey: 'home', choices: homeChoices(scenario === 'to-support' ? 'before' : 'after'), selected: 'option_03' }]
     case 'goback':
       return [
         { pageKey: 'home', choices: homeChoices('before'), selected: 'option_02' },
@@ -258,6 +270,21 @@ export function stepSpecs(scenario: ScenarioName): StepSpec[] {
         { pageKey: 'home', choices: homeChoices('before'), selected: 'option_01' },
         { pageKey: 'orders', choices: ordersChoices('before'), selected: 'option_01' },
       ]
+  }
+}
+
+/**
+ * 직접 입력한 목표의 MOCK 시나리오. 성공 조건의 도착 화면에서 끝나야 `goalReached`가 성공 조건과 맞는다.
+ * 지원하지 않는 화면이면 `null`(요청을 거부한다).
+ */
+export function scenarioForGoal(variant: Variant, path: string): ScenarioName | null {
+  const after = variant === 'after'
+  switch (path.replace(/\/$/, '')) {
+    case '/shop/refund': return variant
+    case '/shop/orders': return after ? 'to-orders-after' : 'to-orders'
+    case '/shop/mypage': return after ? 'to-mypage-after' : 'to-mypage'
+    case '/shop/support': return after ? 'to-support-after' : 'to-support'
+    default: return null
   }
 }
 

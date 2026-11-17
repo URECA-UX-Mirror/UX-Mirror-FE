@@ -14,7 +14,7 @@ import {
   getTiming,
   scenarioOf,
 } from '../fixtures/run.ts'
-import { stepSpecs } from '../fixtures/scenario.ts'
+import { scenarioForGoal, stepSpecs } from '../fixtures/scenario.ts'
 import { issueOverride } from '../fixtures/runResult.ts'
 import {
   addRun,
@@ -130,6 +130,9 @@ export const runsHandlers = [
     }
     const inputs = resolveInputs(body)
     if (typeof inputs === 'string') return validationError(inputs)
+    // 직접 입력한 목표는 성공 조건의 도착 화면에서 끝나는 시나리오로 진행한다(환불 화면으로 가서 성공 처리하지 않음)
+    const scenario = inputs.verification ? scenarioForGoal(body.variant, inputs.verification.path) : undefined
+    if (scenario === null) return validationError('MOCK에서 지원하지 않는 도착 화면입니다 (시작 화면 home 등)')
     const first = firstExperimentRun(body.experimentKey)
     if (first && !sameInputs(inputs, first)) {
       return validationError('같은 experimentKey의 첫 실행과 입력이 다릅니다')
@@ -170,6 +173,7 @@ export const runsHandlers = [
       experimentKey: body.experimentKey,
       variant: body.variant,
       ...inputs,
+      ...(scenario ? { scenario } : {}),
       maxSteps: body.maxSteps ?? 8,
       createdAtMs: now,
     }
@@ -278,7 +282,7 @@ export const runsHandlers = [
       const spec = stepSpecs(scenario)[stepId - 1]
       // 상단 메뉴 라벨만 버전마다 다르다(Before `이용정보` / After `주문·환불`). 이미지는 버전별로 따로 있다
       const image = await fetch(
-        `${import.meta.env.BASE_URL}mock/screens/${scenario === 'after' ? 'after' : 'before'}/${spec.pageKey}.png`,
+        `${import.meta.env.BASE_URL}mock/screens/${record.variant === 'after' ? 'after' : 'before'}/${spec.pageKey}.png`,
       )
       if (!image.ok) {
         return errorResponse(404, 'RUN_NOT_FOUND', '스크린샷을 찾을 수 없습니다')

@@ -58,11 +58,11 @@ it('검토 후보는 우선 검토·일반 검토 두 단계로만 보이고 항
   expect(within(issues).getByLabelText('Issue 근거')).toBeTruthy()
 })
 
-it('허용 경로가 없는 Run(직접 입력한 목표)은 추가 이동을 0이 아니라 계산 불가로 보인다', async () => {
+it('경로 기준이 없는 Run(직접 입력한 목표)은 추가 이동을 0이 아니라 계산 불가로 보인다', async () => {
   renderResult('run_mock_direct_before')
   const summary = await screen.findByRole('region', { name: '요약' })
   fireEvent.click(within(summary).getByRole('button', { name: '요약 전체 보기' }))
-  expect(within(summary).getAllByText('계산 불가 (허용 경로 없음)')).toHaveLength(2)
+  expect(within(summary).getAllByText('계산 불가 (경로 기준 없음)')).toHaveLength(2)
   expect(await screen.findByText('주문 내역 화면 찾기')).toBeTruthy()
   expect(screen.getByText('쇼핑몰을 처음 쓰는 사용자')).toBeTruthy()
 })
@@ -85,10 +85,16 @@ it('SITE_MAP Run은 기준 배지와 최단 경로 대비 추가 단계·우회 
   expect(summary.textContent).not.toMatch(/개선|단축/)
 })
 
-it('지도 오류 Run은 경로 지표를 계산하지 않음으로 보이고 0으로 바꾸지 않는다', async () => {
-  const summary = await openFullSummary('run_mock_mapfail')
-  expect(within(summary).getByText('기준 없음')).toBeTruthy()
-  expect(within(summary).getAllByText('계산하지 않음 (사이트 지도 오류)')).toHaveLength(2)
+it('지도 오류 Run은 목표 종류와 무관하게 원인을 단정하지 않는 같은 문구로 보인다', async () => {
+  for (const id of ['run_mock_mapfail', 'run_mock_direct_mapfail']) {
+    const { unmount } = renderResult(id)
+    const summary = await screen.findByRole('region', { name: '요약' })
+    fireEvent.click(within(summary).getByRole('button', { name: '요약 전체 보기' }))
+    expect(within(summary).getByText('기준 없음')).toBeTruthy()
+    expect(within(summary).getAllByText('계산 불가 (경로 기준 없음)')).toHaveLength(2)
+    expect(summary.textContent).not.toContain('지도 오류')
+    unmount()
+  }
 })
 
 it('허용 경로 Run은 기존 표시를 유지하고 우회 이동 행이 없다', async () => {
@@ -116,8 +122,14 @@ it('Step 지표의 목표 경로 확률에 기준별 설명이 붙는다', async
   expect(within(detail).getByText(/목표에 더 가까워지는 클릭 후보들의 확률 합/)).toBeTruthy()
 })
 
-it('formatPathMetric은 목표 도달 후의 null을 해당 없음이 아니라 계산 불가로 구분한다', () => {
-  expect(formatPathMetric(null, 'SITE_MAP', false, true)).toBe('계산 불가')
-  expect(formatPathMetric(null, 'SITE_MAP', false, false)).toBe('해당 없음')
-  expect(formatPathMetric(0, 'SITE_MAP', false, true)).toBe('0')
+it('formatPathMetric은 지표 종류별로 null의 의미를 구분한다', () => {
+  // extraSteps 계열: 미도달이면 해당 없음, 도달했는데 null이면 계산 불가
+  expect(formatPathMetric(null, 'SITE_MAP', true)).toBe('계산 불가')
+  expect(formatPathMetric(null, 'SITE_MAP', false)).toBe('해당 없음')
+  // detourMoveCount: 목표 도달과 무관하게 null이면 계산 불가, 0은 0
+  expect(formatPathMetric(null, 'SITE_MAP', false, 'detour')).toBe('계산 불가')
+  expect(formatPathMetric(null, 'SITE_MAP', true, 'detour')).toBe('계산 불가')
+  expect(formatPathMetric(0, 'SITE_MAP', false, 'detour')).toBe('0')
+  // 기준 없음은 원인을 단정하지 않는다
+  expect(formatPathMetric(null, null, false)).toBe('계산 불가 (경로 기준 없음)')
 })

@@ -49,7 +49,6 @@ function StatCard({
 export function RunSummaryPanel({ run, issues }: RunSummaryPanelProps) {
   const { summary } = run
   const basis = run.referenceBasis
-  const directGoal = run.goalId === null
   const names = pathMetricNames(basis)
   // 전체 요약 표 펼침 여부는 화면 상태다
   const [open, setOpen] = useState(false)
@@ -137,14 +136,14 @@ export function RunSummaryPanel({ run, issues }: RunSummaryPanelProps) {
               {basis === 'SITE_MAP' ? (
                 <>
                   <dt>{names?.extraSteps}</dt>
-                  <dd>{formatPathMetric(summary.extraSteps, basis, directGoal, summary.goalReached)}</dd>
+                  <dd>{formatPathMetric(summary.extraSteps, basis, summary.goalReached)}</dd>
                   <dt>{names?.extraNavigationCost}</dt>
                   <dd>
-                    {formatPathMetric(summary.extraNavigationCost, basis, directGoal, summary.goalReached)}
+                    {formatPathMetric(summary.extraNavigationCost, basis, summary.goalReached)}
                   </dd>
                   <dt>{names?.detourMoveCount}</dt>
                   <dd>
-                    {formatPathMetric(summary.detourMoveCount, basis, directGoal, summary.goalReached)}
+                    {formatPathMetric(summary.detourMoveCount, basis, summary.goalReached, 'detour')}
                     <span className="metric-hint">목표 거리가 줄지 않은 이동</span>
                   </dd>
                   <dt>허용 경로 이탈</dt>
@@ -153,10 +152,10 @@ export function RunSummaryPanel({ run, issues }: RunSummaryPanelProps) {
               ) : (
                 <>
                   <dt>추가 이동(extraSteps)</dt>
-                  <dd>{formatPathMetric(summary.extraSteps, basis, directGoal, summary.goalReached)}</dd>
+                  <dd>{formatPathMetric(summary.extraSteps, basis, summary.goalReached)}</dd>
                   <dt>추가 이동 비용</dt>
                   <dd>
-                    {formatPathMetric(summary.extraNavigationCost, basis, directGoal, summary.goalReached)}
+                    {formatPathMetric(summary.extraNavigationCost, basis, summary.goalReached)}
                   </dd>
                 </>
               )}

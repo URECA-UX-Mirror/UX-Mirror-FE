@@ -8,6 +8,7 @@ import type { RunRecord } from '../store.ts'
 //   run_mock_issue_empty    /issues가 COMPLETED이고 항목 0건
 //   run_mock_sitemap        직접 입력한 목표 + 사이트 지도 기준(basis=SITE_MAP), 우회 이동(detourMoveCount) 1회
 //   run_mock_mapfail        지도 오류로 referencePathConfig null(기준 없음), 목표는 preset
+//   run_mock_direct_mapfail 직접 입력한 목표에서 지도 오류(referencePathConfig null)
 //   run_mock_legacy_basis   basis 없는 과거 Run(ALLOWED_PATHS로 해석), detourMoveCount 없음
 
 const SEED_AT_MS = Date.parse('2026-11-01T09:00:00+09:00')
@@ -86,6 +87,21 @@ export const RESULT_SEEDS: RunRecord[] = [
       reference: 'none',
     },
     35,
+  ),
+  extra(
+    {
+      runId: 'run_mock_direct_mapfail',
+      experimentKey: 'mock-direct-mapfail',
+      variant: 'before',
+      goalId: null,
+      goal: '주문 내역 화면 찾기',
+      verification: { type: 'PATH_AND_VISIBLE_TEXT', path: '/shop/orders', text: '주문 / 배송 조회', exact: false, scope: 'page' },
+      personaId: null,
+      persona: '쇼핑몰을 처음 쓰는 사용자',
+      scenario: 'to-orders',
+      reference: 'none',
+    },
+    37,
   ),
   extra(
     {

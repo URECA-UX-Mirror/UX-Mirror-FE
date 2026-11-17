@@ -25,14 +25,26 @@ export interface PathMetricNames {
   detourMoveCount: string | null
 }
 
-/** 기준별 지표 이름. 기준 없음이면 이름을 정하지 않는다(`null`). */
+const SITE_MAP_NAMES: PathMetricNames = {
+  extraSteps: '최단 경로 대비 추가 단계',
+  extraNavigationCost: '최단 경로 대비 추가 이동 비용',
+  detourMoveCount: '우회 이동',
+}
+
+// 허용 경로 기준의 값은 "허용 경로 중 가장 짧은 경로 대비"라 사이트 지도의 최단 경로와 뜻이 다르다
+const ALLOWED_PATHS_NAMES: PathMetricNames = {
+  extraSteps: '추가 이동(extraSteps)',
+  extraNavigationCost: '추가 이동 비용',
+  detourMoveCount: null,
+}
+
+/**
+ * 기준별 지표 이름. 기준 없음이면 이름을 정하지 않는다(`null`).
+ * 모르는 기준은 허용 경로 이름을 쓴다.
+ */
 export function pathMetricNames(basis: Open<ReferenceBasis> | null): PathMetricNames | null {
   if (basis === null) return null
-  return {
-    extraSteps: '최단 경로 대비 추가 단계',
-    extraNavigationCost: '최단 경로 대비 추가 이동 비용',
-    detourMoveCount: basis === 'SITE_MAP' ? '우회 이동' : null,
-  }
+  return basis === 'SITE_MAP' ? SITE_MAP_NAMES : ALLOWED_PATHS_NAMES
 }
 
 /** `goalPathProbability` 설명. 기준마다 "목표 경로"가 가리키는 대상이 다르다. */

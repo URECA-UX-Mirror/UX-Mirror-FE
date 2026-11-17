@@ -149,6 +149,23 @@ describe('기준별 표시 문구', () => {
     expect(pathMetricNames(null)).toBeNull()
   })
 
+  it('허용 경로는 기존 이름을, 사이트 지도는 최단 경로 대비 이름을 쓴다', () => {
+    expect(pathMetricNames('ALLOWED_PATHS')).toEqual({
+      extraSteps: '추가 이동(extraSteps)',
+      extraNavigationCost: '추가 이동 비용',
+      detourMoveCount: null,
+    })
+    expect(pathMetricNames('SITE_MAP')).toEqual({
+      extraSteps: '최단 경로 대비 추가 단계',
+      extraNavigationCost: '최단 경로 대비 추가 이동 비용',
+      detourMoveCount: '우회 이동',
+    })
+  })
+
+  it('모르는 기준은 허용 경로 이름을 쓴다', () => {
+    expect(pathMetricNames('FUTURE_BASIS')).toEqual(pathMetricNames('ALLOWED_PATHS'))
+  })
+
   it('goalPathProbability 설명이 기준마다 다르다', () => {
     expect(goalPathProbabilityHint('ALLOWED_PATHS')).not.toBe(goalPathProbabilityHint('SITE_MAP'))
   })

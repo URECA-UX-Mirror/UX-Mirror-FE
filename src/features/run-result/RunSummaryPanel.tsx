@@ -134,14 +134,12 @@ export function RunSummaryPanel({ run, issues }: RunSummaryPanelProps) {
                 {summary.backCount} (모델 {summary.modelBackCount} · 시스템{' '}
                 {summary.systemBackCount})
               </dd>
+              <dt>{names.extraSteps}</dt>
+              <dd>{formatPathMetric(summary.extraSteps, basis, summary.goalReached)}</dd>
+              <dt>{names.extraNavigationCost}</dt>
+              <dd>{formatPathMetric(summary.extraNavigationCost, basis, summary.goalReached)}</dd>
               {basis === 'SITE_MAP' ? (
                 <>
-                  <dt>{names.extraSteps}</dt>
-                  <dd>{formatPathMetric(summary.extraSteps, basis, summary.goalReached)}</dd>
-                  <dt>{names.extraNavigationCost}</dt>
-                  <dd>
-                    {formatPathMetric(summary.extraNavigationCost, basis, summary.goalReached)}
-                  </dd>
                   <dt>{names.detourMoveCount}</dt>
                   <dd>
                     {formatPathMetric(summary.detourMoveCount, basis, summary.goalReached, 'detour')}
@@ -150,16 +148,7 @@ export function RunSummaryPanel({ run, issues }: RunSummaryPanelProps) {
                   <dt>허용 경로 이탈</dt>
                   <dd>{NOT_USED}</dd>
                 </>
-              ) : (
-                <>
-                  <dt>{names.extraSteps}</dt>
-                  <dd>{formatPathMetric(summary.extraSteps, basis, summary.goalReached)}</dd>
-                  <dt>{names.extraNavigationCost}</dt>
-                  <dd>
-                    {formatPathMetric(summary.extraNavigationCost, basis, summary.goalReached)}
-                  </dd>
-                </>
-              )}
+              ) : null}
               <dt>검토 후보 수</dt>
               <dd>{issueCountText(issues)}</dd>
             </dl>

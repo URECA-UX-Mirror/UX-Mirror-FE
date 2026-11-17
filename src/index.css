@@ -2254,3 +2254,18 @@ p {
 .run-progress .step-layout > section.card {
   padding-top: var(--um-card-pad);
 }
+
+/* ---------- 경로 지표 기준 ---------- */
+
+.basis-line {
+  margin: 0 0 8px;
+  font-size: 13px;
+}
+
+.metric-hint {
+  display: block;
+  color: var(--um-text-muted);
+  font-size: 12px;
+  font-weight: 400;
+  opacity: 0.8;
+}

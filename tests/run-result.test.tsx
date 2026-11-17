@@ -2,6 +2,7 @@ import { fireEvent, render, screen, within } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { expect, it } from 'vitest'
 import { RunResultPage } from '../src/features/run-result/RunResultPage.tsx'
+import { formatPathMetric } from '../src/features/run-result/format.ts'
 
 function renderResult(runId: string) {
   return render(
@@ -57,11 +58,78 @@ it('검토 후보는 우선 검토·일반 검토 두 단계로만 보이고 항
   expect(within(issues).getByLabelText('Issue 근거')).toBeTruthy()
 })
 
-it('허용 경로가 없는 Run(직접 입력한 목표)은 추가 이동을 0이 아니라 계산 불가로 보인다', async () => {
+it('경로 기준이 없는 Run(직접 입력한 목표)은 추가 이동을 0이 아니라 계산 불가로 보인다', async () => {
   renderResult('run_mock_direct_before')
   const summary = await screen.findByRole('region', { name: '요약' })
   fireEvent.click(within(summary).getByRole('button', { name: '요약 전체 보기' }))
-  expect(within(summary).getAllByText('계산 불가 (허용 경로 없음)')).toHaveLength(2)
+  expect(within(summary).getAllByText('계산 불가 (경로 기준 없음)')).toHaveLength(2)
   expect(await screen.findByText('주문 내역 화면 찾기')).toBeTruthy()
   expect(screen.getByText('쇼핑몰을 처음 쓰는 사용자')).toBeTruthy()
+})
+
+async function openFullSummary(runId: string) {
+  renderResult(runId)
+  const summary = await screen.findByRole('region', { name: '요약' })
+  fireEvent.click(within(summary).getByRole('button', { name: '요약 전체 보기' }))
+  return summary
+}
+
+it('SITE_MAP Run은 기준 배지와 최단 경로 대비 추가 단계·우회 이동을 보이고 허용 경로 이탈은 사용 안 함이다', async () => {
+  const summary = await openFullSummary('run_mock_sitemap')
+  expect(within(summary).getByText('사이트 지도')).toBeTruthy()
+  expect(within(summary).getByText('최단 경로 대비 추가 단계')).toBeTruthy()
+  expect(within(summary).getByText('우회 이동')).toBeTruthy()
+  expect(within(summary).getByText('목표 거리가 줄지 않은 이동')).toBeTruthy()
+  expect(within(summary).getByText('사용 안 함')).toBeTruthy()
+  expect(within(summary).queryByText('추가 이동(extraSteps)')).toBeNull()
+  expect(summary.textContent).not.toMatch(/개선|단축/)
+})
+
+it('지도 오류 Run은 목표 종류와 무관하게 원인을 단정하지 않는 같은 문구로 보인다', async () => {
+  for (const id of ['run_mock_mapfail', 'run_mock_direct_mapfail']) {
+    const { unmount } = renderResult(id)
+    const summary = await screen.findByRole('region', { name: '요약' })
+    fireEvent.click(within(summary).getByRole('button', { name: '요약 전체 보기' }))
+    expect(within(summary).getByText('기준 없음')).toBeTruthy()
+    expect(within(summary).getAllByText('계산 불가 (경로 기준 없음)')).toHaveLength(2)
+    expect(summary.textContent).not.toContain('지도 오류')
+    unmount()
+  }
+})
+
+it('허용 경로 Run은 기존 표시를 유지하고 우회 이동 행이 없다', async () => {
+  const summary = await openFullSummary('run_mock_goback')
+  expect(within(summary).getByText('허용 경로')).toBeTruthy()
+  expect(within(summary).getByText('추가 이동(extraSteps)')).toBeTruthy()
+  expect(within(summary).queryByText('우회 이동')).toBeNull()
+})
+
+it('basis가 없는 과거 Run은 허용 경로로 읽는다', async () => {
+  const summary = await openFullSummary('run_mock_legacy_basis')
+  expect(within(summary).getByText('허용 경로')).toBeTruthy()
+  expect(within(summary).getByText('추가 이동(extraSteps)')).toBeTruthy()
+})
+
+it('목표 미도달 Run의 추가 이동은 해당 없음이다', async () => {
+  const summary = await openFullSummary('run_mock_maxsteps')
+  expect(within(summary).getAllByText('해당 없음').length).toBeGreaterThanOrEqual(2)
+})
+
+it('Step 지표의 목표 경로 확률에 기준별 설명이 붙는다', async () => {
+  renderResult('run_mock_sitemap')
+  const detail = await screen.findByRole('region', { name: '단계별 탐색 상세' })
+  fireEvent.click(await within(detail).findByRole('button', { name: /지표 펼치기/ }))
+  expect(within(detail).getByText(/목표에 더 가까워지는 클릭 후보들의 확률 합/)).toBeTruthy()
+})
+
+it('formatPathMetric은 지표 종류별로 null의 의미를 구분한다', () => {
+  // extraSteps 계열: 미도달이면 해당 없음, 도달했는데 null이면 계산 불가
+  expect(formatPathMetric(null, 'SITE_MAP', true)).toBe('계산 불가')
+  expect(formatPathMetric(null, 'SITE_MAP', false)).toBe('해당 없음')
+  // detourMoveCount: 목표 도달과 무관하게 null이면 계산 불가, 0은 0
+  expect(formatPathMetric(null, 'SITE_MAP', false, 'detour')).toBe('계산 불가')
+  expect(formatPathMetric(null, 'SITE_MAP', true, 'detour')).toBe('계산 불가')
+  expect(formatPathMetric(0, 'SITE_MAP', false, 'detour')).toBe('0')
+  // 기준 없음은 원인을 단정하지 않는다
+  expect(formatPathMetric(null, null, false)).toBe('계산 불가 (경로 기준 없음)')
 })

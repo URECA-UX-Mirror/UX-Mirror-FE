@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { Link } from 'react-router'
 import type { IssueList, Run } from '../../domain/types.ts'
-import { formatCount, NO_REFERENCE_PATH } from './format.ts'
+import { pathMetricNames, referenceBasisLabel } from '../../domain/referenceBasis.ts'
+import { formatPathMetric, NOT_USED } from './format.ts'
 
 interface RunSummaryPanelProps {
   run: Run
@@ -47,6 +48,8 @@ function StatCard({
 /** `Run.summary`를 그대로 표시한다. 계산하거나 보정하지 않는다. */
 export function RunSummaryPanel({ run, issues }: RunSummaryPanelProps) {
   const { summary } = run
+  const basis = run.referenceBasis
+  const names = pathMetricNames(basis)
   // 전체 요약 표 펼침 여부는 화면 상태다
   const [open, setOpen] = useState(false)
   return (
@@ -74,6 +77,12 @@ export function RunSummaryPanel({ run, issues }: RunSummaryPanelProps) {
       ) : null}
       {summary ? (
         <>
+          <p className="basis-line">
+            경로 지표 기준{' '}
+            <span className="origin-badge" data-basis={basis ?? 'NONE'}>
+              {referenceBasisLabel(basis)}
+            </span>
+          </p>
           <div className="stat-grid">
             <StatCard
               label="목표 달성"
@@ -124,10 +133,32 @@ export function RunSummaryPanel({ run, issues }: RunSummaryPanelProps) {
                 {summary.backCount} (모델 {summary.modelBackCount} · 시스템{' '}
                 {summary.systemBackCount})
               </dd>
-              <dt>추가 이동(extraSteps)</dt>
-              <dd>{run.referenceBasis !== null ? formatCount(summary.extraSteps) : NO_REFERENCE_PATH}</dd>
-              <dt>추가 이동 비용</dt>
-              <dd>{run.referenceBasis !== null ? formatCount(summary.extraNavigationCost) : NO_REFERENCE_PATH}</dd>
+              {basis === 'SITE_MAP' ? (
+                <>
+                  <dt>{names?.extraSteps}</dt>
+                  <dd>{formatPathMetric(summary.extraSteps, basis, summary.goalReached)}</dd>
+                  <dt>{names?.extraNavigationCost}</dt>
+                  <dd>
+                    {formatPathMetric(summary.extraNavigationCost, basis, summary.goalReached)}
+                  </dd>
+                  <dt>{names?.detourMoveCount}</dt>
+                  <dd>
+                    {formatPathMetric(summary.detourMoveCount, basis, summary.goalReached, 'detour')}
+                    <span className="metric-hint">목표 거리가 줄지 않은 이동</span>
+                  </dd>
+                  <dt>허용 경로 이탈</dt>
+                  <dd>{NOT_USED}</dd>
+                </>
+              ) : (
+                <>
+                  <dt>추가 이동(extraSteps)</dt>
+                  <dd>{formatPathMetric(summary.extraSteps, basis, summary.goalReached)}</dd>
+                  <dt>추가 이동 비용</dt>
+                  <dd>
+                    {formatPathMetric(summary.extraNavigationCost, basis, summary.goalReached)}
+                  </dd>
+                </>
+              )}
               <dt>검토 후보 수</dt>
               <dd>{issueCountText(issues)}</dd>
             </dl>

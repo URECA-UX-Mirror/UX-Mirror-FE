@@ -91,7 +91,7 @@ interface PathVisit {
 ```
 
 - `stepCount`(탐색 비용 기준)와 `stepRecordCount`(저장된 Step 수)는 다르다. 진행 표시는 `progress.stepCount / progress.maxSteps`를 쓴다.
-- `summary`의 `extraSteps` 계열은 목표에 도달하지 못하면 `null`이다. 0으로 바꾸지 않는다. `계약 §6.4`. `referencePathConfig: null`(직접 입력한 목표)이면 `referencePathDeviationCount`, `extraSteps` 계열, Step의 `goalPathProbability`도 `null`이고, 프론트는 명시적 `null`일 때만(없는 필드는 과거 preset Run) "계산 불가 (허용 경로 없음)"으로 표시한다. [OI-9](../operations/open_issue.md#oi-9)
+- `summary`의 `extraSteps` 계열은 목표에 도달하지 못하면 `null`이다. 0으로 바꾸지 않는다. `계약 §6.4`. `referencePathConfig: null`(직접 입력한 목표)이면 `referencePathDeviationCount`, `extraSteps` 계열, Step의 `goalPathProbability`도 `null`이고, 프론트는 명시적 `null`일 때만(없는 필드는 과거 preset Run) "계산 불가 (경로 기준 없음)"으로 표시한다. [OI-9](../operations/open_issue.md#oi-9)
 - `Run.limits`의 나머지 필드(`pageChangeTimeoutMs` 등)와 `thresholdConfig`, `analysisVersion`, `comparisonContext`는 프론트가 쓰지 않는다.
 
 ## Step (`계약 §12`)

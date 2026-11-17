@@ -145,6 +145,7 @@ function ResultBody({ run }: { run: Run }) {
       {run.summary ? (
         <PathPanel
           runId={run.runId}
+          basis={run.referenceBasis}
           path={run.summary.path}
           steps={steps.data}
           stepsFailed={steps.status === 'failed'}

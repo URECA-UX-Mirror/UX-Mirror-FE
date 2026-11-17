@@ -15,6 +15,9 @@ const orNull = (value: number | null) =>
   value === null ? '계산 불가' : value
 
 interface Row {
+  key: string
+  /** 없으면 항상 보인다 */
+  visible?: (bases: Bases) => boolean
   label: (bases: Bases) => string
   value: (outcome: RunOutcome, basis: RunBasis) => ReactNode
 }
@@ -25,9 +28,8 @@ interface Bases {
 }
 
 const SITE_MAP = 'SITE_MAP'
-// 사이트 지도 기준의 지표 이름은 결과 화면과 같은 헬퍼에서 가져온다
+// 사이트 지도 기준의 지표 이름은 `referenceBasis.ts`의 헬퍼에서 가져온다
 const SITE_MAP_NAMES = pathMetricNames(SITE_MAP)!
-const NO_BASES: Bases = { before: undefined, after: undefined }
 
 /** 양쪽이 사이트 지도 기준일 때만 "최단 경로 대비" 이름을 쓴다. 허용 경로(과거 Run 포함)는 기존 이름을 유지한다 */
 const bothSiteMap = ({ before, after }: Bases) =>
@@ -38,38 +40,50 @@ const basisText = (basis: RunBasis) =>
 
 const ROWS: Row[] = [
   {
+    key: 'goal',
     label: () => '목표 화면 도달',
     value: (o) => (o.goalReached ? '도달' : '도달하지 못함'),
   },
-  { label: () => '경로 지표 기준', value: (_, basis) => basisText(basis) },
-  { label: () => '종료 상태', value: (o) => o.status },
-  { label: () => '종료 사유', value: (o) => o.terminationReason ?? '-' },
-  { label: () => '탐색 단계 수', value: (o) => o.stepCount },
-  { label: () => '탐색 비용', value: (o) => o.navigationCost },
+  { key: 'basis', label: () => '경로 지표 기준', value: (_, basis) => basisText(basis) },
+  { key: 'status', label: () => '종료 상태', value: (o) => o.status },
+  { key: 'reason', label: () => '종료 사유', value: (o) => o.terminationReason ?? '-' },
+  { key: 'steps', label: () => '탐색 단계 수', value: (o) => o.stepCount },
+  { key: 'cost', label: () => '탐색 비용', value: (o) => o.navigationCost },
   {
+    key: 'clicks',
     label: () => '성공한 이동 클릭',
     value: (o) => o.successfulNavigationClickCount,
   },
   {
+    key: 'back',
     label: () => '뒤로 가기(모델 / 시스템 / 합계)',
     value: (o) => `${o.modelBackCount} / ${o.systemBackCount} / ${o.backCount}`,
   },
   {
+    key: 'extra',
     label: (bases) => (bothSiteMap(bases) ? SITE_MAP_NAMES.extraSteps : '추가 단계'),
     value: (o) => orNull(o.extraSteps),
   },
   {
+    key: 'extraCost',
     label: (bases) =>
       bothSiteMap(bases) ? SITE_MAP_NAMES.extraNavigationCost : '추가 탐색 비용',
     value: (o) => orNull(o.extraNavigationCost),
   },
   {
+    key: 'detour',
+    // 사이트 지도 기준 Run이 있을 때만 행을 보인다. 허용 경로끼리의 비교는 기존 표시를 유지한다
+    visible: ({ before, after }) => before === SITE_MAP || after === SITE_MAP,
     label: () => SITE_MAP_NAMES.detourMoveCount!,
-    // 사이트 지도 기준에서만 의미가 있다. 다른 기준은 값을 만들지 않는다
     value: (o, basis) =>
-      basis === SITE_MAP || basis === undefined ? orNull(o.detourMoveCount) : '해당 없음',
+      basis === SITE_MAP
+        ? orNull(o.detourMoveCount)
+        : basis === undefined
+          ? '-'
+          : '해당 없음',
   },
   {
+    key: 'deviation',
     label: () => '기준 경로 이탈 횟수',
     value: (o, basis) =>
       basis === SITE_MAP ? '사용 안 함' : orNull(o.referencePathDeviationCount),
@@ -92,8 +106,8 @@ export function RunComparison({ before, after, beforeBasis, afterBasis }: RunCom
           </tr>
         </thead>
         <tbody>
-          {ROWS.map((row) => (
-            <tr key={row.label(NO_BASES)}>
+          {ROWS.filter((row) => row.visible?.(bases) ?? true).map((row) => (
+            <tr key={row.key}>
               <th scope="row">{row.label(bases)}</th>
               <td>{row.value(before, beforeBasis)}</td>
               <td>{row.value(after, afterBasis)}</td>

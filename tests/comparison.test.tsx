@@ -175,7 +175,8 @@ it('SITE_MAP 비교는 기준·우회 이동·최단 경로 대비 이름을 보
     [...runRow(label).querySelectorAll('td')].map((td) => td.textContent)
   expect(cells('경로 지표 기준')).toEqual(['사이트 지도', '사이트 지도'])
   expect(cells('우회 이동').every((text) => /^\d+$/.test(text ?? ''))).toBe(true)
-  expect(cells('최단 경로 대비 추가 단계').length).toBe(2)
+  // 값까지 확인한다: 서버 값은 숫자이거나 계산 불가다
+  expect(cells('최단 경로 대비 추가 단계').every((text) => /^(\d+|계산 불가)$/.test(text ?? ''))).toBe(true)
   expect(cells('기준 경로 이탈 횟수')).toEqual(['사용 안 함', '사용 안 함'])
   expect(screen.queryByRole('rowheader', { name: '추가 단계' })).toBeNull()
   // 판정 문구·화살표를 만들지 않는다
@@ -207,17 +208,15 @@ it('basis 불일치는 서버 message 그대로 실패 항목에 나온다', asy
   expect(screen.getByRole('rowheader', { name: '추가 단계' })).toBeTruthy()
 })
 
-it('과거 Run 비교(허용 경로)는 기존 표시를 유지하고 우회 이동은 해당 없음이다', async () => {
+it('과거 Run 비교(허용 경로)는 기존 표시를 유지하고 우회 이동 행이 없다', async () => {
   renderPage('mock-done')
   await screen.findByText('Run 단위 비교')
   await waitFor(() => expect(runRow('경로 지표 기준').textContent).toContain('허용 경로'))
   expect(screen.getByRole('rowheader', { name: '추가 단계' })).toBeTruthy()
   expect(screen.getByRole('rowheader', { name: '기준 경로 이탈 횟수' })).toBeTruthy()
   expect(runRow('기준 경로 이탈 횟수').textContent).not.toContain('사용 안 함')
-  expect([...runRow('우회 이동').querySelectorAll('td')].map((td) => td.textContent)).toEqual([
-    '해당 없음',
-    '해당 없음',
-  ])
+  // 허용 경로끼리의 비교에는 우회 이동 행이 없다
+  expect(screen.queryByRole('rowheader', { name: '우회 이동' })).toBeNull()
 })
 
 it('기준이 다른 비교는 지표 표의 목표 경로 확률 설명을 버전별로 보인다', async () => {
@@ -239,11 +238,11 @@ describe('RunComparison의 기준 경계값', () => {
       (td) => td.textContent,
     )
 
-  it('기준 없음(null)이면 기준 없음으로 표시하고 우회 이동은 해당 없음, 이탈 횟수는 계산 불가다', () => {
+  it('기준 없음(null)이면 기준 없음으로 표시하고 우회 이동 행은 없으며 이탈 횟수는 계산 불가다', () => {
     const { before, after } = outcomes()
     render(<RunComparison before={before} after={after} beforeBasis={null} afterBasis={null} />)
     expect(cells('경로 지표 기준')).toEqual(['기준 없음', '기준 없음'])
-    expect(cells('우회 이동')).toEqual(['해당 없음', '해당 없음'])
+    expect(screen.queryByRole('rowheader', { name: '우회 이동' })).toBeNull()
     expect(cells('기준 경로 이탈 횟수')).toEqual(['계산 불가', '계산 불가'])
     expect(screen.getByRole('rowheader', { name: '추가 단계' })).toBeTruthy()
   })
@@ -252,6 +251,7 @@ describe('RunComparison의 기준 경계값', () => {
     const { before, after } = outcomes()
     render(<RunComparison before={before} after={after} />)
     expect(cells('경로 지표 기준')).toEqual(['-', '-'])
+    expect(screen.queryByRole('rowheader', { name: '우회 이동' })).toBeNull()
     expect(screen.getByRole('rowheader', { name: '추가 단계' })).toBeTruthy()
     expect(cells('기준 경로 이탈 횟수')).not.toContain('사용 안 함')
   })

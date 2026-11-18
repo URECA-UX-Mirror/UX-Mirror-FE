@@ -15,10 +15,11 @@
 | ID | 항목 | 담당 | 임시 결정 | 2번 답변 (11-18) |
 | --- | --- | --- | --- | --- |
 | [OI-3](#oi-3) | 도착 화면 스크린샷 조회 | 정자비, 장근창 | 이미지 없이 표시 | 별도 API `GET /api/runs/{runId}/screenshots/goal`(UX-Mirror-BE #56) |
-| [OI-8](#oi-8) | 분석 대상 사이트 입력 | 장근창 | 입력란은 두되 요청에 싣지 않고, MORO MARKET 외 값은 안내 후 시작을 막음 | (장근창 담당) |
+| [OI-8](#oi-8) | 분석 대상 사이트 입력 | 장근창 | 입력란은 두되 요청에 싣지 않고, MORO MARKET 외 값은 안내 후 시작을 막음; 등록 사이트 선택은 [OI-11](#oi-11), 임의 URL은 미해결 | (장근창 담당) |
 | [OI-7](#oi-7) | 저장된 실측 데이터 시연 | 정자비 | `/replay`에서 원본 `LIVE` Run을 조회해 재생, 서버 없는 시연은 P0 제외 | 임시 결정대로. 고정 키는 11/19 E 실행 후 전달 |
 | [OI-9](#oi-9) | 목표·사용자 유형 직접 입력 | 정자비, 장근창 | 백엔드 구현 기준으로 요청·표시, 도착 화면은 목록에서 고름 | 화면 글자 사전 검사(`422`·`503`)는 BE #60으로 구현됨. 도착 경로 없음 `422`·지도 오류 처리도 구현됨 |
 | [OI-10](#oi-10) | 경로 지표 기준(basis)·우회 이동 | 정자비, 장근창 | 설계 v2.1 기준으로 optional로 받고, 없으면 `ALLOWED_PATHS`·`detourMoveCount: null` | 대부분 서버와 일치. ⚠️ 2건 다름(`referencePathConfig` 필드 없음 처리·mock `goalPathProbability`) |
+| [OI-11](#oi-11) | 시나리오 테스트(외부 사이트) | 장근창, 정자비, 권혁준 | 등록 사이트 선택, mock과 Adapter로 선행 | API 세부 사항 확정 대기 |
 
 ## 항목
 
@@ -52,6 +53,7 @@
 
 - 계약서: `POST /api/runs` 요청 본문은 `experimentKey`, `variant`, `goalId`, `personaId`, `maxSteps`다. 사이트(주소)를 받는 필드는 없고 대상은 `variant`에 따라 백엔드가 정한다.
 - 임시 결정: 새 UX 분석 화면의 "분석 사이트"를 입력할 수 있게 두되 값은 요청에 싣지 않는다. 입력값이 MORO MARKET(대소문자·앞뒤 공백 무시)이 아니거나 비어 있으면 안내를 보이고 분석 시작을 막는다. 입력한 대상과 실제 분석 대상이 달라지지 않게 하기 위해서다.
+- 부분 해결: 등록된 외부 사이트 선택 방안으로 범위상 부분 해결했다. API 확정과 구현은 [OI-11](#oi-11)에서 진행 중이며 임의 URL 입력은 미해결이다.
 - 확인할 것: 임의 사이트를 분석할지, 요청 필드(예: 사이트 주소·버전별 주소)와 검증 규칙을 어떻게 둘지. 확정되면 계약서를 고치고 입력값을 요청에 싣는다.
 - 담당: 장근창(API).
 
@@ -92,3 +94,16 @@
 - 2번 답변 (11-18): 서버 Run에는 `referenceBasis` 필드가 없고, FE Adapter(`toReferenceBasis`)가 `referencePathConfig`에서 만든다. 이 변환은 서버 규칙과 같지만, 필드가 없을 때(`undefined`)만 `ALLOWED_PATHS`로 읽어 서버(기준 없음)와 다르다. 서버와 다른 FE 동작 2건(필드 없음 처리, mock `goalPathProbability`)은 별도 이슈로 고친다.
 - 확인할 것: FE는 경로 기준을 `Run.referenceBasis`로 구분한다. 백엔드와 기준별 응답·표시 및 사이트 지도 생성·검증, 지원 화면 범위를 확인한다. 사이트 지도 변경은 계약 v1.3.7 제안이며, 위 항목은 실제 연동과 계약 확정 후 `docs/contracts/`와 mock에 반영하고 해당 행을 지운다. 모두 해소되면 이 항목을 지운다.
 - 담당: 정자비(지표), 장근창(API).
+
+<a id="oi-11"></a>
+### OI-11 시나리오 테스트(외부 사이트)
+
+- 범위: 서버에 등록된 사이트만 선택한다. 임의 URL을 이용한 범용 분석은 [OI-8](#oi-8)에 남긴다. MORO MARKET 버전 비교는 기존 방식을 유지한다.
+- 계약서 v1.3.5에 없는 항목: Run 요청의 `siteId`, `GET /api/sites`, 시나리오 Run의 `variant`와 구분 값 `mode`, 사이트 이름과 화면 목록 필드.
+- 확정(계약서 미반영): 시나리오 Run은 `variant: before`와 `mode: SCENARIO`를 사용한다. `GET /api/sites` 응답과 Run의 `siteId`·`mode`는 장근창 님 답변을 기준으로 정한 mock 형식이다. 프론트는 mock과 Adapter로 먼저 만들고, [UX-Mirror-BE #75](https://github.com/UX-Mirror/UX-Mirror-BE/pull/75) 머지 후 실제 응답을 대조한다.
+- 임시 mock 형식([FE #53](https://github.com/UX-Mirror/UX-Mirror-FE/issues/53)): `GET /api/sites`는 `{items: [{siteId, name, mode, startPage, pages: [{pageKey, path, label, goalText, goalSelectable}], siteMap: {available}}]}` 형식이다. `goalText`는 `null`일 수 있다. `POST /api/runs`는 `siteId`를 선택적으로 받으며, Run 상세와 목록 항목은 `siteId`·`mode`를 선택적으로 받는다. 기존 버전 비교 Run의 두 필드는 `null`이거나 없을 수 있다. 상세 형식과 mock 처리 규칙은 FE #53을 따른다.
+- BE #75의 안(머지 전): 사이트 목록에는 시나리오 사이트만 포함하고 MORO MARKET은 제외한다. 사이트 이름은 Run이 아닌 `GET /api/sites`의 `name`으로 찾는다. 시나리오 Run만 있는 실험의 비교 요청은 `404 RUN_NOT_FOUND`, 등록되지 않은 `siteId`와 MORO MARKET의 `siteId`는 `422 CONTRACT_VALIDATION_ERROR`다. 같은 `experimentKey`에 버전 비교 Run과 시나리오 Run을 섞으면 `422`이고, 시나리오 사전 검사 실패 메시지에는 Before/After를 붙이지 않는다. 머지 후 실제 응답과 대조한다.
+- BE #75의 안(머지 전)은 도착 화면 선택 가능 여부를 `pages[].goalSelectable`로 제공한다. 확인 글자가 있고 시작 화면이 아니며 지도에서 도달할 수 있는 화면을 선택할 수 있다. 지도가 없으면 도달 가능성은 검사하지 않는다. 추가 진단 필드 `pages[].goalUnavailableReason`(`START_PAGE`, `NO_GOAL_TEXT`, `UNREACHABLE_ON_SITE_MAP`)과 `siteMap.siteMapVersion`·`siteMap.unreachablePages`도 포함한다. FE mock 반영은 [FE #53](https://github.com/UX-Mirror/UX-Mirror-FE/issues/53)에서 검토한다. 시연 사이트 지도 파일은 UX-Mirror-BE #71에 머지됐다. 시연 사이트의 mock `siteMap.available`은 `true`, 지도 없는 사이트의 mock은 `false`로 만들 계획이다. 실제 API 응답은 백엔드 구현 후 확인한다.
+- 영어 목표 문장의 금지어 검사는 대소문자를 구분하는 단순 포함 검사여서 `afternoon`의 `after`나 `invariant`의 `variant`처럼 단어 일부만 일치해도 `422`가 발생할 수 있다. 예를 들어 `after`는 금지어 검사에 걸리지만 `After`는 해당 검사에 걸리지 않는다. 백엔드 규칙 변경 여부를 이성집·정자비 님이 확인 중이다. 실행 중 누출 검사 실패는 `LEAK_CHECK_FAILED`로 끝나는 무효 Run이다.
+- 담당: 장근창(API), 정자비(루프·사이트 설정), 권혁준(프론트). 관련 FE 이슈: [#53](https://github.com/UX-Mirror/UX-Mirror-FE/issues/53), [#54](https://github.com/UX-Mirror/UX-Mirror-FE/issues/54), [#55](https://github.com/UX-Mirror/UX-Mirror-FE/issues/55), [#56](https://github.com/UX-Mirror/UX-Mirror-FE/issues/56).
+- 확정되면 `docs/contracts/`를 고친 뒤 이 항목을 지운다.

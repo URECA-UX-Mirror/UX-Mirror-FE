@@ -78,10 +78,10 @@
 ### 저장된 실측 결과 재생
 
 - 진입은 새 UX 분석 화면의 "저장된 결과 보기" 링크이며 경로는 `/replay`다. 구현은 `features/replay/`다.
-- `ReplayPage`가 고정 `experimentKey`(`constants.ts`의 `REPLAY_EXPERIMENT_KEY`)로 `GET /api/runs?experimentKey=`를 한 번 조회해 Run마다 진행·결과 화면 링크를 둔다. 새 API는 없고 `POST /api/runs` 등 Run을 만들거나 바꾸는 요청은 보내지 않는다. 조회 재시도 중에는 "연결 재시도 중"을 보인다.
+- `ReplayPage`가 고정 `experimentKey`(`constants.ts`의 `REPLAY_EXPERIMENTS`, E 실행 목표별로 여러 개) 각각으로 `GET /api/runs?experimentKey=`를 한 번씩 조회해 키마다 카드를 만들고 Run마다 진행·결과 화면 링크를 둔다. 새 API는 없고 `POST /api/runs` 등 Run을 만들거나 바꾸는 요청은 보내지 않는다. 조회 재시도 중에는 "연결 재시도 중"을 보인다.
 - 같은 키의 비교 화면(`/comparisons/{experimentKey}`) 링크는 Before·After 각각 종료된 `VALID` Run이 목록에 있을 때만 보인다. Issue 분석 완료 여부는 목록에 없으므로 `COMPARISON_NOT_READY`는 비교 화면의 오류 안내가 맡는다.
-- 재생 표시(`ReplayNotice`)는 `resultOrigin` 배지와 별개이며 원본 값은 그대로 표시한다. 진행·결과·비교 화면에서 `experimentKey`가 고정 키와 같을 때만 보이고, 화면의 모든 `resultOrigin`이 `LIVE`·`SAVED_MEASURED`이면 "저장된 실측 결과 재생", 하나라도 그 밖(`MOCK`)이면 "MOCK 재생 테스트"다.
-- 고정 키 값은 [OI-7](../operations/open_issue.md#oi-7)의 임시 값이다. 서버 없는 시연은 P0에서 하지 않는다. 테스트는 `tests/replay.test.tsx`다.
+- 재생 표시(`ReplayNotice`)는 `resultOrigin` 배지와 별개이며 원본 값은 그대로 표시한다. 진행·결과·비교 화면에서 `experimentKey`가 고정 키 목록에 있을 때만 보이고, 화면의 모든 `resultOrigin`이 `LIVE`·`SAVED_MEASURED`이면 "저장된 실측 결과 재생", 하나라도 그 밖(`MOCK`)이면 "MOCK 재생 테스트"다.
+- 키는 카드마다 목록·오류·재시도·비교 링크가 독립이라 한 키의 조회 실패가 다른 키에 영향을 주지 않는다. 고정 키 값은 [OI-7](../operations/open_issue.md#oi-7)의 임시 값이다. 서버 없는 시연은 P0에서 하지 않는다. 테스트는 `tests/replay.test.tsx`, `tests/replay-multi.test.tsx`다.
 
 ## 표시 규칙
 

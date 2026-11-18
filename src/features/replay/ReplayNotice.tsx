@@ -1,5 +1,5 @@
 import {
-  REPLAY_EXPERIMENT_KEY,
+  isReplayKey,
   REPLAY_LABEL,
   REPLAY_MOCK_LABEL,
 } from './constants.ts'
@@ -13,11 +13,11 @@ interface ReplayNoticeProps {
 }
 
 /**
- * 고정 재생 키의 화면에만 재생 표시를 보인다. `resultOrigin` 배지와 별개이며 원본 값은 바꾸지 않는다.
+ * 고정 재생 키(여러 개 가능)의 화면에만 재생 표시를 보인다. `resultOrigin` 배지와 별개이며 원본 값은 바꾸지 않는다.
  * 모든 출처가 실제 실행(`LIVE`, `SAVED_MEASURED`)일 때만 "실측"이라고 쓰고, 그 밖에는 MOCK 표시를 쓴다.
  */
 export function ReplayNotice({ experimentKey, origins }: ReplayNoticeProps) {
-  if (experimentKey !== REPLAY_EXPERIMENT_KEY) return null
+  if (!isReplayKey(experimentKey)) return null
   const measured = origins.every((origin) => MEASURED_ORIGINS.includes(origin))
   return (
     <p className="replay-notice" role="note">

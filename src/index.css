@@ -503,6 +503,10 @@ select:focus {
   font-size: 13px;
 }
 
+.card > .replay-notice {
+  margin: 0 0 var(--um-space-3);
+}
+
 .origin-badges {
   display: inline-flex;
   flex-wrap: wrap;

@@ -259,7 +259,7 @@ function NewAnalysisContent() {
               </select>
             </label>
           </div>
-          <p className="muted verification-note">직접 입력한 목표는 허용 경로가 없어 경로 이탈·추가 단계·목표 경로 확률은 계산하지 않습니다.</p>
+          <p className="muted verification-note">직접 입력한 목표는 사이트 지도를 기준으로 최단 경로 대비 추가 단계·우회 이동·목표 경로 확률을 계산합니다. 사이트 지도를 쓸 수 없으면 계산하지 않습니다.</p>
         </fieldset>
         <div className="steps-row">
           <div>

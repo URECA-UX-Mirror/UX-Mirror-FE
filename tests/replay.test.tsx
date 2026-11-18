@@ -5,7 +5,7 @@ import { afterEach, expect, it, vi } from 'vitest'
 import { apiUrl } from '../src/api/client.ts'
 import { server } from './setup.ts'
 import { ComparisonPage } from '../src/features/comparison/ComparisonPage.tsx'
-import { REPLAY_EXPERIMENTS } from '../src/features/replay/constants.ts'
+import { isReplayKey, REPLAY_EXPERIMENTS } from '../src/features/replay/constants.ts'
 import { ReplayPage } from '../src/features/replay/ReplayPage.tsx'
 import { RunResultPage } from '../src/features/run-result/RunResultPage.tsx'
 
@@ -24,6 +24,11 @@ function renderAt(path: string) {
     </MemoryRouter>,
   )
 }
+
+it('isReplayKey는 목록의 키만 재생 대상으로 본다', () => {
+  expect(isReplayKey(REPLAY_EXPERIMENTS[0].key)).toBe(true)
+  expect(isReplayKey('other')).toBe(false)
+})
 
 const MOCK_NOTE = 'MOCK 재생 테스트'
 const LIVE_NOTE = '저장된 실측 결과 재생'

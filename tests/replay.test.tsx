@@ -5,9 +5,11 @@ import { afterEach, expect, it, vi } from 'vitest'
 import { apiUrl } from '../src/api/client.ts'
 import { server } from './setup.ts'
 import { ComparisonPage } from '../src/features/comparison/ComparisonPage.tsx'
-import { REPLAY_EXPERIMENT_KEY } from '../src/features/replay/constants.ts'
+import { REPLAY_EXPERIMENTS } from '../src/features/replay/constants.ts'
 import { ReplayPage } from '../src/features/replay/ReplayPage.tsx'
 import { RunResultPage } from '../src/features/run-result/RunResultPage.tsx'
+
+const REPLAY_EXPERIMENT_KEY = REPLAY_EXPERIMENTS[0].key
 
 afterEach(() => vi.restoreAllMocks())
 

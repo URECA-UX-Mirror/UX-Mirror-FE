@@ -75,7 +75,7 @@
 | 409 | `RUN_ALREADY_ACTIVE` | 다른 분석이 실행 중이라는 안내와 해당 Run 이동 링크 |
 | 409 | `EXPERIMENT_RUN_EXISTS` | 같은 키와 버전에 진행 중이거나 유효한 Run이 이미 있다는 안내와 결과 보기 링크. 기존 Run이 모두 `INVALID`일 때만 같은 키로 다시 실행할 수 있다 |
 | 422 | `CONTRACT_VALIDATION_ERROR` | 서버 `message`(키 형식, `maxSteps` 범위, 없는 목표·사용자 유형, 직접 입력 문장의 빈 값·길이·금지 문자열, 성공 조건 오류, 첫 Run과 다른 입력)를 그대로 보이고 입력 수정을 안내한다. 재시도 버튼은 두지 않는다 |
-| 503 | `BROWSER_ERROR` | FE는 서버 `message`를 보이고 Run이 생성되지 않았음을 안내한다. 직접 입력한 목표의 도착 화면 사전 검사에서 화면을 열지 못하거나 10초 안에 응답이 없을 때도 이 코드이며 백엔드에 구현됐다(UX-Mirror-BE #60, 계약서 반영 전, [OI-9](../operations/open_issue.md#oi-9)). 메시지가 비어 있으면 "도착 화면을 확인하지 못했습니다"를 보인다. `retryable`이면 같은 버전의 실행 재시도 버튼을 보인다 |
+| 503 | `BROWSER_ERROR` | FE는 서버 `message`를 보이고 Run이 생성되지 않았음을 안내한다. 직접 입력한 목표의 도착 화면 사전 검사에서 Before·After 어느 화면이든 열지 못하거나 화면마다 10초(요청당 최대 약 20초) 안에 응답이 없을 때도 이 코드이며 백엔드에 구현됐다(UX-Mirror-BE #60, 계약서 반영 전, [OI-9](../operations/open_issue.md#oi-9)). 메시지가 비어 있으면 "도착 화면을 확인하지 못했습니다"를 보인다. `retryable`이면 같은 버전의 실행 재시도 버튼을 보인다 |
 
 ### GET /api/runs
 

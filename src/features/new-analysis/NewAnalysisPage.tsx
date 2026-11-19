@@ -11,10 +11,10 @@ import { useHealth } from '../../shared/useHealth.ts'
 import { SectionTitle } from '../../shared/SectionTitle.tsx'
 import { CompareIcon, GlobeIcon, LayersIcon, SettingsIcon } from '../../shared/icons.tsx'
 import { statusLabel } from '../run-progress/statusLabel.ts'
-import { createExperimentKey, GOAL_PAGES, INPUT_LIMITS, SCOPES, SITE, STEPS, VERSIONS } from './constants.ts'
+import { createExperimentKey, GOAL_PAGES, INPUT_LIMITS, SCOPES, SITE, STEPS, ANALYZED_VERSIONS } from './constants.ts'
+import { FinalVariantRow } from './FinalVariantRow.tsx'
 import './new-analysis.css'
 
-type Results = Record<Variant, RunListItem[]>
 type LoadState = 'loading' | 'ready' | 'error'
 type ListResult = { token: string; status: 'ready' | 'error'; runs: RunListItem[] }
 const KEY_PATTERN = /^[A-Za-z0-9_-]{1,64}$/
@@ -23,7 +23,7 @@ type Scope = 'page' | 'main'
 const isSentence = (text: string, max: number) => text.trim() !== '' && text.trim().length <= max
 
 /**
- * 기존 실험의 첫 Run 입력. 두 번째 버전은 이 값을 그대로 보낸다(같은 실험 키는 입력이 같아야 함).
+ * 기존 실험의 첫 Run 입력. 같은 실험 키로 다시 시작할 때 이 값을 그대로 보낸다(같은 실험 키는 입력이 같아야 함).
  * 화면은 직접 입력만 받지만, 예전에 preset ID로 만든 실험은 ID를 그대로 보내야 서버가 같은 입력으로 본다.
  */
 function goalInputOf(run: Run): GoalInput | null {
@@ -58,7 +58,7 @@ function NewAnalysisContent() {
   const [goalScope, setGoalScope] = useState<Scope>('page')
   const [personaText, setPersonaText] = useState('')
   const [maxSteps, setMaxSteps] = useState<number | ''>(STEPS.default)
-  const [listResults, setListResults] = useState<Partial<Record<Variant, ListResult>>>({})
+  const [listResult, setListResult] = useState<ListResult | null>(null)
   const [listVersion, setListVersion] = useState(0)
   const [runResult, setRunResult] = useState<{ token: string; run: Run | null; error: boolean } | null>(null)
   const [submitting, setSubmitting] = useState(false)
@@ -66,8 +66,6 @@ function NewAnalysisContent() {
   const [attemptedVariant, setAttemptedVariant] = useState<Variant | null>(null)
   // 분석 사이트 입력. 실행 요청 계약에 사이트 필드가 없어 요청에는 싣지 않는다(OI-8)
   const [site, setSite] = useState<string>(SITE.name)
-  const [compareA, setCompareA] = useState<Variant>('before')
-  const [compareB, setCompareB] = useState<Variant>('after')
   const health = useHealth()
 
   const validKey = !experimentKey || KEY_PATTERN.test(experimentKey)
@@ -75,25 +73,18 @@ function NewAnalysisContent() {
   useEffect(() => {
     const controller = new AbortController()
     if (!experimentKey || !KEY_PATTERN.test(experimentKey)) return () => controller.abort()
-    for (const { variant } of VERSIONS) {
-      listRuns({ experimentKey, variant }, controller.signal).then((items) => {
-        if (!controller.signal.aborted) setListResults((prev) => ({ ...prev, [variant]: { token: listToken, status: 'ready', runs: items } }))
-      }).catch((error: unknown) => {
-        if (!controller.signal.aborted && !isAbortError(error)) setListResults((prev) => ({ ...prev, [variant]: { token: listToken, status: 'error', runs: [] } }))
-      })
-    }
+    listRuns({ experimentKey, variant: 'before' }, controller.signal).then((items) => {
+      if (!controller.signal.aborted) setListResult({ token: listToken, status: 'ready', runs: items })
+    }).catch((error: unknown) => {
+      if (!controller.signal.aborted && !isAbortError(error)) setListResult({ token: listToken, status: 'error', runs: [] })
+    })
     return () => controller.abort()
   }, [experimentKey, listToken])
 
-  const listState = Object.fromEntries(VERSIONS.map(({ variant }) => [variant,
-    !experimentKey ? 'ready' : !validKey ? 'error' : listResults[variant]?.token === listToken ? listResults[variant].status : 'loading',
-  ])) as Record<Variant, LoadState>
-  const results = Object.fromEntries(VERSIONS.map(({ variant }) => [variant,
-    listState[variant] === 'ready' && experimentKey ? listResults[variant]?.runs ?? [] : [],
-  ])) as Results
-  const validBefore = results.before.find((run) => run.validity === 'VALID')
-  const validAfter = results.after.find((run) => run.validity === 'VALID')
-  const firstId = (validBefore ?? results.before[0] ?? validAfter ?? results.after[0])?.runId
+  const listState: LoadState = !experimentKey ? 'ready' : !validKey ? 'error' : listResult?.token === listToken ? listResult.status : 'loading'
+  const runs = listState === 'ready' && experimentKey ? listResult?.runs ?? [] : []
+  const validBefore = runs.find((run) => run.validity === 'VALID')
+  const firstId = (validBefore ?? runs[0])?.runId
   const runToken = JSON.stringify([listToken, firstId])
   useEffect(() => {
     const controller = new AbortController()
@@ -110,13 +101,13 @@ function NewAnalysisContent() {
   const firstRunState: LoadState = !firstId ? 'ready' : runResult?.token !== runToken ? 'loading' : runResult.error ? 'error' : 'ready'
   const effectiveSteps = firstRun?.maxSteps ?? maxSteps
   const validSteps = typeof effectiveSteps === 'number' && Number.isInteger(effectiveSteps) && effectiveSteps >= STEPS.min && effectiveSteps <= STEPS.max
-  const anyLoading = listState.before === 'loading' || listState.after === 'loading'
-  const listFailed = listState.before === 'error' || listState.after === 'error'
+  const anyLoading = listState === 'loading'
+  const listFailed = listState === 'error'
   const activeRun = health.health?.activeRunId
   const activeOptimization = health.health?.activeOptimization
   const engineNotReady = health.health !== null && health.health.status !== 'READY'
   const firstPending = !!firstId && firstRunState !== 'ready'
-  const anyRunning = Object.values(results).some((runs) => runs.some((run) => !isTerminalStatus(run.status)))
+  const anyRunning = runs.some((run) => !isTerminalStatus(run.status))
   // 실행 요청에는 사이트가 없어 대상은 MORO MARKET으로 고정이다. 다른 값이면 시작할 수 없다(OI-8)
   const siteSupported = site.trim().toLowerCase() === SITE.name.toLowerCase()
   const formGoal: GoalInput | null =
@@ -128,7 +119,6 @@ function NewAnalysisContent() {
   const goalInput = firstRun ? goalInputOf(firstRun) : formGoal
   const personaInput = firstRun ? personaInputOf(firstRun) : formPersona
   const ready = siteSupported && !!goalInput && !!personaInput && validSteps && validKey && keyInput === experimentKey && !submitting && !health.loading && health.health?.status === 'READY' && !activeRun && !anyLoading && !listFailed && !firstPending && !anyRunning
-  const bothFinished = !anyLoading && !listFailed && !!validBefore && !!validAfter && isTerminalStatus(validBefore.status) && isTerminalStatus(validAfter.status)
 
   // 도착 화면을 고르면 그 화면의 제목을 성공 조건 글자로 채운다 (사용자가 고칠 수 있음)
   function selectGoalPage(path: string) {
@@ -178,7 +168,7 @@ function NewAnalysisContent() {
       {activeRun && <p role="alert">다른 분석이 실행 중입니다. <Link to={`/runs/${encodeURIComponent(activeRun)}`}>진행 중인 Run 보기</Link></p>}
       {activeOptimization && <p role="status">Optimizer가 {activeOptimizationLabel(activeOptimization.status)}입니다. 끝난 뒤에 새 분석을 시작할 수 있습니다.</p>}
       {!!health.error && <p role="status">엔진 상태를 확인할 수 없습니다. <button type="button" onClick={health.reload}>다시 확인</button></p>}
-      {submitError ? <div role="alert">{code === 'RUN_ALREADY_ACTIVE' ? <p>{activeRun || !isApiError(submitError) || !submitError.message.trim() ? '다른 분석이 실행 중입니다.' : submitError.message} {activeRun && <Link to={`/runs/${encodeURIComponent(activeRun)}`}>진행 중인 Run 보기</Link>}</p> : code === 'EXPERIMENT_RUN_EXISTS' ? <p>같은 버전의 실행이 이미 있습니다. {Object.values(results).flat().filter((r) => r.validity === 'VALID').map((r) => <Link key={r.runId} to={`/runs/${encodeURIComponent(r.runId)}/result`}>{r.runId} 결과 보기 </Link>)}</p> : code === 'CONTRACT_VALIDATION_ERROR' ? <><p>{isApiError(submitError) && submitError.message ? submitError.message : '입력한 분석 조건을 확인해 주세요.'}</p><p>입력을 고친 뒤 다시 시작해 주세요.</p></> : code === 'BROWSER_ERROR' && isApiError(submitError) ? <><p>{submitError.message.trim() || '도착 화면을 확인하지 못했습니다'}</p><p>Run은 생성되지 않았습니다.</p>{submitError.retryable && attemptedVariant && <button type="button" disabled={!ready} onClick={() => void start(attemptedVariant)}>다시 시도</button>}</> : isApiError(submitError) && submitError.status === 503 ? <><p>{submitError.message.trim() || '실행 환경을 준비하지 못했습니다.'}</p>{submitError.retryable && attemptedVariant && <button type="button" disabled={!ready} onClick={() => void start(attemptedVariant)}>다시 시도</button>}</> : <ErrorNotice error={submitError} />}</div> : null}
+      {submitError ? <div role="alert">{code === 'RUN_ALREADY_ACTIVE' ? <p>{activeRun || !isApiError(submitError) || !submitError.message.trim() ? '다른 분석이 실행 중입니다.' : submitError.message} {activeRun && <Link to={`/runs/${encodeURIComponent(activeRun)}`}>진행 중인 Run 보기</Link>}</p> : code === 'EXPERIMENT_RUN_EXISTS' ? <p>같은 버전의 실행이 이미 있습니다. {runs.filter((r) => r.validity === 'VALID').map((r) => <Link key={r.runId} to={`/runs/${encodeURIComponent(r.runId)}/result`}>{r.runId} 결과 보기 </Link>)}</p> : code === 'CONTRACT_VALIDATION_ERROR' ? <><p>{isApiError(submitError) && submitError.message ? submitError.message : '입력한 분석 조건을 확인해 주세요.'}</p><p>입력을 고친 뒤 다시 시작해 주세요.</p></> : code === 'BROWSER_ERROR' && isApiError(submitError) ? <><p>{submitError.message.trim() || '도착 화면을 확인하지 못했습니다'}</p><p>Run은 생성되지 않았습니다.</p>{submitError.retryable && attemptedVariant && <button type="button" disabled={!ready} onClick={() => void start(attemptedVariant)}>다시 시도</button>}</> : isApiError(submitError) && submitError.status === 503 ? <><p>{submitError.message.trim() || '실행 환경을 준비하지 못했습니다.'}</p>{submitError.retryable && attemptedVariant && <button type="button" disabled={!ready} onClick={() => void start(attemptedVariant)}>다시 시도</button>}</> : <ErrorNotice error={submitError} />}</div> : null}
     </>
   )
 
@@ -186,7 +176,7 @@ function NewAnalysisContent() {
     <section className="new-analysis">
       <header className="page-header">
         <h1>새 UX 분석</h1>
-        <p className="page-lead">{SITE.name}의 두 버전을 같은 조건으로 분석하고 결과를 비교합니다.</p>
+        <p className="page-lead">{SITE.name} v1을 분석하고, 에이전트가 고친 개선안과 비교합니다.</p>
       </header>
 
       <section className="card target-card" aria-label="분석 대상">
@@ -206,7 +196,7 @@ function NewAnalysisContent() {
           />
         </div>
         <p className="muted">
-          현재는 각 버전에 맞는 {SITE.name} 테스트 사이트만 분석할 수 있습니다. 입력한 값은 아직 분석 요청에 반영되지 않습니다.
+          현재는 {SITE.name} 테스트 사이트(v1)만 분석할 수 있습니다. 입력한 값은 아직 분석 요청에 반영되지 않습니다.
         </p>
         {!siteSupported && (
           <p role="alert" className="site-warning">
@@ -216,7 +206,7 @@ function NewAnalysisContent() {
       </section>
 
       <section className="card" aria-label="실험">
-        <SectionTitle icon={<CompareIcon />} title="실험" aside="실험 키 하나로 두 버전이 묶입니다" />
+        <SectionTitle icon={<CompareIcon />} title="실험" aside="실험 키로 v1 분석 기록을 불러옵니다" />
         <div className="key-row">
           <label>실험 키 <input value={keyInput} placeholder="새 실험은 비워 두세요" onChange={(e) => setKeyInput(e.target.value)} /></label>
           <button type="button" disabled={!KEY_PATTERN.test(keyInput)} onClick={() => selectExperiment(keyInput)}>조회</button>
@@ -233,7 +223,7 @@ function NewAnalysisContent() {
         <legend>
           <span className="section-icon"><SettingsIcon /></span>
           분석 조건
-          <span className="section-aside">{firstId ? '기존 실험의 조건으로 고정됩니다' : '두 버전에 같은 조건이 적용됩니다'}</span>
+          <span className="section-aside">{firstId ? '기존 실험의 조건으로 고정됩니다' : 'v1 분석에 적용됩니다'}</span>
         </legend>
         <div className="conditions-grid">
           <div className="condition-tile">
@@ -281,8 +271,8 @@ function NewAnalysisContent() {
         <SectionTitle
           icon={<LayersIcon />}
           title="버전별 분석"
-          aside="분석할 버전을 선택하고 AI 탐색을 실행합니다"
-          action={<button type="button" disabled title="P0에서는 두 버전 비교만 지원합니다">+ 버전 추가</button>}
+          aside="v1을 분석하고 자동 개선 최종안과 비교합니다"
+          action={<button type="button" disabled title="P0에서는 v1과 자동 개선 최종안 비교만 지원합니다">+ 버전 추가</button>}
         />
         <div className="comparison-table-scroll">
           <table className="version-table">
@@ -298,12 +288,11 @@ function NewAnalysisContent() {
               </tr>
             </thead>
             <tbody>
-              {VERSIONS.map(({ variant, name, change }) => {
-                const runs = results[variant]
+              {ANALYZED_VERSIONS.map(({ variant, name, change }) => {
                 const run = runs[0]
-                const validRun = variant === 'before' ? validBefore : validAfter
+                const validRun = validBefore
                 const canCreate = runs.every((item) => item.validity === 'INVALID')
-                const state = listState[variant]
+                const state = listState
                 return (
                   <tr key={variant} data-variant={variant}>
                     <th scope="row"><span className="version-dot" data-variant={variant} />{name}</th>
@@ -327,11 +316,12 @@ function NewAnalysisContent() {
                     )}
                     <td className="col-action">
                       {run && state === 'ready' ? <Link to={isTerminalStatus(run.status) ? `/runs/${encodeURIComponent(run.runId)}/result` : `/runs/${encodeURIComponent(run.runId)}`}>{isTerminalStatus(run.status) ? '결과 보기' : '진행 보기'}</Link> : null}
-                      <button type="button" className="primary" disabled={!ready || (variant === 'after' && !validBefore) || !canCreate} onClick={() => void start(variant)}>분석 시작</button>
+                      <button type="button" className="primary" disabled={!ready || !canCreate} onClick={() => void start(variant)}>분석 시작</button>
                     </td>
                   </tr>
                 )
               })}
+              <FinalVariantRow />
               <tr className="row-future">
                 <th scope="row"><span className="version-dot" />v3 (예정)</th>
                 <td colSpan={5}>상단 GNB 직관 검색 바 통합</td>
@@ -341,17 +331,6 @@ function NewAnalysisContent() {
           </table>
         </div>
         {listFailed && validKey && <p><button type="button" onClick={() => setListVersion((v) => v + 1)}>실행 기록 다시 조회</button></p>}
-      </section>
-
-      <section className="card" aria-label="버전 비교">
-        <SectionTitle icon={<CompareIcon />} title="버전 비교" aside="1:1 차이 분석" />
-        <p className="muted">두 버전의 AI 탐색 결과를 비교합니다. 같은 조건으로 분석이 끝난 두 버전을 골라 주세요.</p>
-        <div className="compare-row">
-          <label>첫 번째 버전 <select value={compareA} onChange={(e) => setCompareA(e.target.value as Variant)}>{VERSIONS.map((v) => <option value={v.variant} key={v.variant}>{v.name}</option>)}</select></label>
-          <label>두 번째 버전 <select value={compareB} onChange={(e) => setCompareB(e.target.value as Variant)}>{VERSIONS.map((v) => <option value={v.variant} key={v.variant}>{v.name}</option>)}</select></label>
-          <button type="button" className="primary" disabled={!bothFinished || compareA === compareB || !experimentKey || keyInput !== experimentKey} onClick={() => navigate(`/comparisons/${encodeURIComponent(experimentKey)}`)}>비교하기</button>
-        </div>
-        {compareA === compareB && <p role="alert">서로 다른 버전을 선택해 주세요.</p>}
       </section>
     </section>
   )

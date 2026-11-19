@@ -16,7 +16,8 @@ import './new-analysis.css'
 
 type SiteState = { status: 'loading' } | { status: 'error' } | { status: 'ready'; sites: Site[] }
 
-const MORO_EXAMPLES = ['환불하고 싶어요', '배송이 어디쯤인지 궁금해요', '쿠폰이 있는지 보고 싶어요']
+// 첫 예시는 공식 계획의 환불 목표 문장 그대로 (시연 시나리오)
+const MORO_EXAMPLES = ['지난주에 산 운동화가 발에 안 맞아서 돌려보내고 돈을 돌려받고 싶다', '배송이 어디쯤인지 궁금해요', '쿠폰이 있는지 보고 싶어요']
 const UNREGISTERED = '아직 등록되지 않은 사이트예요. 지금은 등록된 사이트만 진단할 수 있어요.'
 const BAD_LINK = '사이트 링크를 확인해 주세요. 예: https://www.example.com'
 const PICK_SCREEN = '어느 화면을 찾아야 하나요?'

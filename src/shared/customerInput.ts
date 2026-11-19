@@ -4,7 +4,8 @@ import { sentenceProblem } from './inputRules.ts'
  * 화면에서는 "누가"를 묻지 않는다. API는 `persona`가 필수라 이 값 하나를 숨겨서 보낸다
  * (임시, docs/operations/open_issue.md OI-9). BE `api/input_rules.py` 문장 검사를 통과하는 값이어야 한다.
  */
-export const DEFAULT_PERSONA = '이 쇼핑몰을 처음 써 보는 고객'
+// 공식 계획(BE results/improvement_plan_1119b.json)과 같은 값. 다른 고객 목표 점수가 이 값으로 계산되므로 공식 결과와 같은 조건이 된다
+export const DEFAULT_PERSONA = '온라인 쇼핑몰 이용 경험이 적은 사용자'
 
 /** 찾아야 하는 화면 (MORO MARKET). 확인 글자는 BE 동결 계획(results/improvement_plan_1119b.json)의 같은 화면 목표와 같고, 화면에는 숨긴다 */
 export const GOAL_SCREENS = [

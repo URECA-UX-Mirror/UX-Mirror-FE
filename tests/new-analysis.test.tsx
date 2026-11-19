@@ -134,7 +134,7 @@ it.each([
 it('예시를 누르면 문장 칸이 채워지고 찾아야 할 화면이 정해진다', async () => {
   renderPage()
   await settle()
-  expect(exampleChips().map((b) => b.textContent)).toEqual(['환불하고 싶어요', '배송이 어디쯤인지 궁금해요', '쿠폰이 있는지 보고 싶어요'])
+  expect(exampleChips().map((b) => b.textContent)).toEqual(['지난주에 산 운동화가 발에 안 맞아서 돌려보내고 돈을 돌려받고 싶다', '배송이 어디쯤인지 궁금해요', '쿠폰이 있는지 보고 싶어요'])
   fireEvent.click(exampleChips()[2])
   expect(goalInput().value).toBe('쿠폰이 있는지 보고 싶어요')
   expect(matchedLine()).toBe('찾아야 할 화면: 마이페이지 · 바꾸기')

@@ -94,7 +94,7 @@ interface PathVisit {
 ```
 
 - `stepCount`(탐색 비용 기준)와 `stepRecordCount`(저장된 Step 수)는 다르다. 진행 표시는 `progress.stepCount / progress.maxSteps`를 쓴다.
-- `referencePathConfig`가 명시적 `null`이면 기준 없음, 필드나 `basis`가 없으면 FE는 과거 허용 경로로 읽는다. 직접 입력 목표에도 사이트 지도 기준이 적용될 수 있다. 서버 비교의 누락 필드 검증은 별개다. [OI-10](../operations/open_issue.md#oi-10)
+- `referencePathConfig`가 `null`이거나 필드가 없으면 기준 없음, 설정에서 `basis`가 없으면 FE는 과거 허용 경로로 읽는다. 직접 입력 목표에도 사이트 지도 기준이 적용될 수 있다. 서버 비교의 누락 필드 검증은 별개다. [OI-10](../operations/open_issue.md#oi-10)
 - `extraSteps` 계열은 목표 미도달이면 `null`이다(`계약 §6.4`). 결과 화면은 기준 없음이면 "계산 불가 (경로 기준 없음)", 기준이 있고 목표 미도달이면 "해당 없음", 도달했으나 값이 `null`이면 "계산 불가"로 보인다. `detourMoveCount`는 목표 도달과 관계없이 `null`이면 "계산 불가"다. 0을 `null`로 바꾸지 않는다. 사이트 지도 기준에서 허용 경로 이탈은 사용하지 않는다.
 - `Run.limits`의 나머지 필드(`pageChangeTimeoutMs` 등)와 `thresholdConfig`, `analysisVersion`, `comparisonContext`는 프론트가 쓰지 않는다.
 

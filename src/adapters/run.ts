@@ -57,12 +57,12 @@ function toRunSummary(dto: RunSummaryDto): RunSummary {
   }
 }
 
-/** 필드가 없는 과거 Run과 `basis`가 없는 값은 `ALLOWED_PATHS`, 명시적 `null`만 "없음"이다(설계 v2.1 4.1). */
+/** 설정이 없거나 null이면 기준 없음이고, 설정에 basis가 없으면 ALLOWED_PATHS다. */
 export function toReferenceBasis(
   config: ReferencePathConfigDto | null | undefined,
 ): Open<ReferenceBasis> | null {
-  if (config === null) return null
-  return config?.basis ?? 'ALLOWED_PATHS'
+  if (config == null) return null
+  return config.basis ?? 'ALLOWED_PATHS'
 }
 
 export function toRun(dto: RunDto): Run {

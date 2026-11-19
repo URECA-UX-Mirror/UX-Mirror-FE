@@ -1,6 +1,6 @@
 import { expect, it, vi } from 'vitest'
 import { apiUrl } from '../src/api/client.ts'
-import { buildIssues, buildRun } from '../src/mocks/fixtures/run.ts'
+import { buildIssues, buildRun, buildSteps, siteMapGoalProbability } from '../src/mocks/fixtures/run.ts'
 import { scenarioForGoal, textVisibleOn, VISIBLE_TEXTS } from '../src/mocks/fixtures/scenario.ts'
 import { GOAL_PAGES } from '../src/features/new-analysis/constants.ts'
 import { allRuns, findRun } from '../src/mocks/store.ts'
@@ -115,4 +115,18 @@ it('화면이 자동으로 채우는 도착 화면 제목은 모두 MOCK이 판�
     expect([page.path, VISIBLE_TEXTS[page.path]]).toEqual([page.path, [page.text]])
     expect(textVisibleOn(page.path, page.text, true)).toBe(true)
   }
+})
+
+it('사이트 지도 목표 확률은 모든 후보의 거리를 확인한다', () => {
+  const candidates = [{ leadsTo: 'orders' as const, probability: 0.4 }, { leadsTo: 'mypage' as const, probability: 0.6 }]
+  expect(siteMapGoalProbability({ home: 1, orders: 1, mypage: 2 }, 'home', candidates)).toBe(0)
+  expect(siteMapGoalProbability({ home: 1, orders: 0 }, 'home', candidates)).toBeNull()
+  expect(siteMapGoalProbability({ orders: 0, mypage: 2 }, 'home', candidates)).toBeNull()
+  expect(siteMapGoalProbability({ home: 1, orders: 0, mypage: 2 }, 'home', candidates)).toBe(0.4)
+})
+
+it('허용 경로 기준의 목표 확률은 기존 후보 확률의 합이다', () => {
+  const rec = findRun('run_mock_done_before')!
+  const step = buildSteps(rec, 1)[0]
+  expect(step.decision.goalPathProbability).toBe(0.684)
 })

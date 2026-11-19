@@ -27,17 +27,17 @@ describe('경로 지표 기준(basis) 변환', () => {
     expect(toRun(dto).referenceBasis).toBe('ALLOWED_PATHS')
   })
 
-  it('referencePathConfig 필드 자체가 없는 과거 Run도 ALLOWED_PATHS다', () => {
+  it('referencePathConfig 필드 자체가 없는 과거 Run은 기준 없음이다', () => {
     const dto = runOf('run_mock_done_before')
     delete dto.referencePathConfig
-    expect(toRun(dto).referenceBasis).toBe('ALLOWED_PATHS')
+    expect(toRun(dto).referenceBasis).toBeNull()
   })
 
-  it('명시적 null만 기준 없음이다', () => {
+  it('명시적 null과 필드 누락은 기준 없음이다', () => {
     expect(toRun(runOf('run_mock_mapfail')).referenceBasis).toBeNull()
     expect(toRun(runOf('run_mock_direct_before')).referenceBasis).toBeNull()
     expect(toReferenceBasis(null)).toBeNull()
-    expect(toReferenceBasis(undefined)).toBe('ALLOWED_PATHS')
+    expect(toReferenceBasis(undefined)).toBeNull()
   })
 
   it('SITE_MAP 설정은 SITE_MAP으로 읽고 기존 preset은 ALLOWED_PATHS다', () => {

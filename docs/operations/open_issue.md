@@ -18,7 +18,7 @@
 | [OI-8](#oi-8) | 분석 대상 사이트 입력 | 장근창 | 입력란은 두되 요청에 싣지 않고, MORO MARKET 외 값은 안내 후 시작을 막음; 등록 사이트 선택은 [OI-11](#oi-11), 임의 URL은 미해결 | (장근창 담당) |
 | [OI-7](#oi-7) | 저장된 실측 데이터 시연 | 정자비 | `/replay`에서 원본 `LIVE` Run을 조회해 재생, 서버 없는 시연은 P0 제외 | 임시 결정대로. 고정 키는 11/19 E 실행 후 전달 |
 | [OI-9](#oi-9) | 목표·사용자 유형 직접 입력 | 정자비, 장근창 | 백엔드 구현 기준으로 요청·표시, 도착 화면은 목록에서 고름 | 화면 글자 사전 검사(`422`·`503`)는 BE #60으로 구현됨. 도착 경로 없음 `422`·지도 오류 처리도 구현됨 |
-| [OI-10](#oi-10) | 경로 지표 기준(basis)·우회 이동 | 정자비, 장근창 | 설계 v2.1 기준으로 optional로 받고, 없으면 `ALLOWED_PATHS`·`detourMoveCount: null` | 대부분 서버와 일치. ⚠️ 2건 다름(`referencePathConfig` 필드 없음 처리·mock `goalPathProbability`) |
+| [OI-10](#oi-10) | 경로 지표 기준(basis)·우회 이동 | 정자비, 장근창 | 설계 v2.1 기준으로 optional로 받고, 설정의 `basis`가 없으면 `ALLOWED_PATHS`, 설정이 없으면 기준 없음으로 읽음 | 서버 동작과 대조 완료 |
 | [OI-11](#oi-11) | 시나리오 테스트(외부 사이트) | 장근창, 정자비, 권혁준 | 등록 사이트 선택, mock과 Adapter로 선행 | API 세부 사항 확정 대기 |
 
 ## 항목
@@ -79,19 +79,17 @@
 
 | 문제 | 처리(임시) | 근거 | 백엔드와 확인할 것 | 서버 동작 (develop, 11-18 2번 답변) |
 | --- | --- | --- | --- | --- |
-| `basis`가 없는 설정, `referencePathConfig` 필드가 없는 과거 Run을 어떻게 읽을지 | 둘 다 `ALLOWED_PATHS`로 읽고, 명시적 `null`만 기준 없음으로 본다 | 설계 4.1 | 서버가 같은 규칙으로 보내는지 | ⚠️ **다름.** `basis` 없음 → `ALLOWED_PATHS`, 설정 `null` → 기준 없음은 같다. `referencePathConfig` **필드 자체가 없으면** 서버는 "누락"으로 보고 기준 없음으로 처리한다(`uxm/reference.py`). API Run은 항상 이 필드를 쓴다(preset = ALLOWED_PATHS, 직접 입력 = SITE_MAP 또는 `null`) → FE도 필드 없음을 기준 없음으로 |
 | `detourMoveCount`가 없을 때의 값 | `null`로 읽고 0으로 바꾸지 않는다 | 근거 없음, 임시 | 허용 경로 기준 Run에서도 필드를 주는지, `null`을 주는지 | 일치. ALLOWED_PATHS·기준 없음 Run은 필드를 주고 값은 `null`. UX-Mirror-BE #52 이전 Run은 필드가 없다 |
 | 목표 미도달(`MAX_STEPS` 등) Run의 `detourMoveCount` | mock은 이동 기록으로 계산한다. 정의에 목표 도달 여부가 없고 `extraSteps`와 달리 최단 경로 비교가 필요 없기 때문이다 | 설계 3.1(미도달 정책은 근거 없음) | 미도달이면 `null`인지, 이동 기록으로 계산하는지 | 일치. 지도 밖으로 나가지 않았으면 도달 여부와 무관하게 이동 기록으로 계산 |
 | SITE_MAP 설정 필드 | `siteMapVersion`·`siteMapHash`·`startPageKey`·`goalPageKey`·`shortestSteps`·`distances`(도달 불가 화면은 `null`)로 읽고 화면에는 쓰지 않는다 | 설계 4.1 | 실제 응답의 필드명·`null` 표현 | 일치. `basis: "SITE_MAP"` + 왼쪽 필드, `distances`의 도달 불가 화면은 `null` |
 | SITE_MAP 기준의 `referencePathDeviationCount` | 이탈 횟수는 허용 경로 개념이라 mock은 `null`로 둔다 | 근거 없음, 임시 | 서버가 `null`을 주는지, 다른 정의를 쓰는지 | 일치. SITE_MAP·기준 없음이면 `null` |
-| 기준별 `goalPathProbability` | 기존 ALLOWED_PATHS는 해당 후보가 없으면 `null`이다. SITE_MAP 설계는 모든 CLICK 후보의 목적지 거리를 확인하고 거리 감소 후보가 없으면 `0`, 하나라도 모르면 부분합 없이 `null`이다. mock은 거리 감소 후보를 합산한다 | 계약 §12.3, 설계 3.1·3.2 | 서버가 기준별 `null`·`0`과 부분합 금지를 따르는지, mock 반영이 필요한지 | ⚠️ **서버는 설계대로**(감소 후보 없음 `0`, 현재 화면·후보 하나라도 지도에 없으면 `null`, 부분합 금지). 비교에서 지도 검증 실패 시 `null`. → mock에 `0`·`null` 규칙 반영 필요 |
 | SITE_MAP 추가 단계 지표 | 설계상 `extraSteps`·`extraNavigationCost`·`attemptedExtraSteps`는 지도상 최단 거리 기준이며 계산 불가 시 `null`이다. 지도 밖 화면으로 이동하면 `extraSteps`와 `detourMoveCount`는 `null`이다 | 설계 3.2·4.2 | 서버와 비교 응답 `RunOutcome`의 계산·null 조건 및 기준별 표시 방식 | 일치. 세 지표는 도착 + 지도 안일 때만 값. 지도 밖 이동 시 세 지표와 `detourMoveCount` 모두 `null`. 비교 `runComparison`도 지도 검증 실패 시 `extraSteps`·`extraNavigationCost`·`referencePathDeviationCount`·`detourMoveCount`를 `null`로 |
 | 지도 오류 | 설계상 지도 없음·검증 실패·Run 조건 불일치 시 실행은 허용하고 `referencePathConfig`와 경로 지표는 `null`이다 | 설계 3.2 | 서버의 지도 오류 처리 및 응답 형식 | 일치. 단, 지도는 정상인데 도착 경로가 없으면 실행 전 `422` ([OI-9](#oi-9)) |
 | 직접 입력한 목표의 SITE_MAP 적용 | 백엔드가 직접 입력 목표에 SITE_MAP 설정을 저장하며 mock도 `goalId`가 `null`이어도 SITE_MAP을 유지한다 | UX-Mirror-BE #50 | 실제 Run 통합 결과와 계약 확정 | UX-Mirror-BE #51 머지. 실서버 확인: 직접 입력 Run(MORO MARKET)의 기준이 `SITE_MAP`으로 저장되고 결과 화면에 "사이트 지도"로 표시됨 |
 | 결과 화면의 `null` 기준 구분 | `referenceBasis`가 `null`이면 원인(허용 경로 없음·지도 오류)을 응답에서 알 수 없어 "계산 불가 (경로 기준 없음)"으로만 표시하고 `goalId` 등으로 추정하지 않는다 | 근거 없음, 임시 | 응답에 기준 없음의 원인을 구분하는 값을 줄지 | 원인 값은 주지 않는다. P0는 "계산 불가 (경로 기준 없음)" 하나로 유지 |
 | 우회 이동의 정의 | BACK을 뺀 모델 CLICK 이동 중 `d(이동 후) >= d(이동 전)`인 횟수로 mock을 만든다 | 설계 3.1 | 서버 계산과 일치하는지 | 일치. `null` 거리는 무한대로 본다 |
 
-- 2번 답변 (11-18): 서버 Run에는 `referenceBasis` 필드가 없고, FE Adapter(`toReferenceBasis`)가 `referencePathConfig`에서 만든다. 이 변환은 서버 규칙과 같지만, 필드가 없을 때(`undefined`)만 `ALLOWED_PATHS`로 읽어 서버(기준 없음)와 다르다. 서버와 다른 FE 동작 2건(필드 없음 처리, mock `goalPathProbability`)은 별도 이슈로 고친다.
+- 2번 답변 (11-18): 서버 Run에는 `referenceBasis` 필드가 없고 FE Adapter가 `referencePathConfig`에서 만든다.
 - 확인할 것: FE는 경로 기준을 `Run.referenceBasis`로 구분한다. 백엔드와 기준별 응답·표시 및 사이트 지도 생성·검증, 지원 화면 범위를 확인한다. 사이트 지도 변경은 계약 v1.3.7 제안이며, 위 항목은 실제 연동과 계약 확정 후 `docs/contracts/`와 mock에 반영하고 해당 행을 지운다. 모두 해소되면 이 항목을 지운다.
 - 담당: 정자비(지표), 장근창(API).
 

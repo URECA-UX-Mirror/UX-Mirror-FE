@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router'
-import { beforeEach, expect, it } from 'vitest'
+import { beforeEach, expect, it, vi } from 'vitest'
 import { Layout } from '../src/shared/Layout.tsx'
 
 function renderLayout() {
@@ -54,8 +54,29 @@ it('손잡이를 두 번 누르면 기본 너비로 돌아간다', () => {
   expect(handle.getAttribute('aria-valuenow')).toBe('256')
 })
 
-it('사이드바에 새 UX 분석·시나리오 테스트·UX Optimizer·저장된 결과 재생 메뉴가 있다', () => {
-  renderLayout()
+/** 최종 리포트 id(`FINAL_IMPROVEMENT_ID`) 설정과 무관하게 테스트하도록 id를 고정해 렌더링한다 */
+async function renderLayoutWithFinalId(id: string | null) {
+  vi.resetModules()
+  vi.doMock('../src/features/improvement/constants.ts', async (importOriginal) => {
+    const actual = await importOriginal<typeof import('../src/features/improvement/constants.ts')>()
+    return { ...actual, finalImprovementPath: () => actual.finalImprovementPath(id) }
+  })
+  const { Layout: FreshLayout } = await import('../src/shared/Layout.tsx')
+  const view = render(
+    <MemoryRouter initialEntries={['/']}>
+      <Routes>
+        <Route element={<FreshLayout />}>
+          <Route index element={<p>본문</p>} />
+        </Route>
+      </Routes>
+    </MemoryRouter>,
+  )
+  vi.doUnmock('../src/features/improvement/constants.ts')
+  return view
+}
+
+it('최종 리포트 id가 없으면 사이드바에 새 UX 분석·시나리오 테스트·UX Optimizer·저장된 결과 재생 메뉴만 있다', async () => {
+  await renderLayoutWithFinalId(null)
   const nav = screen.getByRole('navigation', { name: '주요 메뉴' })
   expect(Array.from(nav.querySelectorAll('a')).map((a) => [a.textContent, a.getAttribute('href')])).toEqual([
     ['새 UX 분석', '/'],
@@ -76,4 +97,14 @@ it('/scenario에서 상단 바에 화면 이름을 보인다', () => {
     </MemoryRouter>,
   )
   expect(screen.getByLabelText('현재 위치').textContent).toContain('시나리오 테스트')
+})
+
+it('최종 리포트 id가 없으면 자동 개선 리포트 메뉴를 보이지 않는다(샘플로 연결하지 않는다)', async () => {
+  await renderLayoutWithFinalId(null)
+  expect(screen.queryByRole('link', { name: '자동 개선 리포트' })).toBeNull()
+})
+
+it('최종 리포트 id가 있으면 자동 개선 리포트 메뉴가 그 화면으로 연결된다', async () => {
+  await renderLayoutWithFinalId('imp_FINAL_0001')
+  expect(screen.getByRole('link', { name: '자동 개선 리포트' }).getAttribute('href')).toBe('/improvements/imp_FINAL_0001')
 })

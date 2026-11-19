@@ -20,6 +20,7 @@
 | [OI-9](#oi-9) | 목표·사용자 유형 직접 입력 | 정자비, 장근창 | 백엔드 구현 기준으로 요청·표시, 도착 화면은 목록에서 고름 | 화면 글자 사전 검사(`422`·`503`)는 BE #60으로 구현됨. 도착 경로 없음 `422`·지도 오류 처리도 구현됨 |
 | [OI-10](#oi-10) | 경로 지표 기준(basis)·우회 이동 | 정자비, 장근창 | 설계 v2.1 기준으로 optional로 받고, 설정의 `basis`가 없으면 `ALLOWED_PATHS`, 설정이 없으면 기준 없음으로 읽음 | 서버 동작과 대조 완료 |
 | [OI-11](#oi-11) | 시나리오 테스트(외부 사이트) | 장근창, 정자비, 권혁준 | 등록 사이트 선택, mock과 Adapter로 선행 | API 세부 사항 확정 대기 |
+| [OI-12](#oi-12) | UX Optimizer 응답 형식·이유 코드 | 정윤희, 장근창, 권혁준 | BE 코드·README 기준으로 DTO·mock 선행, 이유 코드는 원문 문자열로 받음 | 계약 v1.3.8 반영(#43)과 정책 모듈 값 목록 확정 대기 |
 
 ## 항목
 
@@ -106,3 +107,14 @@
 - 담당: 장근창(API), 정자비(루프·사이트 설정), 권혁준(프론트). 관련 FE 이슈: [#53](https://github.com/UX-Mirror/UX-Mirror-FE/issues/53), [#54](https://github.com/UX-Mirror/UX-Mirror-FE/issues/54), [#55](https://github.com/UX-Mirror/UX-Mirror-FE/issues/55), [#56](https://github.com/UX-Mirror/UX-Mirror-FE/issues/56).
 - 실서버 확인 상태: 시나리오 Run의 실행·저장·조회, `/issues` 분석 완료와 검토 후보 표시, 영어 금지어 `422` 메시지 표시("goal에 쓸 수 없는 글자가 있습니다: after")는 확인했다. 위험 동작 차단은 BE 코드상 실행 경로에 연결돼 있고, 실서버 Step의 `candidateSet.exclusionReasons`에 범위 밖 후보(`OUT_OF_SCOPE`) 제외 기록이 남는 것을 확인했다. 다만 위험 라벨·동작 사유(`DANGEROUS_ACTION`)로 걸러진 후보는 아직 나오지 않았고, FE는 이 값을 화면에 쓰지 않는다. 지도 없는 사이트의 "계산 불가" 안내, `PENDING` → `COMPLETED` 전이 시간, 한 화면 경로 여러 개 등록은 확인하지 못했다.
 - 확정되면 `docs/contracts/`를 고친 뒤 이 항목을 지운다.
+
+<a id="oi-12"></a>
+### OI-12 UX Optimizer 응답 형식·이유 코드
+
+- 범위: `POST /api/optimizations`, `GET /api/optimizations/{id}`, `POST …/{id}/verify`, `GET …/{id}/report`와 Run의 `optimizationContext`. 엔드포인트와 사용법은 [REST API](../contracts/rest-api.md), 폴링은 [실행 상태와 폴링](../contracts/run-lifecycle.md)에 있다.
+- 계약서: 계약 v1.3.8(§17.12, §4.9, §6.1)에 반영됐지만 이 저장소의 계약 문서는 v1.3.5라 옮기지 않았다. 반영은 [#43](https://github.com/UX-Mirror/UX-Mirror-FE/issues/43)에서 한다.
+- 임시 결정: 필드는 UX-Mirror-BE `api/optimizer.py`·README 기준으로 DTO(`src/api/dto/optimization.ts`)를 만들었다. `candidateLabels`(후보 풀)처럼 화면이 쓰는 필드만 도메인으로 가져오고 해시·원본 요청 참조(`snapshotHash`, `rawRequestRef` 등)는 가져오지 않는다. 검증 시작 응답의 `baselineRunId`·`validationRunId`는 아직 만들지 않은 Run이면 `null`로 읽는다.
+- 확정되지 않은 값(정책 모듈 `uxm/optimizer_policy.py`, 정윤희): 선정 이유 `selection.selectionReasonCode`, 제외 이유 `excludedCandidates[].reasonCodes`, 후보 무효 이유 `invalidReasons`, 판단 이유 `verification.reasonCode`, 최종 판단 `finalDecision`(또는 `decision`), 선정·판단의 근거 형식. 값 목록이 정해지기 전에는 모르는 값을 오류로 만들지 않고 문자열 원문을 그대로 두며, `selection`·`verification` 안의 필드는 모두 없을 수 있다고 읽는다. 근거 형식은 타입으로 만들지 않았다.
+- mock: 위 값은 자리표시 문자열이다(예: `HIGHEST_TARGET_OPTION_PROBABILITY`, `IMPROVEMENT_CONFIRMED`). 시나리오와 시드는 `src/mocks/fixtures/optimization.ts`의 주석을 따른다.
+- 확인할 것: 정책 모듈의 이유 코드·최종 판단 값 목록과 근거 형식, 실제 서버(후보 사이트 5개 실행)와 응답 대조, 후보 평가·검증 화면 이슈([#69](https://github.com/UX-Mirror/UX-Mirror-FE/issues/69), [#70](https://github.com/UX-Mirror/UX-Mirror-FE/issues/70))에서 필요한 추가 필드.
+- 확정되면 `docs/contracts/`를 고치고 DTO의 `임시` 표기를 없앤 뒤 이 항목을 지운다.

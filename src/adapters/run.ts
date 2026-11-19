@@ -98,6 +98,21 @@ export function toRun(dto: RunDto): Run {
     replacementRunId: dto.replacementRunId,
     siteId: dto.siteId ?? null,
     mode: dto.mode ?? null,
+    optimizationContext: toOptimizationContext(dto.optimizationContext),
+  }
+}
+
+/** 필드가 없거나 `null`이거나 `optimizationId`가 문자열이 아니면 일반 Run이다. 모르는 `executionRole`은 그대로 둔다 */
+function toOptimizationContext(
+  dto: RunDto['optimizationContext'],
+): Run['optimizationContext'] {
+  if (!dto || typeof dto.optimizationId !== 'string') return null
+  return {
+    optimizationId: dto.optimizationId,
+    candidateId: dto.candidateId,
+    label: dto.label,
+    siteInstanceId: dto.siteInstanceId,
+    executionRole: dto.executionRole,
   }
 }
 

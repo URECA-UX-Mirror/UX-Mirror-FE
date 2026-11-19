@@ -499,6 +499,8 @@ export function buildRun(rec: RunRecord, nowMs: number): RunDto {
     replacementRunId: rec.replacementRunId ?? null,
     // 버전 비교 Run에는 두 필드를 주지 않는다(필드가 없는 응답도 버전 비교 Run으로 읽는다)
     ...(rec.siteId ? { siteId: rec.siteId, mode: 'SCENARIO' } : {}),
+    // UX Optimizer 검증 Run만 연결 정보를 준다(일반 Run은 필드가 없다)
+    ...(rec.optimizationContext ? { optimizationContext: rec.optimizationContext } : {}),
   }
 }
 

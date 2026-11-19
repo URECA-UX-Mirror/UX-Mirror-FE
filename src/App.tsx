@@ -1,5 +1,6 @@
 import { BrowserRouter, Route, Routes } from 'react-router'
 import { ComparisonPage } from './features/comparison/ComparisonPage.tsx'
+import { ImprovementPage } from './features/improvement/ImprovementPage.tsx'
 import { OptimizationPage } from './features/optimization/OptimizationPage.tsx'
 import { OptimizationStartPage } from './features/optimization/OptimizationStartPage.tsx'
 import { NewAnalysisPage } from './features/new-analysis/NewAnalysisPage.tsx'
@@ -23,6 +24,10 @@ function App() {
           <Route
             path="/optimizations/:optimizationId"
             element={<OptimizationPage />}
+          />
+          <Route
+            path="/improvements/:improvementId"
+            element={<ImprovementPage />}
           />
           <Route path="/replay" element={<ReplayPage />} />
           <Route

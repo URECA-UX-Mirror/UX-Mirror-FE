@@ -32,6 +32,7 @@ function pageTitle(pathname: string): string {
   if (pathname === '/scenario') return '시나리오 테스트'
   if (pathname === '/optimizations') return 'UX Optimizer'
   if (pathname.startsWith('/optimizations/')) return '후보 평가'
+  if (pathname.startsWith('/improvements/')) return '자동 개선 리포트'
   if (pathname === '/replay') return '저장된 결과 재생'
   if (pathname.startsWith('/comparisons/')) return '버전 비교'
   if (/^\/runs\/[^/]+\/result\/?$/.test(pathname)) return 'UX 탐색 분석 결과'

@@ -179,6 +179,8 @@ export interface ImprovementView {
   stop: ImprovementStop | null
   plan: ImprovementPlan | null
   limitations: string | null
+  /** 헤더용 메타. `report` 영역 검증과 분리해 그 영역이 오류여도 읽는다 */
+  meta: { sample: boolean; status: string | null; createdAt: string | null }
 }
 
 export interface ImprovementPlan {

@@ -9,7 +9,7 @@
 
 ## 화면별 사용 API
 
-화면은 일곱 개다(번호 없는 저장된 결과 재생 제외). 화면 배치와 시각 규칙은 아래 "스타일" 절을 따른다.
+화면은 여덟 개다(번호 없는 저장된 결과 재생 제외). 화면 배치와 시각 규칙은 아래 "스타일" 절을 따른다.
 
 | # | 화면 | 사용 API | 화면 상태(서버 데이터 아님) |
 | --- | --- | --- | --- |
@@ -20,6 +20,7 @@
 | 5 | 시나리오 테스트 | `GET /api/health`, `GET /api/sites`, `POST /api/runs` | 선택한 사이트·도착 화면, 입력한 상황 문장·사용자 유형, 최대 탐색 횟수 |
 | 6 | UX Optimizer 시작 | `GET /api/health`, `POST /api/optimizations` | 시작 중 여부, 시작 오류 문구 |
 | 7 | UX Optimizer 후보 평가 | `GET /api/optimizations/{optimizationId}`(폴링), `GET /api/health`(공통 영역) | 없음(주소의 `optimizationId`로 다시 열 수 있다) |
+| 8 | 자동 개선 리포트 | 정적 파일 `/improvements/{improvementId}.json`(한 번 읽고 폴링 없음) | 없음(주소의 `improvementId`로 다시 열 수 있다) |
 
 `GET /api/health`는 모든 화면의 공통 영역(엔진 상태 표시)에서 호출하고, 라우트가 바뀔 때마다 다시 조회한다(다시 조회하는 동안은 이전 결과를 보인다). 화면 1에서는 시작 가능 여부 판단에도 쓴다. 화면 4는 `CandidateComparison`에 `bbox`가 없으므로 `beforeRunId`·`afterRunId`의 `/steps`에서 해당 Step을 가져온다.
 
@@ -104,6 +105,14 @@
 - Optimizer Run 구분: Run에 `optimizationContext`가 있으면 진행·결과 화면의 메타 정보, 비교 화면의 비교 대상, "다른 실행 보기"에서 `variant`와 함께 후보 라벨·역할을 보인다(`shared/optimizerRun.ts`, `OptimizerRunTag`). 없는 Run의 표시는 바뀌지 않는다. 비교 응답에는 이 값이 없어 각 Run(`GET /api/runs/{runId}`)에서 읽는다.
 - 공통 영역의 엔진 상태에서 진행 중인 Optimizer 표시(`activeOptimization`)는 이 평가 화면으로 연결된다.
 
+### 8. 자동 개선 리포트
+
+`임시`([OI-13](../operations/open_issue.md#oi-13), FE #78). 경로 `/improvements/:improvementId`, 구현은 `features/improvement/`다. `useImprovement`가 `/improvements/<improvementId>.json`을 한 번 읽어 `toImprovementView`로 변환한다(폴링 없음, 백엔드 API 없음).
+
+- 상태: 로딩, 성공, 파일 없음, JSON 파싱 오류, 기타 오류를 구분해 안내한다. `improvementId`가 영숫자·`_`·`-`가 아니면 요청하지 않고 "찾을 수 없음"이다. 응답이 404이거나 `content-type`에 `json`이 없으면(개발 서버의 SPA fallback `index.html`) 파일 없음이다.
+- 헤더: "자동 개선 리포트", `improvementId`, 생성 시각, "추가 실험"(E 공식 비교 결과와 구분). `sample: true`이면 "샘플 데이터" 배지를 항상 보인다. `status`가 `COMPLETED`가 아니면 원문 상태와 함께 안내하고 영역은 그대로 보인다.
+- 영역(① 개선 효과, ② 실제 검증, 보조)은 자리만 두었고 내용은 영역 이슈가 채운다. 한 영역이 오류이면 그 영역에만 "데이터 오류"와 사유를 보이고 다른 영역은 막지 않는다. `limitations` 문구는 항상 하단에 보이고, JSON에 없거나 비어 있으면 기본 안내(`DEFAULT_LIMITATIONS`)를 보인다.
+
 ### 저장된 실측 결과 재생
 
 - 진입은 새 UX 분석 화면의 "저장된 결과 보기" 링크이며 경로는 `/replay`다. 구현은 `features/replay/`다.
@@ -159,7 +168,7 @@ src/
   domain/                  # types.ts(도메인 모델), runStatus.ts(isTerminalStatus), site.ts(isScenarioRun, pageLabel), optimizationStatus.ts(isTerminalOptimizationStatus), optimizationErrors.ts(Optimizer 오류 문구), improvement.ts(자동 개선 결과 타입), improvementScore.ts(점수 %·%p 표시)
   mocks/                   # MSW. browser.ts, store.ts, errors.ts, fixtures/(run, scenario, runResult, comparison, sites, optimization), handlers/(endpoint별)
   features/
-    new-analysis/, scenario/, run-progress/, run-result/, comparison/, replay/, optimization/   # 화면별. 라우트는 App.tsx
+    new-analysis/, scenario/, run-progress/, run-result/, comparison/, replay/, optimization/, improvement/   # 화면별. 라우트는 App.tsx
   shared/                  # Layout(상단 바·접이식 사이드바), SectionTitle(카드 제목 줄), RunGauge(탐색 진행 게이지), icons, ProbabilityGauge, SelectedAction, stepLabel, EngineStatus, optimizationStatus, ErrorNotice, ResultOriginBadge, optimizerRun(Optimizer Run 표시 문구), OptimizerRunTag, useHealth, useOptimizationProgress(Optimization 폴링)
     screenshot/            # boxStyle.ts(좌표 변환), ScreenshotViewer, CandidateProbabilityList
     polling/               # poller.ts(간격·backoff 규칙), usePolling(범용 폴링 훅)
@@ -169,7 +178,7 @@ public/
   mockServiceWorker.js     # MSW 생성 파일
 ```
 
-화면 라우트는 `/`(새 UX 분석), `/scenario`(시나리오 테스트), `/runs/:runId`(AI 탐색 진행), `/runs/:runId/result`(분석 결과), `/comparisons/:experimentKey`(버전 비교), `/optimizations`(UX Optimizer 시작), `/optimizations/:optimizationId`(후보 평가), `/replay`(저장된 결과 재생)다. 경로는 프론트가 정한 값이며 계약서 대상이 아니다. 좌표 변환 함수, 폴링 훅 같은 화면 공용 코드는 `shared/` 아래에 둔다.
+화면 라우트는 `/`(새 UX 분석), `/scenario`(시나리오 테스트), `/runs/:runId`(AI 탐색 진행), `/runs/:runId/result`(분석 결과), `/comparisons/:experimentKey`(버전 비교), `/optimizations`(UX Optimizer 시작), `/optimizations/:optimizationId`(후보 평가), `/improvements/:improvementId`(자동 개선 리포트), `/replay`(저장된 결과 재생)다. 경로는 프론트가 정한 값이며 계약서 대상이 아니다. 좌표 변환 함수, 폴링 훅 같은 화면 공용 코드는 `shared/` 아래에 둔다.
 
 ## 목업 쇼핑몰
 

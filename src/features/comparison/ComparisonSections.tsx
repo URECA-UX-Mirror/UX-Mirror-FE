@@ -1,4 +1,10 @@
-import type { Comparison, PathVisit, RunOutcome } from '../../domain/types.ts'
+import type {
+  Comparison,
+  OptimizationContext,
+  PathVisit,
+  RunOutcome,
+} from '../../domain/types.ts'
+import { optimizerRunText } from '../../shared/optimizerRun.ts'
 import { ResultOriginBadge } from '../../shared/ResultOriginBadge.tsx'
 import { SectionTitle } from '../../shared/SectionTitle.tsx'
 import {
@@ -23,11 +29,14 @@ function VersionPanel({
   runId,
   origin,
   outcome,
+  context,
 }: {
   side: 'before' | 'after'
   runId: string
   origin: string
   outcome: RunOutcome
+  /** Optimizer 검증 Run이면 연결 정보. 어느 라벨 사이트인지는 `variant`(side)가 아니라 이 값으로 안다 */
+  context?: OptimizationContext | null
 }) {
   const version = VERSIONS.find((item) => item.variant === side)
   return (
@@ -41,6 +50,9 @@ function VersionPanel({
       <p className="version-panel-name">
         {version ? `${version.name} · ${version.change}` : side}
       </p>
+      {context ? (
+        <p className="version-panel-optimizer">{optimizerRunText(context)}</p>
+      ) : null}
       <dl className="version-panel-meta">
         <dt>Run ID</dt>
         <dd>
@@ -56,7 +68,15 @@ function VersionPanel({
 }
 
 /** 비교 대상. 한 실험의 Before·After Run은 `experimentKey`로 정해져 있어 고르거나 바꾸지 않는다 */
-export function ComparisonSetup({ comparison }: { comparison: Comparison }) {
+export function ComparisonSetup({
+  comparison,
+  beforeContext = null,
+  afterContext = null,
+}: {
+  comparison: Comparison
+  beforeContext?: OptimizationContext | null
+  afterContext?: OptimizationContext | null
+}) {
   return (
     <section className="card" aria-label="비교 대상">
       <SectionTitle
@@ -70,6 +90,7 @@ export function ComparisonSetup({ comparison }: { comparison: Comparison }) {
           runId={comparison.beforeRunId}
           origin={comparison.beforeResultOrigin}
           outcome={comparison.runComparison.before}
+          context={beforeContext}
         />
         <span className="version-vs" aria-hidden="true">
           <ArrowRightIcon size={18} />
@@ -79,6 +100,7 @@ export function ComparisonSetup({ comparison }: { comparison: Comparison }) {
           runId={comparison.afterRunId}
           origin={comparison.afterResultOrigin}
           outcome={comparison.runComparison.after}
+          context={afterContext}
         />
       </div>
     </section>

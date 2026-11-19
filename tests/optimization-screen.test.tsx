@@ -222,7 +222,7 @@ it('EVALUATING: 끝난 후보는 결과를, 다음 후보는 평가 중을, 나�
   expect(card('C2').getByText('평가 대기')).toBeTruthy()
 })
 
-it('EVALUATED: 추천·검증 후보와 선정 사유를 보이고 검증 시작 버튼은 자리만 둔다', async () => {
+it('EVALUATED: 추천·검증 후보와 선정 사유를 보이고 검증 시작 버튼을 켠다', async () => {
   serve(seeded('opt_mock_evaluated'))
   renderOptimization('opt_mock_evaluated')
   const panel = await screen.findByRole('region', { name: '선정 결과' })
@@ -232,7 +232,7 @@ it('EVALUATED: 추천·검증 후보와 선정 사유를 보이고 검증 시작
   expect(card('C2').getByText('88.0%')).toBeTruthy()
   expect(card('C2').getByText('추천 후보')).toBeTruthy()
   expect(card('C2').getByText('검증 후보')).toBeTruthy()
-  expect((screen.getByRole('button', { name: '검증 시작' }) as HTMLButtonElement).disabled).toBe(true)
+  expect((screen.getByRole('button', { name: '검증 시작' }) as HTMLButtonElement).disabled).toBe(false)
 })
 
 it('추천 후보와 검증 후보가 다르면 각각 구분해 보인다', async () => {
@@ -325,14 +325,15 @@ it('FAILED이고 후보 목록이 비면 불러오는 중이 아니라 목록 �
   expect(screen.queryByText('후보 목록을 불러오는 중')).toBeNull()
 })
 
-it('NOT_SELECTABLE: 검증 후보가 없으면 그렇게 보이고 검증 시작은 막혀 있다', async () => {
+it('NOT_SELECTABLE: 검증 후보가 없으면 그렇게 보이고 검증 시작 버튼이 없다', async () => {
   const rec = { ...FAKE, scenario: 'not-selectable' } as const
   serve(buildOptimization(rec, FAR_FUTURE))
   renderOptimization('opt_x')
   const panel = await screen.findByRole('region', { name: '선정 결과' })
   expect(within(panel).getByText('선정할 수 있는 후보 없음')).toBeTruthy()
   expect(within(panel).getByText('NO_VALID_CANDIDATE')).toBeTruthy()
-  expect((screen.getByRole('button', { name: '검증 시작' }) as HTMLButtonElement).title).toBe('검증할 후보가 없습니다')
+  expect(within(panel).getByText('검증할 후보가 없어 검증을 시작할 수 없습니다.')).toBeTruthy()
+  expect(screen.queryByRole('button', { name: '검증 시작' })).toBeNull()
 })
 
 // ---- 실패 ----

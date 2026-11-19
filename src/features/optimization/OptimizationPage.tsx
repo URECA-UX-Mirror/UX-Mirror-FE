@@ -9,7 +9,9 @@ import { CompareIcon } from '../../shared/icons.tsx'
 import { useOptimizationProgress } from '../../shared/useOptimizationProgress.ts'
 import { CandidateCard, type CardPhase } from './CandidateCard.tsx'
 import { optimizationStatusLabel, phaseLabel, verificationPhaseLabel } from './labels.ts'
+import { ReportPanel } from './ReportPanel.tsx'
 import { SelectionPanel } from './SelectionPanel.tsx'
+import { VerificationPanel } from './VerificationPanel.tsx'
 import './optimization.css'
 
 export function OptimizationPage() {
@@ -101,7 +103,11 @@ function OptimizationView({ optimizationId }: { optimizationId: string }) {
       </section>
 
       <Candidates optimization={optimization} />
-      <SelectionPanel optimization={optimization} />
+      <SelectionPanel optimization={optimization} onVerifySettled={polling.retry} />
+      <VerificationPanel optimization={optimization} />
+      {optimization.status === 'COMPLETED' ? (
+        <ReportPanel optimizationId={optimization.optimizationId} />
+      ) : null}
     </section>
   )
 }

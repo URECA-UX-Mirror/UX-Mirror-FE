@@ -399,6 +399,7 @@ export function buildReport(
   const dto = buildOptimization(rec, nowMs)
   const [baseline, candidate] = verificationRuns(rec)
   if (dto.status !== 'COMPLETED' || !baseline || !candidate) return null
+  const runs = { baseline: outcomeOfRun(baseline, nowMs), candidate: outcomeOfRun(candidate, nowMs) }
   return {
     schemaVersion: '1.0',
     optimizationId: dto.optimizationId,
@@ -411,8 +412,14 @@ export function buildReport(
     recommendedCandidateId: dto.recommendedCandidateId,
     verificationCandidateId: dto.verificationCandidateId,
     evaluations: dto.evaluations,
-    verification: dto.verification,
-    runs: { baseline: outcomeOfRun(baseline, nowMs), candidate: outcomeOfRun(candidate, nowMs) },
+    verification: dto.verification && {
+      ...dto.verification,
+      navigationCostDelta:
+        runs.baseline.navigationCost === null || runs.candidate.navigationCost === null
+          ? null
+          : runs.candidate.navigationCost - runs.baseline.navigationCost,
+    },
+    runs,
     policyVersions: { selection: 'selection-v1', verification: 'verification-v1' },
     modelMetadata: { modelVersion: 'mock', modelEndpointId: 'mock-endpoint', promptVersion: 'v2' },
     frozenConditions: {

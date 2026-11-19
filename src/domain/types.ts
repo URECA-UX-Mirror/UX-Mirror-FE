@@ -169,6 +169,8 @@ export interface RunListItem {
   finishedAt: string | null
   siteId: string | null
   mode: Open<'SCENARIO'> | null
+  /** 임시(OI-12). UX Optimizer 검증 Run이면 연결 정보, 일반 Run이면 `null` */
+  optimizationContext: OptimizationContext | null
 }
 
 export interface CreatedRun {
@@ -494,6 +496,8 @@ export interface OptimizationVerification {
   /** 판단 이유 코드 원문(임시) */
   reasonCode: string | null
   policyVersion: string | null
+  /** 후보 − 기준의 이동 비용 차이로 추정(임시, OI-12). 계산할 수 없으면 `null`이고 0으로 바꾸지 않는다 */
+  navigationCostDelta: number | null
 }
 
 export interface OptimizationTarget {

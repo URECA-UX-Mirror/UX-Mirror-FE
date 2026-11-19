@@ -3,7 +3,7 @@ import { isAbortError } from '../../api/client.ts'
 import { getComparison } from '../../api/comparisons.ts'
 import { getRun, getRunSteps } from '../../api/runs.ts'
 import type { ReferenceBasis } from '../../api/dto/run.ts'
-import type { Comparison, Open, Step } from '../../domain/types.ts'
+import type { Comparison, Open, OptimizationContext, Step } from '../../domain/types.ts'
 
 interface Loaded {
   token: string
@@ -115,4 +115,30 @@ export function useRunBasis(runId: string): RunBasis {
   }, [runId])
 
   return loaded?.runId === runId ? loaded.basis : undefined
+}
+
+interface ContextLoaded {
+  runId: string
+  context: OptimizationContext | null
+}
+
+/**
+ * Run의 Optimizer 연결 정보(`optimizationContext`). 일반 Run이거나 아직 받지 못했거나 조회에 실패하면 `null`이라 기존 표시를 유지한다.
+ * 기준·후보 어느 라벨 사이트인지는 `variant`가 아니라 이 값으로만 알 수 있다.
+ */
+export function useRunOptimizationContext(runId: string): OptimizationContext | null {
+  const [loaded, setLoaded] = useState<ContextLoaded | null>(null)
+
+  useEffect(() => {
+    const controller = new AbortController()
+    getRun(runId, controller.signal)
+      .then((run) => setLoaded({ runId, context: run.optimizationContext }))
+      .catch((error: unknown) => {
+        if (isAbortError(error)) return
+        setLoaded({ runId, context: null })
+      })
+    return () => controller.abort()
+  }, [runId])
+
+  return loaded?.runId === runId ? loaded.context : null
 }

@@ -19,12 +19,7 @@ const STATUS_LABELS: Readonly<Record<string, string>> = {
 export const optimizationStatusLabel = (status: Open<string>) =>
   labelOf(STATUS_LABELS, status)
 
-const ROLE_LABELS: Readonly<Record<string, string>> = {
-  BASELINE: '기준',
-  CANDIDATE: '후보',
-}
-
-export const roleLabel = (role: Open<string>) => labelOf(ROLE_LABELS, role)
+export { optimizerRoleLabel as roleLabel } from '../../shared/optimizerRun.ts'
 
 const EVALUATION_STATUS_LABELS: Readonly<Record<string, string>> = {
   COMPLETED: '평가 완료',
@@ -88,3 +83,27 @@ const REASON_LABELS: Readonly<Record<string, string>> = {
 /** 이유 코드의 풀이. 모르는 코드는 `null`이라 호출하는 쪽이 원문만 보인다 */
 export const reasonLabel = (code: string): string | null =>
   Object.hasOwn(REASON_LABELS, code) ? REASON_LABELS[code] : null
+
+// 최종 판단·판단 이유 코드(임시, OI-12). 실서버에서 확인한 값만 풀이를 붙이고 나머지는 원문을 그대로 보인다.
+const FINAL_DECISION_LABELS: Readonly<Record<string, string>> = {
+  IMPROVEMENT_OBSERVED: '사전 정의한 개선 조건이 관찰됨',
+}
+
+export const finalDecisionLabel = (decision: string): string | null =>
+  Object.hasOwn(FINAL_DECISION_LABELS, decision) ? FINAL_DECISION_LABELS[decision] : null
+
+const VERIFICATION_REASON_LABELS: Readonly<Record<string, string>> = {
+  NAVIGATION_COST: '이동 비용 기준',
+}
+
+export const verificationReasonLabel = (code: string): string | null =>
+  Object.hasOwn(VERIFICATION_REASON_LABELS, code) ? VERIFICATION_REASON_LABELS[code] : null
+
+const RUN_STATUS_LABELS: Readonly<Record<string, string>> = {
+  COMPLETED: '완료',
+  FAILED: '실패',
+  RUNNING: '실행 중',
+  PENDING: '대기 중',
+}
+
+export const outcomeStatusLabel = (status: string) => labelOf(RUN_STATUS_LABELS, status)

@@ -278,6 +278,7 @@ export const runsHandlers = [
           createdAt: dto.createdAt,
           finishedAt: dto.finishedAt,
           ...(dto.siteId ? { siteId: dto.siteId, mode: dto.mode } : {}),
+          ...(dto.optimizationContext ? { optimizationContext: dto.optimizationContext } : {}),
         }
       })
     const body: RunListDto = { count: items.length, items }

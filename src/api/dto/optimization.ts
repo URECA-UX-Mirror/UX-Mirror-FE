@@ -106,6 +106,8 @@ export interface OptimizationVerificationDto {
   decision?: string | null
   reasonCode?: string | null
   verificationPolicyVersion?: string | null
+  /** 후보 − 기준 이동 비용 차이(임시). 계산할 수 없으면 `null` */
+  navigationCostDelta?: number | null
 }
 
 export interface OptimizationTargetDto {

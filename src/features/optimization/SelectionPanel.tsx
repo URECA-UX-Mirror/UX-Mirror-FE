@@ -1,6 +1,7 @@
 import type { Optimization } from '../../domain/types.ts'
 import { SectionTitle } from '../../shared/SectionTitle.tsx'
 import { CheckCircleIcon } from '../../shared/icons.tsx'
+import { VerifyControl } from './VerifyControl.tsx'
 import {
   recommendationLabel,
   reasonLabel,
@@ -26,13 +27,17 @@ function nameOf(optimization: Optimization, candidateId: string | null): string 
 
 /**
  * 선정 결과. 추천 후보와 검증 후보는 다를 수 있어(검증 후보는 전체 적격 후보 중 1위) 따로 보인다.
- * "검증 시작" 버튼은 자리만 두고 동작은 #70에서 연결한다.
+ * 평가가 끝난(`EVALUATED`) 상태에서는 "검증 시작"으로 검증을 시작한다.
  */
-export function SelectionPanel({ optimization }: { optimization: Optimization }) {
+export function SelectionPanel({
+  optimization,
+  onVerifySettled,
+}: {
+  optimization: Optimization
+  onVerifySettled: () => void
+}) {
   const selection = optimization.selection
   if (!selection) return null
-  const canVerify =
-    optimization.status === 'EVALUATED' && optimization.verificationCandidateId !== null
   return (
     <section className="card" aria-label="선정 결과">
       <SectionTitle icon={<CheckCircleIcon />} title="선정 결과" />
@@ -96,19 +101,15 @@ export function SelectionPanel({ optimization }: { optimization: Optimization })
         </>
       ) : null}
       {optimization.status === 'EVALUATED' ? (
-        <div className="optimization-actions">
-          <button
-            type="button"
-            disabled
-            title={
-              canVerify
-                ? '검증 시작은 검증 화면 작업(#70)에서 연결합니다'
-                : '검증할 후보가 없습니다'
-            }
-          >
-            검증 시작
-          </button>
-        </div>
+        <VerifyControl
+          optimizationId={optimization.optimizationId}
+          candidateName={
+            optimization.verificationCandidateId === null
+              ? null
+              : nameOf(optimization, optimization.verificationCandidateId)
+          }
+          onSettled={onVerifySettled}
+        />
       ) : null}
     </section>
   )

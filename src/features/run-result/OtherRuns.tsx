@@ -3,6 +3,7 @@ import { isApiError } from '../../api/client.ts'
 import { isTerminalStatus } from '../../domain/runStatus.ts'
 import { isScenarioRun } from '../../domain/site.ts'
 import type { RunListItem } from '../../domain/types.ts'
+import { optimizerRunText } from '../../shared/optimizerRun.ts'
 
 interface OtherRunsProps {
   currentRunId: string
@@ -57,6 +58,9 @@ export function OtherRuns({
                 </Link>
               )}
               <span> · {isScenarioRun(item) ? '시나리오 테스트' : item.variant}</span>
+              {item.optimizationContext ? (
+                <span> · {optimizerRunText(item.optimizationContext)}</span>
+              ) : null}
               <span> · {item.status}</span>
               {item.goalReached === null ? null : (
                 <span>

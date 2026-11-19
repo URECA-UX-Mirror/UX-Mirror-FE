@@ -14,6 +14,7 @@ import { ReplayNotice } from '../replay/ReplayNotice.tsx'
 import { VERSIONS } from '../new-analysis/constants.ts'
 import { statusLabel } from '../run-progress/statusLabel.ts'
 import { IssuePanel } from './IssuePanel.tsx'
+import { OptimizerRunTag } from '../../shared/OptimizerRunTag.tsx'
 import { OtherRuns } from './OtherRuns.tsx'
 import { PathPanel } from './PathPanel.tsx'
 import { RunSummaryPanel } from './RunSummaryPanel.tsx'
@@ -129,6 +130,14 @@ function ResultBody({ run }: { run: Run }) {
             <dt>버전</dt>
             <dd>{scenario ? `시나리오 테스트 · ${site?.name ?? run.siteId ?? '-'}` : version ? `${version.name} · ${version.change}` : run.variant}</dd>
           </div>
+          {run.optimizationContext ? (
+            <div>
+              <dt>Optimizer 검증</dt>
+              <dd>
+                <OptimizerRunTag context={run.optimizationContext} />
+              </dd>
+            </div>
+          ) : null}
           <div>
             <dt>실행 일시</dt>
             <dd className="num">{formatDateTime(run.startedAt ?? run.createdAt)}</dd>

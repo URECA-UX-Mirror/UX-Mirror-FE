@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router'
 import type { Area, ImprovementReport } from '../../domain/improvement.ts'
 import { OfficialSection } from './OfficialSection.tsx'
 import { SummarySection } from './SummarySection.tsx'
+import { VerificationSection } from './VerificationSection.tsx'
 import { useImprovement } from './useImprovement.ts'
 import './improvement.css'
 
@@ -79,7 +80,7 @@ function ImprovementView({ improvementId }: { improvementId: string }) {
         ) : null}
       </section>
 
-      {/* 에이전트 예측 영역. ② 실제 검증과 구분되도록 태그를 단다 */}
+      {/* 에이전트 예측과 실제 검증을 구분한다 */}
       <AreaSlot title="① 개선 효과" tag="에이전트 예측" area={view.report}>
         {view.report.ok ? (
           <SummarySection
@@ -88,7 +89,9 @@ function ImprovementView({ improvementId }: { improvementId: string }) {
           />
         ) : null}
       </AreaSlot>
-      <AreaSlot title="② 실제 검증" area={view.verification} />
+      <AreaSlot title="② 실제 브라우저 검증" area={view.verification}>
+        {view.verification.ok ? <VerificationSection verification={view.verification.data} /> : null}
+      </AreaSlot>
       <AreaSlot title="보조 정보" area={view.official}>
         {view.official.ok ? (
           <OfficialSection

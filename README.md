@@ -36,6 +36,8 @@ npm test           # 자동 테스트 1회 실행
 
 자동 개선 리포트의 개선 회차는 기본으로 접혀 있으며, 펼치면 회차별 진단·기준·후보 평가와 채택 사유 및 종료 사유를 확인할 수 있다. 평가 실패나 미실행 점수는 0점으로 표시하지 않는다.
 
+자동 개선 리포트의 실제 브라우저 검증 영역은 저장된 Run의 경로·단계·Issue와 유효성을 표시한다. 종료된 유효 Run의 결과·진행 및 양쪽 Run이 종료된 유효 Run인 비교 링크는 실행 서버가 연결되어 있어야 열린다.
+
 `/replay`는 고정 `experimentKey`(E 실행 목표별 네 개)마다 저장된 Run을 조회만 해서 위 화면들로 연결하는 재생 모드다(`GET /api/runs?experimentKey=`만 호출하고 Run을 만들지 않는다). 고정 키는 E 실행 최종 실행 계획의 키 네 개다([미결정 항목](docs/operations/open_issue.md) OI-7).
 
 Optimizer 검증 Run(`GET /api/runs`·`/api/runs/{runId}` 응답에 `optimizationContext`가 있는 Run)은 진행·결과·비교 화면과 "다른 실행 보기"에서 `variant`와 함께 후보 라벨·역할을 표시한다. mock 시드는 `opt_mock_evaluated`(검증 전), `opt_mock_completed`(보고서), `opt_mock_site_changed`(검증 실패)다.

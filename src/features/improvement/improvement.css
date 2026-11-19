@@ -45,3 +45,82 @@
 .round-details div { display: grid; grid-template-columns: 5em minmax(0, 1fr); gap: var(--um-space-2); }
 .round-details dt { color: var(--um-text-secondary); }
 .round-details dd { margin: 0; }
+
+.verification-section { display: grid; gap: var(--um-space-3); }
+.verification-pair { border: 1px solid var(--um-border); border-radius: var(--um-radius-control); padding: var(--um-space-3); }
+.verification-pair h3, .verification-run h4 { margin: 0 0 var(--um-space-2); }
+.verification-summary { font-weight: 600; }
+.verification-runs { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: var(--um-space-3); margin-top: var(--um-space-3); }
+.verification-run { background: var(--um-surface-subtle); border-radius: var(--um-radius-control); padding: var(--um-space-3); }
+.verification-run p { margin: 0 0 var(--um-space-2); overflow-wrap: anywhere; }
+.verification-links { display: flex; gap: var(--um-space-3); }
+.improvement-area .area-tag {
+  margin-left: var(--um-space-2);
+  padding: 2px var(--um-space-2);
+  border-radius: var(--um-radius-pill);
+  border: 1px dashed currentColor;
+  color: var(--um-info-text);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.summary-section {
+  display: grid;
+  gap: var(--um-space-3);
+}
+
+.summary-headline {
+  margin: 0;
+  font-weight: 600;
+}
+
+.summary-block h3 {
+  margin: 0 0 var(--um-space-1);
+  font-size: 14px;
+  color: var(--um-text-secondary);
+}
+
+.summary-block p {
+  margin: 0;
+}
+
+.summary-lines {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--um-space-1);
+}
+
+.summary-score-line {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--um-space-2);
+  align-items: baseline;
+}
+
+.summary-score-name {
+  min-width: 6em;
+}
+
+.summary-delta,
+.summary-source {
+  margin-left: var(--um-space-2);
+  font-size: 13px;
+}
+
+.summary-delta[data-negative='true'],
+.summary-range-out {
+  color: var(--um-warning-text);
+}
+
+.summary-range-ok,
+.summary-muted,
+.summary-source {
+  color: var(--um-text-muted);
+}
+
+.summary-range-out,
+.summary-range-ok {
+  font-size: 12px;
+}

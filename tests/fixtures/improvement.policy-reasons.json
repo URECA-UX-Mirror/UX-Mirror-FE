@@ -1,0 +1,249 @@
+{
+  "rounds": [
+    {
+      "round": 1,
+      "diagnosis": {
+        "bottleneckPage": "home",
+        "blockScore": 0.466,
+        "targetButton": {
+          "semanticKey": "상단 메뉴>/shop/orders#1",
+          "label": "이용정보",
+          "region": "상단 메뉴",
+          "probability": 0.195
+        },
+        "rivalButton": {
+          "semanticKey": "상단 메뉴>/shop/support#1",
+          "label": "고객센터",
+          "region": "상단 메뉴",
+          "probability": 0.348
+        },
+        "text": "환불하려는 사용자가 '이용정보'를 잘 고르지 않고 '고객센터'로 간다."
+      },
+      "baseline": {
+        "label": "이용정보",
+        "mainScore": 0.385,
+        "guardScores": {
+          "S2": 0.68,
+          "S3": 0.771,
+          "S4": 0.77
+        }
+      },
+      "proposal": {
+        "rawResponseRef": "raw/round1_proposal_response.json",
+        "filtered": [
+          {
+            "label": "주문·조회",
+            "accepted": true,
+            "rejectedReason": null
+          },
+          {
+            "label": "주문·환",
+            "accepted": false,
+            "rejectedReason": "TRUNCATED_LABEL"
+          },
+          {
+            "label": "주문·관리",
+            "accepted": true,
+            "rejectedReason": null
+          },
+          {
+            "label": "주문·서비스",
+            "accepted": true,
+            "rejectedReason": null
+          },
+          {
+            "label": "주문·지원",
+            "accepted": true,
+            "rejectedReason": null
+          }
+        ]
+      },
+      "candidates": [
+        {
+          "candidateId": "R1-H1",
+          "label": "주문·배송",
+          "source": "HUMAN",
+          "order": 1,
+          "method": "A",
+          "evaluationStatus": "COMPLETED",
+          "layout": {
+            "valid": true,
+            "reasons": []
+          },
+          "mainScore": 0.512,
+          "guardScores": {
+            "S2": 0.84,
+            "S3": 0.88,
+            "S4": 0.761
+          },
+          "decision": "REJECTED",
+          "reason": "MAIN_GAIN_INSUFFICIENT"
+        },
+        {
+          "candidateId": "R1-H2",
+          "label": "주문·환불",
+          "source": "HUMAN",
+          "order": 2,
+          "method": "A",
+          "evaluationStatus": "COMPLETED",
+          "layout": {
+            "valid": true,
+            "reasons": []
+          },
+          "mainScore": 0.616,
+          "guardScores": {
+            "S2": 0.793,
+            "S3": 0.921,
+            "S4": 0.633
+          },
+          "decision": "REJECTED",
+          "reason": "GUARD_LOSS_EXCEEDED:S4"
+        },
+        {
+          "candidateId": "R1-H3",
+          "label": "주문·반품",
+          "source": "HUMAN",
+          "order": 3,
+          "method": "A",
+          "evaluationStatus": "COMPLETED",
+          "layout": {
+            "valid": true,
+            "reasons": []
+          },
+          "mainScore": 0.598,
+          "guardScores": {
+            "S2": 0.77,
+            "S3": 0.905,
+            "S4": 0.7
+          },
+          "decision": "REJECTED",
+          "reason": "GUARD_LOSS_EXCEEDED:S2,S4"
+        },
+        {
+          "candidateId": "R1-H4",
+          "label": "주문 관리",
+          "source": "HUMAN",
+          "order": 4,
+          "method": "A",
+          "evaluationStatus": "COMPLETED",
+          "layout": {
+            "valid": true,
+            "reasons": []
+          },
+          "mainScore": 0.54,
+          "guardScores": {
+            "S2": 0.802,
+            "S3": 0.89,
+            "S4": 0.758
+          },
+          "decision": "ADOPTED",
+          "reason": null
+        },
+        {
+          "candidateId": "R1-A1",
+          "label": "주문·조회",
+          "source": "AI",
+          "order": 5,
+          "method": "A",
+          "evaluationStatus": "COMPLETED",
+          "layout": {
+            "valid": true,
+            "reasons": []
+          },
+          "mainScore": 0.531,
+          "guardScores": {
+            "S2": 0.79,
+            "S3": 0.88,
+            "S4": 0.752
+          },
+          "decision": "REJECTED",
+          "reason": "TIE_LOST"
+        },
+        {
+          "candidateId": "R1-A2",
+          "label": "주문·관리",
+          "source": "AI",
+          "order": 6,
+          "method": "A",
+          "evaluationStatus": "COMPLETED",
+          "layout": {
+            "valid": true,
+            "reasons": []
+          },
+          "mainScore": 0.537,
+          "guardScores": {
+            "S2": 0.8,
+            "S3": 0.889,
+            "S4": 0.757
+          },
+          "decision": "REJECTED",
+          "reason": "TIE_LOST"
+        },
+        {
+          "candidateId": "R1-A3",
+          "label": "주문·서비스",
+          "source": "AI",
+          "order": 7,
+          "method": "A",
+          "evaluationStatus": "SKIPPED",
+          "layout": {
+            "valid": false,
+            "reasons": [
+              "LABEL_OVERFLOW"
+            ]
+          },
+          "mainScore": null,
+          "guardScores": null,
+          "decision": "REJECTED",
+          "reason": "INVALID_CANDIDATE:LABEL_OVERFLOW"
+        },
+        {
+          "candidateId": "R1-A4",
+          "label": "주문·지원",
+          "source": "AI",
+          "order": 8,
+          "method": "A",
+          "evaluationStatus": "FAILED",
+          "layout": {
+            "valid": true,
+            "reasons": []
+          },
+          "mainScore": null,
+          "guardScores": null,
+          "decision": "REJECTED",
+          "reason": "EVALUATION_FAILED:MODEL_TIMEOUT"
+        }
+      ],
+      "adopted": "R1-H4"
+    }
+  ],
+  "plan": {
+    "guardGoals": [
+      {
+        "goalKey": "S2",
+        "name": "배송",
+        "goal": "어제 산 물건이 지금 어디쯤 오고 있는지 알고 싶다",
+        "goalPage": "orders",
+        "shortestSteps": 1
+      },
+      {
+        "goalKey": "S3",
+        "name": "쿠폰",
+        "goal": "내가 가진 할인 쿠폰이 몇 장 남았는지 보고 싶다",
+        "goalPage": "mypage",
+        "shortestSteps": 1
+      },
+      {
+        "goalKey": "S4",
+        "name": "문의",
+        "goal": "받은 상품에 문제가 있어서 직원에게 직접 물어보고 싶다",
+        "goalPage": "support",
+        "shortestSteps": 1
+      }
+    ]
+  },
+  "stop": {
+    "reason": "NO_ADOPTION_STREAK",
+    "detail": "연속 채택 없음"
+  }
+}

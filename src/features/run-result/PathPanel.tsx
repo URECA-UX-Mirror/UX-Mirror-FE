@@ -163,9 +163,7 @@ export function PathPanel({
         ) : stepId === null ? (
           <p role="status" className="no-image">
             {isLast
-              ? terminationReason === 'GOAL_VERIFIED'
-                ? '도착 화면 이미지 없음'
-                : '마지막 화면 이미지 없음'
+              ? '마지막 화면 이미지 없음'
               : '이 화면에서 모델이 판단한 Step이 없어 이미지가 없습니다'}
           </p>
         ) : step === null ? (

@@ -27,9 +27,9 @@
 | --- | --- | --- | --- |
 | GET | `/api/presets` | - (화면에서 호출 안 함) | `계약 §17.9` |
 | GET | `/api/health` | 전체 | `계약 §17.8` |
-| GET | `/api/sites` | - (화면에서 아직 호출 안 함) | `임시` ([OI-11](../operations/open_issue.md#oi-11)) |
+| GET | `/api/sites` | 시나리오 테스트 | `임시` ([OI-11](../operations/open_issue.md#oi-11)) |
 | GET | `/api/runs` | 1, 3 | `계약 §17.10` |
-| POST | `/api/runs` | 1 | `계약 §17.2`, `§5.1` |
+| POST | `/api/runs` | 1, 시나리오 테스트 | `계약 §17.2`, `§5.1` |
 | GET | `/api/runs/{runId}` | 2, 3, 4 | `계약 §17.3` |
 | GET | `/api/runs/{runId}/steps` | 2, 3, 4 | `계약 §17.4` |
 | GET | `/api/runs/{runId}/issues` | 3 | `계약 §17.5` |
@@ -66,7 +66,7 @@
 | `personaId` | △ | 보내지 않는다. `goalId`와 같은 예외만 있다. `persona`와 둘 중 하나만 |
 | `persona` | O | 입력한 사용자 유형 문장. `personaId`와 둘 중 하나만 ([OI-9](../operations/open_issue.md#oi-9)) |
 | `maxSteps` | X | 사용자가 입력(1~15, 기본 8). 범위는 `계약 §5.1` |
-| `siteId` | X | `임시`([OI-11](../operations/open_issue.md#oi-11)). 시나리오 테스트에서만 `createRun`이 싣는다(`CreateRunInput.siteId`). 없으면 본문은 버전 비교 요청과 같다. 화면에서는 아직 보내지 않고 mock에서만 처리한다 |
+| `siteId` | X | `임시`([OI-11](../operations/open_issue.md#oi-11)). 시나리오 테스트에서만 `createRun`이 싣는다(`CreateRunInput.siteId`). 없으면 본문은 버전 비교 요청과 같다. 시나리오 테스트 화면(`/scenario`)이 선택한 사이트의 `siteId`를 보낸다 |
 | `startPath`, `viewport`, `promptVersion` | X | 보내지 않는다(서버 기본값 사용) |
 
 - 성공은 `201`이고 `{ runId, experimentKey, variant, status: "READY", maxSteps, createdAt }`다.

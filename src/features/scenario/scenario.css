@@ -56,3 +56,9 @@
   display: flex;
   justify-content: flex-end;
 }
+
+.site-warning {
+  margin: 0;
+  color: var(--um-danger-text);
+  font-weight: 600;
+}

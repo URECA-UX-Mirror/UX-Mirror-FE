@@ -5,105 +5,100 @@ import { expect, it } from 'vitest'
 import { toImprovementView } from '../src/adapters/improvement.ts'
 import { VerificationSection } from '../src/features/improvement/VerificationSection.tsx'
 
+// 개선안에서 AI 고객으로 다시 확인한 결과 (VerificationSection)
+
 function improved() { return JSON.parse(readFileSync('tests/fixtures/improvement.improved.json', 'utf8')) }
 function show(data: ReturnType<typeof improved>) {
   const view = toImprovementView(data)
   if (!view.verification.ok) throw new Error(view.verification.reason)
   return render(<MemoryRouter><VerificationSection verification={view.verification.data} /></MemoryRouter>)
 }
+const pairOf = (name: string) => screen.getByRole('heading', { name }).closest('article') as HTMLElement
 
-it('완료된 목표별 저장 결과와 유효한 재생 링크를 표시한다', () => {
+it('끝난 확인은 고객별로 지금 화면과 개선안 결과·경로·문제·다시 보기·비교 링크를 보인다', () => {
   show(improved())
-  expect(screen.getByText('환불 (S1)')).toBeTruthy()
-  expect(screen.getByText('문의 (S4)')).toBeTruthy()
-  expect(screen.getByText('4단계 도달 실패 → 2단계 성공')).toBeTruthy()
-  expect(screen.getByText('변화 없음')).toBeTruthy()
-  expect(screen.getByText(/home → orders → refund/)).toBeTruthy()
-  expect(screen.getByText(/GOAL_NOT_REACHED/)).toBeTruthy()
-  expect(screen.getAllByRole('link', { name: '비교 보기' })[0].getAttribute('href')).toBe('/comparisons/imp-1119-s1')
-  expect(screen.getAllByRole('link', { name: '결과 보기' })).toHaveLength(4)
+  const refund = pairOf('환불하려는 고객')
+  expect(within(refund).getByRole('heading', { name: '지금 화면 · "이용정보"' })).toBeTruthy()
+  expect(within(refund).getByRole('heading', { name: '개선안 · "주문내역"' })).toBeTruthy()
+  expect(within(refund).getByText('4번 눌렀지만 찾지 못함')).toBeTruthy()
+  expect(within(refund).getByText('2번 만에 도착')).toBeTruthy()
+  expect(within(refund).getByText('홈 → 주문 내역 → 환불 신청')).toBeTruthy()
+  expect(within(refund).getByText(/목표에 도달하지 못함 · 같은 화면 반복 방문/)).toBeTruthy()
+  expect(refund.textContent).not.toContain('GOAL_NOT_REACHED')
+  expect(within(refund).getByRole('link', { name: '나란히 비교하기' }).getAttribute('href')).toBe('/comparisons/imp-1119-s1')
+  expect(within(refund).getAllByRole('link', { name: '다시 보기' }).map((a) => a.getAttribute('href')))
+    .toEqual(['/runs/run_before_improved_s1/result', '/runs/run_after_improved_s1/result'])
+  expect(within(pairOf('문의하려는 고객')).getAllByText('1번 만에 도착')).toHaveLength(2)
+  expect(screen.getAllByRole('link', { name: '다시 보기' })).toHaveLength(4)
+  expect(screen.queryByRole('status')).toBeNull()
 })
 
-it('미진행은 안내만 보여 준다', () => {
+it('확인하지 않았으면(NOT_RUN) 안내만 보인다', () => {
   const data = improved(); data.verification.status = 'NOT_RUN'; data.verification.pairs = []
   show(data)
-  expect(screen.getByText('검증 미진행')).toBeTruthy()
+  expect(screen.getByText(/이번에는 개선안에서 다시 확인하지 않았어요/)).toBeTruthy()
   expect(screen.queryAllByRole('link')).toHaveLength(0)
 })
 
-it('실패 사유와 무효 및 누락 Run을 표시하고 유효한 Run 링크만 보인다', () => {
+it('중간에 멈췄으면(FAILED) 끝난 것까지만 보이고 무효·누락 실행에는 링크를 두지 않는다', () => {
   const data = improved(); data.verification.status = 'FAILED'; data.verification.error = { code: 'FAILED_CODE', message: '오류 사유' }
   data.verification.pairs[0].before.validity = 'INVALID'
   data.verification.pairs[0].after = null
   data.verification.pairs[1].after = null
   show(data)
-  expect(screen.getByText(/검증 실패: FAILED_CODE · 오류 사유/)).toBeTruthy()
-  const first = screen.getByText('환불 (S1)').closest('article')!
-  expect(within(first).getAllByText(/판단 불가/).length).toBeGreaterThan(0)
-  expect(within(first).getByText('Run 없음')).toBeTruthy()
+  expect(screen.getByRole('status').textContent).toBe('개선안에서 다시 확인하는 중에 멈췄어요. 끝난 것까지만 보여줘요.')
+  expect(document.body.textContent).not.toContain('FAILED_CODE')
+  const first = pairOf('환불하려는 고객')
+  expect(within(first).getByText('결과를 판단할 수 없음')).toBeTruthy()
+  expect(within(first).getByText('실행 기록이 없어요')).toBeTruthy()
   expect(within(first).queryAllByRole('link')).toHaveLength(0)
-  expect(within(first).queryByText(/→ 2단계 성공/)).toBeNull()
-  expect(screen.getAllByRole('link', { name: '결과 보기' })).toHaveLength(1)
-  expect(screen.queryAllByRole('link', { name: '비교 보기' })).toHaveLength(0)
+  // 무효 실행의 문제 목록은 보이지 않는다
+  expect(within(first).queryByText(/목표에 도달하지 못함/)).toBeNull()
+  expect(screen.getAllByRole('link', { name: '다시 보기' })).toHaveLength(1)
+  expect(screen.queryAllByRole('link', { name: '나란히 비교하기' })).toHaveLength(0)
 })
 
 it.each(['https://evil.test', '//evil.test', '/\\evil.test', '/bad\npath'])('외부 또는 비정상 경로 %s는 링크로 만들지 않는다', (path) => {
   const data = improved(); data.verification.pairs = [data.verification.pairs[0]]
   const pair = data.verification.pairs[0]
-  pair.comparisonPath = path; pair.before.resultPath = path; pair.before.progressPath = path
+  pair.comparisonPath = path; pair.before.resultPath = path
   show(data)
-  expect(screen.queryByRole('link', { name: '비교 보기' })).toBeNull()
-  expect(screen.getAllByRole('link', { name: '결과 보기' })).toHaveLength(1)
-  expect(screen.getAllByRole('link', { name: '진행 보기' })).toHaveLength(1)
+  expect(screen.queryByRole('link', { name: '나란히 비교하기' })).toBeNull()
+  expect(screen.getAllByRole('link', { name: '다시 보기' }).map((a) => a.getAttribute('href'))).toEqual(['/runs/run_after_improved_s1/result'])
 })
 
-it.each(['RUNNING', 'READY', 'UNKNOWN', null])('종료되지 않은 상태 %s에는 재생·비교 링크와 비교 요약을 표시하지 않는다', (status) => {
+it.each(['RUNNING', 'READY', 'UNKNOWN', null])('끝나지 않은 상태 %s의 실행에는 다시 보기·비교 링크를 두지 않는다', (status) => {
   const data = improved()
-  data.verification.status = 'FAILED'
-  data.verification.error = { code: 'FAILED', message: '중단' }
   data.verification.pairs = [data.verification.pairs[0]]
   data.verification.pairs[0].before.status = status
   show(data)
-  expect(screen.queryByRole('link', { name: '비교 보기' })).toBeNull()
-  expect(screen.getAllByRole('link', { name: '결과 보기' })).toHaveLength(1)
-  expect(screen.getAllByRole('link', { name: '진행 보기' })).toHaveLength(1)
-  expect(screen.queryByText('4단계 도달 실패 → 2단계 성공')).toBeNull()
+  expect(screen.queryByRole('link', { name: '나란히 비교하기' })).toBeNull()
+  expect(screen.getAllByRole('link', { name: '다시 보기' }).map((a) => a.getAttribute('href'))).toEqual(['/runs/run_after_improved_s1/result'])
 })
 
-it.each(['status', 'path', 'issues'])('단계와 도달이 같아도 %s가 다르면 변화 없다고 표시하지 않는다', (field) => {
-  const data = improved()
-  data.verification.pairs = [data.verification.pairs[1]]
-  const after = data.verification.pairs[0].after
-  if (field === 'status') after.status = 'BLOCKED'
-  if (field === 'path') after.path = ['home', 'other']
-  if (field === 'issues') after.issues = ['OTHER_ISSUE']
-  show(data)
-  expect(screen.queryByText('변화 없음')).toBeNull()
-  expect(screen.getByText('1단계 성공 → 1단계 성공')).toBeTruthy()
-})
-
-it('무효 Run의 빈 Issue 목록을 판단 불가로 표시한다', () => {
+it('도착 여부를 모르면 결과 정보 없음, 클릭 수를 모르면 숫자 없이 보인다', () => {
   const data = improved()
   data.verification.pairs = [data.verification.pairs[0]]
-  data.verification.pairs[0].before.validity = 'INVALID'
-  data.verification.pairs[0].before.issues = []
+  data.verification.pairs[0].before.goalReached = null
+  data.verification.pairs[0].after.stepCount = null
   show(data)
-  expect(within(screen.getByRole('heading', { name: /v1/ }).parentElement!).getByText('Issue: 판단 불가')).toBeTruthy()
+  expect(screen.getByText('결과 정보 없음')).toBeTruthy()
+  expect(screen.getByText('만에 도착')).toBeTruthy()
 })
 
-it('분석 상태가 저장되지 않은 빈 목록은 결과 없음을 단정하지 않는다', () => {
-  const data = improved()
-  data.verification.pairs = [data.verification.pairs[1]]
-  show(data)
-  // 대기·실패·정상 빈 결과는 모두 같은 빈 목록으로 저장되어 구분할 수 없다.
-  expect(screen.getAllByText('Issue: 저장된 Issue 없음 (분석 상태 확인 불가)')).toHaveLength(2)
-})
-
-it('무효 Run에도 저장된 Issue 코드가 있으면 원문을 표시한다', () => {
+it('모르는 문제 코드는 원문 대신 확인이 필요한 점으로 보인다', () => {
   const data = improved()
   data.verification.pairs = [data.verification.pairs[0]]
-  data.verification.pairs[0].before.validity = 'INVALID'
   data.verification.pairs[0].before.issues = ['UNKNOWN_CODE']
   show(data)
-  expect(screen.getByText('Issue: UNKNOWN_CODE')).toBeTruthy()
+  expect(screen.getByText('확인이 필요한 점')).toBeTruthy()
+  expect(document.body.textContent).not.toContain('UNKNOWN_CODE')
+})
+
+it('목표 이름이 없으면 고객으로만 보인다', () => {
+  const data = improved()
+  data.verification.pairs = [data.verification.pairs[0]]
+  data.verification.pairs[0].name = null
+  show(data)
+  expect(screen.getByRole('heading', { level: 3, name: '고객' })).toBeTruthy()
 })

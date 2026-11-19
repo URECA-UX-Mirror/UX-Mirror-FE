@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router'
-import { beforeEach, expect, it, vi } from 'vitest'
+import { beforeEach, expect, it } from 'vitest'
 import { Layout } from '../src/shared/Layout.tsx'
 
 function renderLayout() {
@@ -17,6 +17,7 @@ function renderLayout() {
 
 beforeEach(() => {
   localStorage.clear()
+  delete document.documentElement.dataset.theme
   localStorage.setItem('um.sidebar.open', '1')
 })
 
@@ -54,57 +55,71 @@ it('손잡이를 두 번 누르면 기본 너비로 돌아간다', () => {
   expect(handle.getAttribute('aria-valuenow')).toBe('256')
 })
 
-/** 최종 리포트 id(`FINAL_IMPROVEMENT_ID`) 설정과 무관하게 테스트하도록 id를 고정해 렌더링한다 */
-async function renderLayoutWithFinalId(id: string | null) {
-  vi.resetModules()
-  vi.doMock('../src/features/improvement/constants.ts', async (importOriginal) => {
-    const actual = await importOriginal<typeof import('../src/features/improvement/constants.ts')>()
-    return { ...actual, finalImprovementPath: () => actual.finalImprovementPath(id) }
-  })
-  const { Layout: FreshLayout } = await import('../src/shared/Layout.tsx')
-  const view = render(
-    <MemoryRouter initialEntries={['/']}>
-      <Routes>
-        <Route element={<FreshLayout />}>
-          <Route index element={<p>본문</p>} />
-        </Route>
-      </Routes>
-    </MemoryRouter>,
-  )
-  vi.doUnmock('../src/features/improvement/constants.ts')
-  return view
-}
-
-it('최종 리포트 id가 없으면 사이드바에 새 UX 분석·시나리오 테스트·UX Optimizer·저장된 결과 재생 메뉴만 있다', async () => {
-  await renderLayoutWithFinalId(null)
+it('사이드바에 진단하기·AI 개선 결과·다른 사이트 진단·지난 결과 다시 보기·메뉴 이름 후보 비교 메뉴가 있다', () => {
+  renderLayout()
   const nav = screen.getByRole('navigation', { name: '주요 메뉴' })
   expect(Array.from(nav.querySelectorAll('a')).map((a) => [a.textContent, a.getAttribute('href')])).toEqual([
-    ['새 UX 분석', '/'],
-    ['시나리오 테스트', '/scenario'],
-    ['UX Optimizer', '/optimizations'],
-    ['저장된 결과 재생', '/replay'],
+    ['진단하기', '/'],
+    ['AI 개선 결과', '/improvements'],
+    ['다른 사이트 진단', '/scenario'],
+    ['지난 결과 다시 보기', '/replay'],
+    ['메뉴 이름 후보 비교', '/optimizations'],
   ])
 })
 
-it('/scenario에서 상단 바에 화면 이름을 보인다', () => {
+it.each([
+  ['/scenario', '다른 사이트 진단'],
+  ['/improvements', 'AI 개선 결과'],
+  ['/improvements/imp_1', 'AI 개선 결과'],
+  ['/runs/run_1/result', '진단 결과'],
+  ['/runs/run_1', '진단 중'],
+])('%s에서 상단 바에 화면 이름(%s)을 보인다', (path, name) => {
   render(
-    <MemoryRouter initialEntries={['/scenario']}>
+    <MemoryRouter initialEntries={[path]}>
       <Routes>
         <Route element={<Layout />}>
-          <Route path="/scenario" element={<p>본문</p>} />
+          <Route path="*" element={<p>본문</p>} />
         </Route>
       </Routes>
     </MemoryRouter>,
   )
-  expect(screen.getByLabelText('현재 위치').textContent).toContain('시나리오 테스트')
+  expect(screen.getByLabelText('현재 위치').textContent).toBe(`/${name}`)
 })
 
-it('최종 리포트 id가 없으면 자동 개선 리포트 메뉴를 보이지 않는다', async () => {
-  await renderLayoutWithFinalId(null)
-  expect(screen.queryByRole('link', { name: '자동 개선 리포트' })).toBeNull()
+it('상단 바에 새 진단 링크가 있고 개발자용 문구는 없다', () => {
+  renderLayout()
+  expect(screen.getByRole('link', { name: '새 진단' }).getAttribute('href')).toBe('/')
+  expect(screen.queryByText(/mock|MSW/i)).toBeNull()
 })
 
-it('최종 리포트 id가 있으면 자동 개선 리포트 메뉴가 그 화면으로 연결된다', async () => {
-  await renderLayoutWithFinalId('imp_FINAL_0001')
-  expect(screen.getByRole('link', { name: '자동 개선 리포트' }).getAttribute('href')).toBe('/improvements/imp_FINAL_0001')
+it('테마 버튼으로 어두운 화면과 밝은 화면을 바꾸고 고른 값을 저장한다', () => {
+  renderLayout()
+  fireEvent.click(screen.getByRole('button', { name: '어두운 화면으로 바꾸기' }))
+  expect(document.documentElement.dataset.theme).toBe('dark')
+  expect(localStorage.getItem('um.theme')).toBe('dark')
+  const back = screen.getByRole('button', { name: '밝은 화면으로 바꾸기' })
+  expect(back.textContent).toBe('밝게')
+  fireEvent.click(back)
+  expect(document.documentElement.dataset.theme).toBe('light')
+  expect(localStorage.getItem('um.theme')).toBe('light')
+  expect(screen.getByRole('button', { name: '어두운 화면으로 바꾸기' }).textContent).toBe('어둡게')
+})
+
+it('저장된 테마가 있으면 그 테마로 시작한다', () => {
+  localStorage.setItem('um.theme', 'dark')
+  renderLayout()
+  expect(screen.getByRole('button', { name: '밝은 화면으로 바꾸기' })).toBeTruthy()
+  expect(document.documentElement.dataset.theme).toBe('dark')
+})
+
+it('저장된 테마가 없으면 기기 설정을 따르고 화면에 테마를 적지 않는다', () => {
+  const original = window.matchMedia
+  window.matchMedia = ((query: string) => ({ matches: query.includes('dark'), media: query, addEventListener() {}, removeEventListener() {} })) as unknown as typeof window.matchMedia
+  try {
+    renderLayout()
+    expect(screen.getByRole('button', { name: '밝은 화면으로 바꾸기' })).toBeTruthy()
+    expect(document.documentElement.dataset.theme).toBeUndefined()
+  } finally {
+    window.matchMedia = original
+  }
 })

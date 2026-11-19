@@ -281,7 +281,7 @@ export function stepSpecs(scenario: ScenarioName): StepSpec[] {
 export const VISIBLE_TEXTS: Record<string, string[]> = {
   '/shop/refund': ['환불 / 반품 신청'],
   '/shop/orders': ['주문 / 배송 조회'],
-  '/shop/mypage': ['김모로 님'],
+  '/shop/mypage': ['김모로 님', '사용 가능 쿠폰'],
   '/shop/support': ['자주 묻는 질문'],
 }
 

@@ -14,15 +14,18 @@ function renderResult(runId: string) {
   )
 }
 
-it('요약은 목표 달성·탐색 단계·검토 후보 카드를 보이고 전체 요약은 펼쳐야 보인다', async () => {
+it('요약은 목표 달성·클릭 수·살펴볼 점 카드를 보이고 전체 요약은 펼쳐야 보인다', async () => {
   renderResult('run_mock_goback')
   const summary = await screen.findByRole('region', { name: '요약' })
   expect(within(summary).getByText('목표 달성')).toBeTruthy()
-  expect(within(summary).getByText('탐색 단계')).toBeTruthy()
-  expect(within(summary).getByText('UX 검토 후보')).toBeTruthy()
+  expect(within(summary).getByText('클릭 수')).toBeTruthy()
+  expect(within(summary).getByText('살펴볼 점')).toBeTruthy()
   expect(within(summary).queryByText('추가 이동(extraSteps)')).toBeNull()
   fireEvent.click(within(summary).getByRole('button', { name: '요약 전체 보기' }))
   expect(within(summary).getByText('추가 이동(extraSteps)')).toBeTruthy()
+  expect(within(summary).getByText('끝난 이유')).toBeTruthy()
+  // 개발자용 코드값(CLICK·GO_BACK·상태 코드)은 보이지 않는다
+  expect(summary.textContent).not.toMatch(/CLICK|GO_BACK|SUCCESS|GOAL_VERIFIED/)
 })
 
 it('탐색 경로는 노드 사이에 이동을 만든 행동을 보이고 노드를 고르면 상세가 바뀐다', async () => {
@@ -83,7 +86,7 @@ it('검토 후보는 우선 검토·일반 검토 두 단계로만 보이고 항
   }
   expect(issues.textContent).not.toMatch(/높음|보통|참고/)
   fireEvent.click(within(cards[0]).getByRole('button', { expanded: false }))
-  expect(within(issues).getByLabelText('Issue 근거')).toBeTruthy()
+  expect(within(issues).getByLabelText('근거')).toBeTruthy()
 })
 
 it('경로 기준이 없는 Run(직접 입력한 목표)은 추가 이동을 0이 아니라 계산 불가로 보인다', async () => {
@@ -102,13 +105,14 @@ async function openFullSummary(runId: string) {
   return summary
 }
 
-it('SITE_MAP Run은 기준 배지와 최단 경로 대비 추가 단계·우회 이동을 보이고 허용 경로 이탈은 사용 안 함이다', async () => {
+it('SITE_MAP Run은 기준 배지와 최단 경로 대비 추가 단계·우회 이동을 보이고 허용 경로 이탈 행은 없다', async () => {
   const summary = await openFullSummary('run_mock_sitemap')
   expect(within(summary).getByText('사이트 지도')).toBeTruthy()
   expect(within(summary).getByText('최단 경로 대비 추가 단계')).toBeTruthy()
   expect(within(summary).getByText('우회 이동')).toBeTruthy()
   expect(within(summary).getByText('목표 거리가 줄지 않은 이동')).toBeTruthy()
-  expect(within(summary).getByText('사용 안 함')).toBeTruthy()
+  expect(within(summary).queryByText('허용 경로 이탈')).toBeNull()
+  expect(within(summary).queryByText('사용 안 함')).toBeNull()
   expect(within(summary).queryByText('추가 이동(extraSteps)')).toBeNull()
   expect(summary.textContent).not.toMatch(/개선|단축/)
 })

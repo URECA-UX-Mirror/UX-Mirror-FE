@@ -24,7 +24,17 @@ export interface HealthDto {
   agent: { ready: boolean }
   activeRun: string | null
   activeOptimization?: ActiveOptimizationDto | null
+  /** Run 잠금을 잡은 작업 (BE #122·#130). 다른 프로세스의 검증·AI 개선도 보인다. 없는 서버도 있어 optional */
+  activeRunOwner?: ActiveRunOwnerDto | null
   checkedAt: string
+}
+
+/** `kind`: `RUN`·`IMPROVEMENT`·`IMPROVEMENT_VERIFICATION`·`OPTIMIZATION_EVALUATING` 등. 값 목록이 열려 있어 문자열로 받는다 */
+export interface ActiveRunOwnerDto {
+  kind: string | null
+  runId: string | null
+  external?: boolean
+  improvementId?: string | null
 }
 
 /** `status`는 `CREATED`·`EVALUATING`·`VERIFYING`·`MODEL_CALL_PENDING` 등이다. 값 목록이 열려 있어 문자열로 받는다 */

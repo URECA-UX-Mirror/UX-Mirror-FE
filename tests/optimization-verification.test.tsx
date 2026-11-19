@@ -228,11 +228,11 @@ it('보고서: 판단·이동 비용 변화·두 Run 요약·한계·resultOrigi
   expect(within(table).getByRole('link', { name: report.runs.baseline.runId })).toBeTruthy()
   expect(within(table).getByRole('link', { name: report.runs.candidate.runId })).toBeTruthy()
   expect(within(table).getByText(/이용정보 \(기준\)/)).toBeTruthy()
-  // 종료 상태는 Run 상태 문구(SUCCESS → 목표 화면 도달)로 보인다
+  // 종료 상태는 Run 상태 문구(SUCCESS → 도착함)로 보인다
   const statusCells = within(table).getByRole('rowheader', { name: '종료 상태' }).parentElement!.querySelectorAll('td')
   expect([...statusCells].map((cell) => cell.textContent)).toEqual([
-    '목표 화면 도달',
-    '목표 화면 도달',
+    '도착함',
+    '도착함',
   ])
   expect(within(table).getByText(/주문·환불 \(후보\)/)).toBeTruthy()
 })
@@ -336,7 +336,7 @@ function listDto(): RunListDto {
   }
 }
 
-it('Run 목록: optimizationContext가 있으면 후보 라벨과 역할을 variant와 함께 보이고 없는 Run은 그대로다', () => {
+it('Run 목록: optimizationContext가 있으면 후보 라벨과 역할을 variant와 함께 보이고 Run ID·상태 코드는 보이지 않는다', () => {
   const items = toRunList(listDto())
   expect(items[0].optimizationContext?.candidateId).toBe('C2')
   expect(items[1].optimizationContext).toBeNull()
@@ -346,8 +346,11 @@ it('Run 목록: optimizationContext가 있으면 후보 라벨과 역할을 vari
     </MemoryRouter>,
   )
   const [optimizerRow, plainRow] = screen.getAllByRole('listitem')
-  expect(optimizerRow.textContent).toContain('after · Optimizer 검증 · 후보 C2 주문·환불')
-  expect(plainRow.textContent).toBe('run_plain · after · COMPLETED · 목표 화면 도달')
+  expect(optimizerRow.textContent).toContain('개선안 · ')
+  expect(optimizerRow.textContent).toContain(' · Optimizer 검증 · 후보 C2 주문·환불')
+  expect(plainRow.textContent).toMatch(/^개선안 · \d{2}-\d{2} \d{2}:\d{2} · /)
+  expect(plainRow.textContent).not.toContain('run_plain')
+  expect(plainRow.textContent).not.toContain('COMPLETED')
 })
 
 it('비교·결과 화면: 검증 Run은 라벨 사이트와 역할을 보이고 일반 Run은 바뀌지 않는다', async () => {
@@ -367,8 +370,8 @@ it('비교·결과 화면: 검증 Run은 라벨 사이트와 역할을 보이고
   )
   const setup = await screen.findByRole('region', { name: '비교 대상' })
   expect(await within(setup).findByText('Optimizer 검증 · 기준 C0 이용정보')).toBeTruthy()
-  // 고정 변경 문구(상단 메뉴: …)는 어느 후보인지와 충돌할 수 있어 붙이지 않는다
-  expect(within(setup).queryByText(/상단 메뉴:/)).toBeNull()
+  // 고정 변경 문구(상단 메뉴 '…')는 어느 후보인지와 충돌할 수 있어 붙이지 않는다
+  expect(within(setup).queryByText(/상단 메뉴 '/)).toBeNull()
   expect(runGets['run_opt_mock_completed_baseline']).toBe(1)
   expect(runGets['run_opt_mock_completed_candidate']).toBe(1)
   expect(within(setup).getByText('Optimizer 검증 · 후보 C2 주문·환불')).toBeTruthy()
@@ -384,10 +387,11 @@ it('비교·결과 화면: 검증 Run은 라벨 사이트와 역할을 보이고
     )
   const optimizerRun = result('run_opt_mock_completed_candidate')
   expect(await screen.findByText('Optimizer 검증 · 후보 C2 주문·환불', {}, { timeout: 3000 })).toBeTruthy()
-  expect(screen.queryByText(/상단 메뉴:/)).toBeNull()
+  expect(screen.queryByText(/상단 메뉴 '/)).toBeNull()
   optimizerRun.unmount()
   result('run_mock_done_before')
-  await screen.findByText('run_mock_done_before', { selector: '.run-id' })
+  // 일반 Run은 버전 이름에 고정 변경 문구를 그대로 붙인다
+  expect(await screen.findByText("지금 화면 · 상단 메뉴 '이용정보'", {}, { timeout: 3000 })).toBeTruthy()
   expect(screen.queryByText(/Optimizer 검증/)).toBeNull()
 })
 
@@ -412,11 +416,11 @@ it('비교·결과·진행 화면: 자동 개선 검증 Run은 고정 변경 문
     render(<MemoryRouter initialEntries={[path]}><Routes><Route path={route} element={element} /></Routes></MemoryRouter>)
   const result = view('/runs/run_mock_done_before/result', '/runs/:runId/result', <RunResultPage />)
   expect(await screen.findByText('자동 개선 검증 · 후보 주문 환불', {}, { timeout: 3000 })).toBeTruthy()
-  expect(screen.queryByText(/상단 메뉴:/)).toBeNull()
+  expect(screen.queryByText(/상단 메뉴 '/)).toBeNull()
   result.unmount()
   const progress = view('/runs/run_mock_done_before', '/runs/:runId', <RunProgressPage />)
   expect(await screen.findByText('자동 개선 검증 · 후보 주문 환불', {}, { timeout: 3000 })).toBeTruthy()
-  expect(screen.queryByText(/상단 메뉴:/)).toBeNull()
+  expect(screen.queryByText(/상단 메뉴 '/)).toBeNull()
   progress.unmount()
   const comparison = view('/comparisons/mock-done', '/comparisons/:experimentKey', <ComparisonPage />)
   const setup = await screen.findByRole('region', { name: '비교 대상' })

@@ -126,7 +126,7 @@ button:disabled {
 
 button.primary:not(:disabled) {
   border-color: var(--um-brand);
-  color: #fff;
+  color: var(--um-on-brand);
   background: var(--um-brand);
 }
 
@@ -188,7 +188,7 @@ select:focus {
   padding: 0 var(--um-space-3);
   border: 1px solid var(--um-border);
   border-radius: var(--um-radius-pill);
-  background: rgb(255 255 255 / 88%);
+  background: var(--um-topbar-bg);
   backdrop-filter: blur(14px);
   box-shadow: var(--um-shadow-card);
 }
@@ -274,7 +274,7 @@ select:focus {
   padding: 6px 12px;
   border: 1px solid var(--um-brand);
   border-radius: var(--um-radius-pill);
-  color: #fff;
+  color: var(--um-on-brand);
   background: var(--um-brand);
   font-size: 13px;
   font-weight: 600;
@@ -619,7 +619,7 @@ select:focus {
   left: -2px;
   min-width: 16px;
   padding: 0 4px;
-  color: #fff;
+  color: var(--um-on-brand);
   background: var(--um-brand);
   font-family: var(--font-mono);
   font-size: 12px;
@@ -633,7 +633,7 @@ select:focus {
 }
 
 .screenshot-box-selected .screenshot-box-tag {
-  background: #dc2626;
+  background: var(--um-mark);
 }
 
 /* 확률 게이지: 눈금은 0~100% 고정이고 25% 간격 눈금선이 있다. 구간별 색 변화는 없다.
@@ -683,7 +683,7 @@ select:focus {
   height: 18px;
   margin-right: var(--um-space-2);
   border-radius: var(--um-radius-control);
-  color: #fff;
+  color: var(--um-on-brand);
   background: var(--um-brand);
   font-family: var(--font-mono);
   font-size: 12px;
@@ -726,7 +726,7 @@ select:focus {
 }
 
 .candidate-selected .candidate-no {
-  background: #dc2626;
+  background: var(--um-mark);
 }
 
 .go-back-notice {
@@ -1002,7 +1002,7 @@ select:focus {
   align-self: flex-start;
   padding: var(--um-space-2) var(--um-space-4);
   border-radius: var(--um-radius-control);
-  color: #fff;
+  color: var(--um-on-brand);
   background: var(--um-brand);
   font-weight: 500;
 }
@@ -1285,7 +1285,7 @@ select:focus {
 .action-type {
   padding: 2px 8px;
   border-radius: var(--um-radius-control);
-  color: #fff;
+  color: var(--um-on-brand);
   background: var(--um-brand);
   font-family: var(--font-mono);
   font-size: 12px;
@@ -1293,7 +1293,7 @@ select:focus {
 }
 
 .action-type[data-type='GO_BACK'] {
-  background: #b45309;
+  background: var(--um-back-mark);
 }
 
 .action-name {
@@ -1901,7 +1901,7 @@ select:focus {
   display: inline-block;
   padding: 10px 18px;
   border-radius: var(--um-radius-card);
-  color: #fff;
+  color: var(--um-on-brand);
   background: var(--um-brand);
   font-weight: 600;
 }
@@ -2056,7 +2056,7 @@ p {
 /* 선택 상태의 단계 탭은 잉크색으로 채운다 */
 .step-tabs button[aria-pressed='true'] {
   border-color: var(--um-brand);
-  color: #fff;
+  color: var(--um-on-brand);
   background: var(--um-brand);
 }
 
@@ -2272,4 +2272,311 @@ p {
   font-size: 12px;
   font-weight: 400;
   opacity: 0.8;
+}
+
+/* ---- 공통 입력 칸 (진단하기·AI 개선·다른 사이트 진단이 같이 쓴다) ---- */
+.field {
+  display: grid;
+  gap: var(--um-space-2);
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.field > legend {
+  padding: 0;
+  margin-bottom: var(--um-space-2);
+  font-weight: 500;
+}
+
+.field-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--um-space-2);
+  min-height: 20px;
+  font-weight: 500;
+}
+
+.field-error {
+  color: var(--um-danger-text);
+}
+
+.field input,
+.field select {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 40px;
+  border-radius: var(--um-radius-control);
+  color: var(--um-text);
+  background: var(--um-surface);
+}
+
+.link-button {
+  padding: 0;
+  border: 0;
+  color: var(--um-accent-strong);
+  background: none;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.link-button:hover:not(:disabled) {
+  background: none;
+}
+
+.theme-toggle {
+  min-height: 30px;
+  padding: 0 12px;
+  border-radius: var(--um-radius-pill);
+  font-size: 13px;
+}
+
+/* ---- 고객·할 일·도착 화면 세 칸 ---- */
+.customer-inputs {
+  display: grid;
+  gap: var(--um-space-4);
+}
+
+.customer-question {
+  margin: 0;
+  padding: var(--um-space-4);
+  border-radius: var(--um-radius-control);
+  background: var(--um-surface-subtle);
+  font-size: 17px;
+  line-height: 28px;
+}
+
+.customer-question strong {
+  color: var(--um-accent-strong);
+}
+
+.chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--um-space-2);
+}
+
+.chip {
+  min-height: 34px;
+  padding: 0 14px;
+  border-radius: var(--um-radius-pill);
+}
+
+.target-line {
+  margin: var(--um-space-4) 0;
+}
+
+.busy-notice {
+  padding: var(--um-space-3) var(--um-space-4);
+  border: 1px solid var(--um-warning-border);
+  border-radius: var(--um-radius-control);
+  color: var(--um-warning-text);
+  background: var(--um-warning-bg);
+}
+
+.busy-notice a {
+  color: inherit;
+  font-weight: 600;
+}
+
+/* ---- 엔진 상태 (사이드바 아래) ---- */
+.engine-status-box {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--um-space-2);
+}
+
+.engine-status-link {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* ---- 진단 결과 맨 위 진단서 ---- */
+.diagnosis-card {
+  display: grid;
+  gap: var(--um-space-4);
+  border-left: 6px solid var(--um-success);
+}
+
+.diagnosis-card[data-reached='no'] {
+  border-left-color: var(--um-warning);
+}
+
+.diagnosis-headline {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 30px;
+}
+
+.diagnosis-reason {
+  margin: 0;
+  color: var(--um-text-secondary);
+}
+
+.diagnosis-first h2 {
+  margin: 0 0 var(--um-space-3);
+  font-size: 15px;
+}
+
+.diagnosis-first > p {
+  margin: var(--um-space-3) 0 0;
+}
+
+.choice-bars {
+  display: grid;
+  gap: var(--um-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.choice-bars li {
+  display: grid;
+  grid-template-columns: minmax(6em, 10em) minmax(0, 1fr) 3.5em;
+  grid-template-areas: 'label bar value' '. note note';
+  align-items: center;
+  gap: 2px var(--um-space-3);
+}
+
+.choice-label {
+  grid-area: label;
+  overflow-wrap: anywhere;
+}
+
+.choice-bar {
+  grid-area: bar;
+  height: 12px;
+  border-radius: var(--um-radius-pill);
+  background: var(--um-accent);
+}
+
+.choice-bars li[data-editable='yes'] .choice-bar {
+  background: var(--um-warning);
+}
+
+.choice-bars li[data-editable='yes'] .choice-label {
+  font-weight: 700;
+}
+
+.choice-value {
+  grid-area: value;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.choice-note {
+  grid-area: note;
+  color: var(--um-text-muted);
+  font-size: 12px;
+}
+
+.diagnosis-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--um-space-3);
+}
+
+/* ---- AI 개선 ---- */
+.improvement-question {
+  margin: 0;
+  font-size: 16px;
+  line-height: 26px;
+}
+
+.improvement-progress {
+  display: grid;
+  gap: var(--um-space-3);
+}
+
+.progress-steps {
+  display: grid;
+  gap: var(--um-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.progress-steps li[data-state='todo'] {
+  color: var(--um-text-muted);
+}
+
+.progress-steps li[data-state='doing'] {
+  color: var(--um-accent-strong);
+  font-weight: 600;
+}
+
+.progress-steps li[data-state='done'] {
+  color: var(--um-success-text);
+}
+
+.summary-hero {
+  margin: 0 0 var(--um-space-3);
+  font-size: 20px;
+  line-height: 30px;
+}
+
+.summary-hero strong {
+  color: var(--um-accent-strong);
+}
+
+.summary-region {
+  color: var(--um-text-secondary);
+  font-size: 15px;
+}
+
+.summary-rejected {
+  margin: 0 0 var(--um-space-3);
+}
+
+.summary-score-values {
+  font-variant-numeric: tabular-nums;
+}
+
+.verification-outcome {
+  font-weight: 600;
+}
+
+.verification-run[data-reached='yes'] .verification-outcome {
+  color: var(--um-success-text);
+}
+
+.verification-run[data-reached='no'] .verification-outcome {
+  color: var(--um-warning-text);
+}
+
+.primary-link {
+  display: inline-flex;
+  align-items: center;
+  justify-self: start;
+  min-height: 36px;
+  padding: 0 16px;
+  border-radius: var(--um-radius-pill);
+  color: var(--um-on-brand);
+  background: var(--um-brand);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.improvement-list {
+  display: grid;
+  gap: var(--um-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+@media (max-width: 767px) {
+  .choice-bars li {
+    grid-template-columns: minmax(5em, 7em) minmax(0, 1fr) 3em;
+  }
+
+  .diagnosis-headline {
+    font-size: 19px;
+    line-height: 27px;
+  }
 }

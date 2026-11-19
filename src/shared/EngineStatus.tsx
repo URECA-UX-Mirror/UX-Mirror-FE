@@ -1,59 +1,38 @@
 import { Link } from 'react-router'
-import { activeOptimizationLabel } from './optimizationStatus.ts'
 import { useHealth } from './useHealth.ts'
 
 interface EngineStatusProps {
-  /** 값이 바뀌면 상태를 다시 조회한다. 라우트 이동 때마다 최신 `activeRun`을 보이려고 쓴다 */
+  /** 값이 바뀌면 상태를 다시 조회한다. 라우트 이동 때마다 최신 상태를 보이려고 쓴다 */
   refreshKey?: string
 }
 
 /**
- * 공통 영역의 엔진 상태 표시(`GET /api/health`).
- * "엔진 준비 완료"까지만 말하고 분석 성공을 보장하는 표현은 쓰지 않는다(계약 §17.8).
- * 조회에 실패하면 "확인 불가"로 표시하고 나머지 화면은 계속 쓸 수 있다.
- * 다시 조회하는 동안에는 이전 결과를 그대로 보인다.
+ * 메뉴 아래의 상태 표시(`GET /api/health`). 점 + 짧은 말 한 줄, 진행 중인 작업은 그 아래 "보기" 링크.
+ * 진행 중인 동안만 다시 조회하므로 끝나면 바로 "준비됨"으로 바뀐다.
  */
 export function EngineStatus({ refreshKey }: EngineStatusProps) {
   const { health, error, loading } = useHealth(refreshKey)
 
-  if (loading && !health && !error) {
-    return (
-      <span className="engine-status" data-state="pending">
-        엔진 상태 확인 중
-      </span>
-    )
-  }
-  if (error || !health) {
-    return (
-      <span className="engine-status" data-state="unknown">
-        엔진 상태 확인 불가
-      </span>
-    )
-  }
+  if (loading && !health && !error) return <Status state="pending" label="상태 확인 중" />
+  if (error || !health) return <Status state="unknown" label="서버에 연결할 수 없어요" />
 
-  // 모델·브라우저·에이전트가 모두 준비되면 서버가 `READY`를 준다(계약 §17.8)
-  const ready = health.status === 'READY'
+  const owner = health.activeOwner
+  if (owner?.improvementId) {
+    return <Status state="busy" label="AI 개선 중" to={`/improvements/${encodeURIComponent(owner.improvementId)}`} />
+  }
+  if (health.activeRunId) return <Status state="busy" label="진단 중" to={`/runs/${encodeURIComponent(health.activeRunId)}`} />
+  if (health.activeOptimization) {
+    return <Status state="busy" label="후보 비교 중" to={`/optimizations/${encodeURIComponent(health.activeOptimization.optimizationId)}`} />
+  }
+  if (owner) return <Status state="busy" label="다른 작업 진행 중" />
+  return health.status === 'READY' ? <Status state="ready" label="준비됨" /> : <Status state="pending" label="준비 중" />
+}
+
+function Status({ state, label, to }: { state: 'ready' | 'pending' | 'busy' | 'unknown'; label: string; to?: string }) {
   return (
-    <span className="engine-status" data-state={ready ? 'ready' : 'pending'}>
-      {ready ? '엔진 준비 완료' : '엔진 준비 중'}
-      {health.activeRunId ? (
-        <>
-          {' · '}
-          <Link to={`/runs/${encodeURIComponent(health.activeRunId)}`}>
-            실행 중인 분석 보기
-          </Link>
-        </>
-      ) : null}
-      {health.activeOptimization ? (
-        <>
-          {' · '}
-          <Link
-            to={`/optimizations/${encodeURIComponent(health.activeOptimization.optimizationId)}`}
-          >
-            Optimizer {activeOptimizationLabel(health.activeOptimization.status)}
-          </Link>
-        </>
-      ) : null}
-    </span>
+    <div className="engine-status-box">
+      <span className="engine-status" data-state={state}>{label}</span>
+      {to ? <Link to={to} className="engine-status-link">보기</Link> : null}
+    </div>
   )
 }

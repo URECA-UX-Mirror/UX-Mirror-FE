@@ -28,6 +28,10 @@ export interface SiteDto {
   siteId: string
   name: string
   mode: SiteMode
+  /** 사이트 주소(`scheme://host[:port]`). 공개 주소가 아니면 `null`이고, 예전 응답에는 없을 수 있다 */
+  siteUrl?: string | null
+  /** 사용자가 붙여 넣은 링크로 이 사이트를 찾을 때 쓰는 도메인 (공개 호스트만) */
+  allowedHosts?: string[]
   startPage: string
   pages: SitePageDto[]
   /**

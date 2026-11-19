@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { toImprovementView } from '../src/adapters/improvement.ts'
 import { formatScore, formatScoreDelta, formatScoreMagnitude } from '../src/domain/improvementScore.ts'
 
-// 자동 개선 데이터 타입·검증기 (FE #77). 형식 정본은 공식 결과 public/improvements/imp-1119.json과 개선 채택 픽스처 tests/fixtures/improvement.improved.json
+// 자동 개선 데이터 타입·검증기 (FE #77). 형식 정본은 공식 결과 tests/fixtures/improvements/imp-1119.json과 개선 채택 픽스처 tests/fixtures/improvement.improved.json
 
 type Json = Record<string, any> // eslint-disable-line @typescript-eslint/no-explicit-any
 
@@ -11,7 +11,7 @@ const read = (path: string): Json =>
   JSON.parse(readFileSync(new URL(path, import.meta.url), 'utf-8'))
 
 const loadImproved = () => read('./fixtures/improvement.improved.json')
-const noImprovement = () => read('../public/improvements/imp-1119.json')
+const noImprovement = () => read('fixtures/improvements/imp-1119.json')
 
 /** 점 경로(`a.b[0].c`)의 값을 지운 사본. 마지막 키를 `delete`한다 */
 function without(path: string, source: Json = loadImproved()): Json {

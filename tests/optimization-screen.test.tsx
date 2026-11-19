@@ -458,6 +458,7 @@ it('엔진 상태의 Optimizer 표시는 진행 중인 후보 평가 화면으�
       <EngineStatus />
     </MemoryRouter>,
   )
-  const link = await screen.findByRole('link', { name: /Optimizer 후보 평가 중/ })
+  expect(await screen.findByText('후보 비교 중')).toBeTruthy()
+  const link = screen.getByRole('link', { name: '보기' })
   expect(link.getAttribute('href')).toBe('/optimizations/opt_mock_1')
 })

@@ -15,14 +15,14 @@
 | ID | 항목 | 담당 | 임시 결정 | 2번 답변 (11-18) |
 | --- | --- | --- | --- | --- |
 | [OI-3](#oi-3) | 도착 화면 스크린샷 조회 | 정자비, 장근창 | 별도 API `GET /api/runs/{runId}/screenshots/goal`로 표시, 없으면 "도착 화면 이미지 없음" | 구현됨, 실제 서버 연동 확인 대기(UX-Mirror-BE #56 머지됨) |
-| [OI-8](#oi-8) | 분석 대상 사이트 입력 | 장근창 | 입력란은 두되 요청에 싣지 않고, MORO MARKET 외 값은 안내 후 시작을 막음; 등록 사이트 선택은 [OI-11](#oi-11), 임의 URL은 미해결 | (장근창 담당) |
+| [OI-8](#oi-8) | 분석 대상 사이트 입력 | 장근창 | 진단하기는 MORO MARKET 고정(입력 칸 없음), 다른 사이트는 링크로 등록 사이트를 찾음([OI-11](#oi-11)), 등록 안 된 URL은 미해결 | (장근창 담당) |
 | [OI-7](#oi-7) | 저장된 실측 데이터 시연 | 정자비 | `/replay`에서 원본 `LIVE` Run을 조회해 재생, 서버 없는 시연은 P0 제외 | 임시 결정대로. 고정 키는 E 실행 키 4개로 반영 |
 | [OI-9](#oi-9) | 목표·사용자 유형 직접 입력 | 정자비, 장근창 | 백엔드 구현 기준으로 요청·표시, 도착 화면은 목록에서 고름 | 화면 글자 사전 검사(`422`·`503`)는 BE #60으로 구현됨. 도착 경로 없음 `422`·지도 오류 처리도 구현됨 |
 | [OI-10](#oi-10) | 경로 지표 기준(basis)·우회 이동 | 정자비, 장근창 | 설계 v2.1 기준으로 optional로 받고, 설정의 `basis`가 없으면 `ALLOWED_PATHS`, 설정이 없으면 기준 없음으로 읽음 | 서버 동작과 대조 완료 |
 | [OI-11](#oi-11) | 시나리오 테스트(외부 사이트) | 장근창, 정자비, 권혁준 | 등록 사이트 선택, mock과 Adapter로 선행 | API 세부 사항 확정 대기 |
 | [OI-12](#oi-12) | UX Optimizer 응답 형식·이유 코드 | 정윤희, 장근창, 권혁준 | BE 코드·README 기준으로 DTO·mock 선행, 이유 코드는 원문 문자열로 받음 | 계약 v1.3.8 반영(#43)과 정책 모듈 값 목록 확정 대기 |
-| [OI-13](#oi-13) | 자동 개선 결과(`improvement.json`) 형식 | 정자비, 권혁준 | 팀이 확정한 공식 결과를 정본으로 정적 JSON을 영역별로 검증, 모르는 enum은 원문 | 통합 후 정자비가 계약서에 반영 |
-| [OI-14](#oi-14) | 새 UX 분석의 변경 후 버전 | 이성집, 정자비 | v2 카드를 자동 개선 최종안 행으로 교체, `variant=after` Run은 만들지 않음 | BE #128 머지됨, 계약서 반영 대기 |
+| [OI-13](#oi-13) | 자동 개선 결과(`improvement.json`) 형식 | 정자비, 권혁준 | 팀이 확정한 공식 결과를 형식 정본으로, API 응답의 보고서를 영역별로 검증, 모르는 enum은 원문 | 통합 후 정자비가 계약서에 반영 |
+| [OI-14](#oi-14) | 진단의 개선안 버전 | 이성집, 정자비 | 진단 결과의 "개선안 화면으로도 해 보기"가 같은 조건의 `variant=after` Run을 만든다(서버 `SHOP_AFTER_URL` 사이트) | BE #128 머지됨, 계약서 반영 대기 |
 
 ## 항목
 
@@ -55,7 +55,7 @@
 ### OI-8 분석 대상 사이트 입력
 
 - 계약서: `POST /api/runs` 요청 본문은 `experimentKey`, `variant`, `goalId`, `personaId`, `maxSteps`다. 사이트(주소)를 받는 필드는 없고 대상은 `variant`에 따라 백엔드가 정한다.
-- 임시 결정: 새 UX 분석 화면의 "분석 사이트"를 입력할 수 있게 두되 값은 요청에 싣지 않는다. 입력값이 MORO MARKET(대소문자·앞뒤 공백 무시)이 아니거나 비어 있으면 안내를 보이고 분석 시작을 막는다. 입력한 대상과 실제 분석 대상이 달라지지 않게 하기 위해서다.
+- 임시 결정: 진단하기는 MORO MARKET 고정이라 사이트 입력 칸이 없다. 다른 사이트는 "다른 사이트 진단"에서 링크를 붙여 넣어 등록 사이트(`allowedHosts`)로 찾는다([OI-11](#oi-11)).
 - 부분 해결: 등록된 외부 사이트 선택 방안으로 범위상 부분 해결했다. API 확정과 구현은 [OI-11](#oi-11)에서 진행 중이며 임의 URL 입력은 미해결이다.
 - 확인할 것: 임의 사이트를 분석할지, 요청 필드(예: 사이트 주소·버전별 주소)와 검증 규칙을 어떻게 둘지. 확정되면 계약서를 고치고 입력값을 요청에 싣는다.
 - 담당: 장근창(API).
@@ -125,19 +125,19 @@
 <a id="oi-13"></a>
 ### OI-13 자동 개선 결과(`improvement.json`) 형식
 
-- 범위: 자동 개선 에이전트가 만드는 `improvement.json`(`schemaVersion: improvement-v1`). 1단계(해커톤)에서는 백엔드 API 없이 정적 JSON을 읽는다. 계약서에 없는 형식이다.
-- 임시 결정: 팀이 확정한 공식 결과(`public/improvements/imp-1119b.json`, 2차 공식 실행. 1차 `imp-1119.json`도 함께 둔다)를 정본으로 삼는다. `src/adapters/improvement.ts`가 필수 필드 규칙에 따라 report·official·rounds·verification 네 영역을 각각 `{ ok, data | reason }`로 검증하고, 한 영역이 오류여도 다른 영역은 정상 변환한다. `null`은 "값 없음"이라 0으로 바꾸지 않고, 모르는 enum 값은 원문 문자열로 둔다. 점수 표시 변환(`%`·`%p`)은 `src/domain/improvementScore.ts` 한 곳에 둔다.
+- 범위: 자동 개선 에이전트가 만드는 `improvement.json`(`schemaVersion: improvement-v1`)과 이를 내려 주는 `GET/POST /api/improvements`(UX-Mirror-BE #131). 계약서에 없는 형식이다.
+- 임시 결정: 팀이 확정한 공식 결과(2차 공식 실행 `imp-1119b`, 테스트 고정값은 `tests/fixtures/improvements/`)를 형식의 정본으로 삼는다. `src/adapters/improvement.ts`가 필수 필드 규칙에 따라 report·official·rounds·verification 네 영역을 각각 `{ ok, data | reason }`로 검증하고, 한 영역이 오류여도 다른 영역은 정상 변환한다. `null`은 "값 없음"이라 0으로 바꾸지 않고, 모르는 enum 값은 원문 문자열로 둔다. 점수 표시 변환(`%`·`%p`)은 `src/domain/improvementScore.ts` 한 곳에 둔다.
 - 임시: 검증 Run의 빈 `issues`만으로 분석 대기·실패·정상 빈 결과를 구분할 수 없다. 무효 Run은 "판단 불가", 그 밖에는 "저장된 Issue 없음 (분석 상태 확인 불가)"로 표시한다. BE PR #110의 `_run_view`는 분석 상태 없이 목록만 저장하므로 상태 필드와 값이 확정되면 표시를 구분한다.
 - 공식 결과가 정본이다. 탈락 사유 코드는 BE 실제 코드 기준 이름(`GUARD_LOSS_EXCEEDED:<목표>`, `MAIN_GAIN_INSUFFICIENT`, `TRUNCATED_LABEL`, `LABEL_TOO_LONG`, `EXISTING_LABEL` 등)을 쓰고 모르는 코드는 원문으로 보인다. 검증 쌍 키(`goalKey` `S1`, experimentKey `imp-1119b-S1` 형식)는 2차 공식 결과(BE #125)로 확인됐다. 검증 쌍의 `path`·`stepCount`·`issues`·`goalReached`는 `improvement.json`을 만드는 쪽이 Run을 읽어 채운다. 공식 결과(`imp-1119.json`)는 `NO_IMPROVEMENT`(개선안 미채택, 검증 `NOT_RUN`, `official: null`)이고, 연습 실행(개선안 채택 예시)은 공식이 아니라 아직 화면에 반영하지 않았다.
-- 전달 방식: 1단계는 `public/improvements/<id>.json` 정적 파일이다(반영 절차는 [자동 개선 JSON 반영 절차](improvement-release.md)). 2단계에서 `GET /api/improvements/{id}`로 바꿀 예정이며, 바뀌면 `useImprovement`의 읽기 부분만 교체한다.
+- 전달 방식: `GET /api/improvements/{id}`가 실행 상태(`status`·`phase`·`kind`·`input`)와 보고서(`improvement`, 끝나기 전에는 `null`)를 함께 준다. 정적 파일은 더 이상 쓰지 않는다. 시작은 `POST /api/improvements`(`{sourceRunId}` 또는 `{goal, persona, goalPage}`)이고, 다른 Run이 있으면 `409`, 서버가 꺼 두면(`UXM_IMPROVEMENTS_ENABLED=0`) `503`, 입력 오류는 `422`다. 엔진 상태의 `activeRunOwner`(`kind`·`improvementId`)로 진행 중인 AI 개선 화면을 연다.
 - 형식을 바꿔야 하면 정자비(생성 담당)와 먼저 합의한다. 계약서 갱신은 통합 후 정자비가 한 번에 한다.
 - 담당: 정자비(생성·계약서), 권혁준(프론트). 관련 FE 이슈: #77, #82.
 - 확정되면 `docs/contracts/`를 고친 뒤 이 항목을 지운다.
 
 <a id="oi-14"></a>
-### OI-14 새 UX 분석의 변경 후 버전
+### OI-14 진단의 개선안 버전
 
 - 계약서: `POST /api/runs`의 `variant`는 `before` 또는 `after`다(`§4.2`). 고정 v2 사이트를 없앤 BE 변경(UX-Mirror-BE #124·#128, 머지됨)은 `variant=after`를 막지 않고 서버 설정 `SHOP_AFTER_URL` 사이트로 보낸다. `SHOP_AFTER_URL` 또는 `SHOP_AFTER_LABEL`이 없으면 `503 SITE_NOT_CONFIGURED`이고, 같은 실험 키에 다른 after 사이트의 Run이 있으면 `422`다. `after` Run에는 사이트 이름 `afterSite: {label}`이 남는다. 계약서에는 아직 반영되지 않았다.
-- 임시 결정: 팀 결정(안 2)에 따라 "새 UX 분석"은 v2 카드를 `에이전트 최종안` 행으로 바꾸고 `variant=after` Run을 만들지 않는다. 그래서 위 `503`·`422`와 `afterSite`는 FE가 쓰지 않는다. 이 행은 자동 개선 결과의 `verification.pairs[].comparisonPath`(`/comparisons/imp-1119b-S1`·`-S4`)만 연결한다. 직접 입력한 목표에는 최종안 비교가 없다.
+- 임시 결정: 진단 결과의 "개선안 화면으로도 해 보기"가 같은 실험 키·같은 입력으로 `variant=after` Run을 만든다. 같은 실험에 끝난 유효 `after` Run이 있으면 버튼 대신 비교 링크를, 진행 중이면 진행 링크를 보인다. 서버 `503`·`422`의 `message`는 그대로 보인다. AI 개선의 검증 쌍은 결과의 `verification.pairs[].comparisonPath`로 연다.
 - 확인된 것: 배포 서버에 `imp-1119b` 검증 Run 4개가 반영돼 `/comparisons/imp-1119b-S1`·`-S4`가 열린다(develop Preview 확인). 검증 Run의 `improvementContext`(`improvementId`·`goalId`·`label`·`siteInstanceId`·`executionRole`, BE `api/improvement.py`)가 있으면 비교·결과·진행 화면은 고정 변경 문구(`VERSIONS.change`) 대신 '자동 개선 검증 · 후보 주문 환불'처럼 라벨을 보인다. 이 필드가 없는 일반 Run은 기존 표시이며, 11/19 E 실험의 예전 `after` Run은 당시 고정 v2가 '주문·환불'이라 그 문구가 맞다. 계약서 갱신은 BE 통합 뒤 정자비가 하고, 반영되면 이 항목을 지운다.
 - 담당: 이성집, 정자비.

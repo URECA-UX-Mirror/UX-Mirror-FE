@@ -25,18 +25,18 @@ npm test           # 자동 테스트 1회 실행
 
 | 화면 | 데이터 (백엔드 API) |
 | --- | --- |
-| ① 새 UX 분석 | `GET /api/health`, `GET /api/runs`, `POST /api/runs` |
-| 시나리오 테스트 (`/scenario`) | `GET /api/health`, `GET /api/sites`, `POST /api/runs` |
-| ② AI 탐색 진행 | `GET /api/health`, `GET /api/runs/{runId}`, `/steps`, `/screenshots/{stepId}`, 시나리오 Run의 `GET /api/sites` |
-| ③ UX 탐색 분석 결과 | `GET /api/health`, `GET /api/runs`, `GET /api/runs/{runId}`, `/steps`, `/screenshots/{stepId}`, `/screenshots/goal`, `/issues`, 시나리오 Run의 `GET /api/sites` |
-| ④ 버전 비교 | `GET /api/health`, `GET /api/comparisons/{experimentKey}`, `/api/runs/{runId}`, `/api/runs/{runId}/steps`, `/api/runs/{runId}/screenshots/{stepId}` |
-| UX Optimizer (`/optimizations`) | `GET /api/health`, `POST /api/optimizations` |
-| UX Optimizer 후보 평가·검증·보고서 (`/optimizations/:optimizationId`) | `GET /api/optimizations/{optimizationId}`, `POST /api/optimizations/{optimizationId}/verify`, `GET /api/optimizations/{optimizationId}/report` |
-| 자동 개선 리포트 (`/improvements/:improvementId`) | 정적 파일 `/improvements/{improvementId}.json`(API 호출 없음, [OI-13](docs/operations/open_issue.md#oi-13)). `improvementId`는 영숫자·`_`·`-`만 허용한다 |
+| 진단하기 (`/`) | `GET /api/health`, `POST /api/runs` |
+| 다른 사이트 진단 (`/scenario`) | `GET /api/health`, `GET /api/sites`, `POST /api/runs` |
+| 진단 중 (`/runs/:runId`) | `GET /api/health`, `GET /api/runs/{runId}`, `/steps`, `/screenshots/{stepId}`, 시나리오 Run의 `GET /api/sites` |
+| 진단 결과 (`/runs/:runId/result`) | `GET /api/health`, `GET /api/runs`, `POST /api/runs`(개선안으로 해 보기), `POST /api/improvements`(AI에게 고쳐 달라고 하기), `GET /api/runs/{runId}`, `/steps`, `/screenshots/{stepId}`, `/screenshots/goal`, `/issues`, 시나리오 Run의 `GET /api/sites` |
+| 지금 화면 vs 개선안 (`/comparisons/:experimentKey`) | `GET /api/health`, `GET /api/comparisons/{experimentKey}`, `/api/runs/{runId}`, `/api/runs/{runId}/steps`, `/api/runs/{runId}/screenshots/{stepId}` |
+| 메뉴 이름 후보 비교 (`/optimizations`) | `GET /api/health`, `POST /api/optimizations` |
+| 후보 비교 결과 (`/optimizations/:optimizationId`) | `GET /api/optimizations/{optimizationId}`, `POST /api/optimizations/{optimizationId}/verify`, `GET /api/optimizations/{optimizationId}/report` |
+| AI 개선 결과 (`/improvements`, `/improvements/:improvementId`) | `GET /api/health`, `GET /api/improvements`, `POST /api/improvements`, `GET /api/improvements/{improvementId}`(진행 중이면 3초마다, [OI-13](docs/operations/open_issue.md#oi-13)) |
 
-자동 개선 리포트의 개선 회차는 기본으로 접혀 있으며, 펼치면 회차별 진단·기준·후보 평가와 채택 사유 및 종료 사유를 확인할 수 있다. 평가 실패나 미실행 점수는 0점으로 표시하지 않는다. 사이드바 링크는 최종 리포트 id(`src/features/improvement/constants.ts`의 `FINAL_IMPROVEMENT_ID`, 현재 `imp-1119b`)가 있을 때만 보인다. 최종 JSON 반영 절차는 [자동 개선 JSON 반영 절차](docs/operations/improvement-release.md)를 따른다.
+화면 이름은 `src/shared/pageNames.ts` 한 곳에서 정한다. 화면에는 서버 코드값(상태·멈춘 이유·문제 유형·`CLICK`/`GO_BACK`·Run ID)을 그대로 보이지 않고 `src/shared/runLabels.ts`의 사용자 말로 바꿔 보인다.
 
-자동 개선 리포트의 실제 브라우저 검증 영역은 저장된 Run의 경로·단계·Issue와 유효성을 표시한다. 종료된 유효 Run의 결과·진행 및 양쪽 Run이 종료된 유효 Run인 비교 링크는 실행 서버가 연결되어 있어야 열린다.
+AI 개선은 진단 결과의 "AI에게 고쳐 달라고 하기"나 `/improvements`의 입력(고객 유형·할 일·도착 화면)으로 시작한다. 서버에서는 한 번에 하나만 돌고(약 5분), 그동안 다른 진단은 시작할 수 없다. 결과 화면은 진행 단계 → 바꿔 볼 이름과 점수 → 개선안에서 다시 확인한 결과 → 회차 기록(접힘) → 점수 계산(접힘) 순이다. 공식 결과(`kind: OFFICIAL`)와 심사 실행(`LIVE`)은 태그로 구분한다.
 
 `/replay`는 고정 `experimentKey`(E 실행 목표별 네 개)마다 저장된 Run을 조회만 해서 위 화면들로 연결하는 재생 모드다(`GET /api/runs?experimentKey=`만 호출하고 Run을 만들지 않는다). 고정 키는 E 실행 최종 실행 계획의 키 네 개다([미결정 항목](docs/operations/open_issue.md) OI-7).
 
@@ -46,9 +46,11 @@ mock 모드에서 ③ 결과 화면(`/runs/:runId/result`)은 시드 Run으로 �
 
 ④ 비교 화면은 mock 모드에서 `/comparisons/mock-sitemap`(양쪽 사이트 지도 기준, 우회 이동 행 표시), `/comparisons/mock-basis-mismatch`(기준 불일치로 `REFERENCE_PATH_CONFIG_MATCHED` 실패), `/comparisons/mock-done`(허용 경로)으로 확인한다. 비교 응답에는 기준이 없어 각 Run(`GET /api/runs/{runId}`)의 기준을 읽어 Run 단위 비교에 표시한다.
 
-새 UX 분석은 고정 사이트 MORO MARKET의 v1 실행을 지원하고, 변경 후 버전은 자동 개선 최종안 행의 비교 링크로 연다. 탐색 목표·사용자 유형은 문장으로 직접 입력하고, 성공 조건(도착 화면·보여야 할 글자)을 함께 입력한다. 엔진 상태가 `READY`로 확인된 경우에만 시작할 수 있다. 기존 실험 키를 입력하고 조회하면 서버에서 실행 기록과 분석 조건을 불러온다. 실행 시작 후 진행 화면 주소의 `experimentKey`로 같은 실험을 다시 열 수 있다.
+진단하기는 MORO MARKET에서 "어떤 고객이, 무엇을 하려고, 어느 화면까지 오는지" 세 칸만 받는다. 확인 글자·찾는 범위·최대 클릭 수는 도착 화면마다 정해진 값으로 채우고, 실험 키는 매번 새로 만든다. 문장 검사는 BE와 같은 규칙(`src/shared/inputRules.ts`)으로 시작 전에 안내한다. 엔진이 `READY`가 아니거나 다른 진단·AI 개선·후보 비교가 진행 중이면 시작을 막고 진행 중인 화면 링크를 보인다.
 
-시나리오 테스트는 서버에 등록된 사이트를 고르고 상황 문장·사용자 유형·도착 화면을 입력해 Run 1개를 시작한 뒤 진행 화면으로 이동한다. 비교·버전 선택은 없다(임시, [OI-11](docs/operations/open_issue.md#oi-11)).
+다른 사이트 진단은 사이트 링크를 붙여 넣으면 도메인이 `GET /api/sites`의 `allowedHosts`에 있는 등록 사이트를 찾아 그 `siteId`로 Run 1개를 시작한다. 등록되지 않은 도메인이면 시작할 수 없다(임시, [OI-11](docs/operations/open_issue.md#oi-11)).
+
+화면 테마는 기기 설정을 따르고 상단 바의 "어둡게/밝게" 버튼으로 바꿀 수 있다(선택은 브라우저에 저장).
 
 화면별 상태 관리, 요청·응답 형식, bbox 변환은 [docs/README.md](docs/README.md)의 문서를 따른다.
 

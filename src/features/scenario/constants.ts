@@ -7,4 +7,4 @@ export const GOAL_EXAMPLES = [
   '다른 사람이 남긴 상품 후기를 볼 수 있는 화면 찾기',
 ] as const
 export const PERSONA_EXAMPLE = '온라인 쇼핑몰 이용 경험이 적은 사용자'
-export const NO_SITE_MAP_NOTICE = '이 사이트는 사이트 지도가 없어 경로 지표를 계산하지 않습니다'
+export const NO_SITE_MAP_NOTICE = '이 사이트는 화면 연결 정보가 없어 "가장 짧은 길" 비교는 빠져요'

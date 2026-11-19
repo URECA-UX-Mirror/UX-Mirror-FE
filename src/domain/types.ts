@@ -61,6 +61,8 @@ export interface Health {
   activeRunId: string | null
   /** 진행 중인 UX Optimizer. 없거나 응답에 필드가 없으면 `null` */
   activeOptimization: { optimizationId: string; status: string } | null
+  /** 진행 중인 작업 (진단·AI 개선 등). 없으면 `null` */
+  activeOwner: { kind: string; runId: string | null; improvementId: string | null } | null
   checkedAt: string
 }
 
@@ -409,6 +411,10 @@ export interface Site {
   siteId: string
   name: string
   mode: Open<'SCENARIO'>
+  /** 사이트 주소. 모르면 `null` */
+  siteUrl: string | null
+  /** 링크로 사이트를 찾을 때 쓰는 도메인 (소문자) */
+  allowedHosts: string[]
   startPage: string
   pages: SitePage[]
   /** `false`면 사이트 지도가 없다 */

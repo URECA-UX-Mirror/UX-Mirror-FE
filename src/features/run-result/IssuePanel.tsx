@@ -7,6 +7,7 @@ import { CandidateProbabilityList } from '../../shared/screenshot/CandidateProba
 import { ListChecksIcon } from '../../shared/icons.tsx'
 import type { PollingStatus } from '../../shared/polling/usePolling.ts'
 import { SectionTitle } from '../../shared/SectionTitle.tsx'
+import { issueTypeLabel } from '../../shared/runLabels.ts'
 import { evidenceLabel, evidenceValue, priorityLabel } from './issueLabels.ts'
 
 interface IssuePanelProps {
@@ -102,7 +103,7 @@ export function IssuePanel({
                 <div className="issue-detail">
                   <p>{issue.description}</p>
                   <p>
-                    유형: {issue.issueType}{issue.issueType === 'GOAL_NOT_REACHED' ? ' · 실행 전체 결과' : ''}
+                    {issueTypeLabel(issue.issueType)}{issue.issueType === 'GOAL_NOT_REACHED' ? ' · 진단 전체' : ''}
                     {issue.issueType !== 'GOAL_NOT_REACHED' && issue.pageKey ? ` · 화면: ${labelPage(issue.pageKey)}` : ''}
                     {issue.stepId === null ? '' : ` · Step ${issue.stepId}`}
                     {` · 발생 ${issue.occurrenceCount}회`}
@@ -120,8 +121,8 @@ export function IssuePanel({
                       ) : null}
                     </div>
                   ) : null}
-                  <p>Issue 근거 (일부 값은 최초 관찰 기준)</p>
-                  <dl className="summary-grid" aria-label="Issue 근거">
+                  <p>근거</p>
+                  <dl className="summary-grid" aria-label="근거">
                     {Object.entries(issue.evidence).map(([key, value]) => (
                       <div key={key} className="evidence-row">
                         <dt>{evidenceLabel(key)}</dt>

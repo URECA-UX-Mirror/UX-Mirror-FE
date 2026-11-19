@@ -1,5 +1,5 @@
 // 자동 개선 결과(`improvement.json`, `schemaVersion: improvement-v1`)의 도메인 타입. 계약서에 없는 형식이며 팀이 확정한
-// 공식 결과(`public/improvements/imp-1119.json`)가 정본이다([OI-13](../../docs/operations/open_issue.md#oi-13)).
+// 공식 결과(`tests/fixtures/improvements/imp-1119.json`)가 형식의 정본이다([OI-13](../../docs/operations/open_issue.md#oi-13)).
 
 export const IMPROVEMENT_SCHEMA_VERSION = 'improvement-v1'
 

@@ -34,7 +34,7 @@ export function OfficialSection({ official, goalNames = {} }: OfficialSectionPro
         {rejected ? '공식 평가에서 탈락한 이름 ' : '공식 평가 최종안 '}
         <strong>{official.label}</strong>
         {official.method ? <span className="summary-muted"> (방식 {official.method})</span> : null}
-        {unknownDecision ? <span className="summary-muted"> (판정 {unknownDecision})</span> : null}
+        {unknownDecision ? <span className="summary-muted"> (판정 확인 필요)</span> : null}
       </p>
       {rejected ? (
         <p className="summary-rejected">
@@ -57,7 +57,7 @@ export function OfficialSection({ official, goalNames = {} }: OfficialSectionPro
       </ul>
       {buildCheck ? (
         <p className="summary-muted">
-          사이트 확인: {BUILD_CHECK_LABELS[buildCheck] ?? buildCheck}
+          사이트 확인: {BUILD_CHECK_LABELS[buildCheck] ?? '확인 필요'}
         </p>
       ) : null}
       {scoresA && maxDiffAvsB !== null ? (

@@ -1,58 +1,54 @@
 import { useEffect, useState } from 'react'
 import { toImprovementView } from '../../adapters/improvement.ts'
+import { isAbortError, isApiError } from '../../api/client.ts'
+import { ACTIVE_JOB_STATUSES, getImprovement, type ImprovementJobDto } from '../../api/improvements.ts'
 import type { ImprovementView } from '../../domain/improvement.ts'
 
-// 자동 개선 결과는 정적 파일(`/improvements/<id>.json`)이다. 폴링 없이 한 번 읽는다(OI-13).
+/** 진행 중일 때 다시 조회하는 간격 */
+export const IMPROVEMENT_POLL_MS = 3000
+
+// AI 개선은 서버 API(`GET /api/improvements/{id}`, BE #130)로 읽는다. 진행 중이면 3초마다 다시 읽고 끝나면 멈춘다.
 export type ImprovementLoadState =
   | { phase: 'loading' }
-  | { phase: 'success'; view: ImprovementView }
-  /** 파일이 없거나, 허용되지 않는 id이거나, 개발 서버가 `index.html`로 되돌린 경우 */
+  /** `view`는 리포트가 생긴 뒤(루프가 끝난 뒤)에만 있다 */
+  | { phase: 'success'; job: ImprovementJobDto; view: ImprovementView | null }
   | { phase: 'notFound' }
-  | { phase: 'parseError' }
   | { phase: 'error' }
 
-/** `improvementId`는 파일명으로만 쓴다. 이 밖의 문자는 요청하지 않는다(경로 조작 방지) */
+/** `improvementId`는 주소에만 쓴다. 이 밖의 문자는 요청하지 않는다 */
 const SAFE_ID = /^[A-Za-z0-9_-]+$/
 
 export const isSafeImprovementId = (id: string) => SAFE_ID.test(id)
 
-async function load(id: string, signal: AbortSignal): Promise<ImprovementLoadState> {
-  const response = await fetch(`/improvements/${id}.json`, { signal })
-  if (response.status === 404) return { phase: 'notFound' }
-  if (!response.ok) return { phase: 'error' }
-  // SPA fallback이 없는 id에 `index.html`(200)을 돌려주는 경우도 "파일 없음"이다.
-  const contentType = response.headers.get('content-type') ?? ''
-  if (!/json/i.test(contentType)) return { phase: 'notFound' }
-  let json: unknown
-  try {
-    json = await response.json()
-  } catch (error) {
-    // 본문을 읽는 중 취소되면 파싱 오류가 아니다. 호출한 쪽이 취소를 판단하게 그대로 던진다.
-    if (signal.aborted) throw error
-    return { phase: 'parseError' }
-  }
-  return { phase: 'success', view: toImprovementView(json) }
-}
+export const isActiveJob = (job: ImprovementJobDto) => ACTIVE_JOB_STATUSES.includes(job.status)
 
 /** 주소의 id가 바뀌면 호출하는 쪽이 `key`로 새로 마운트한다 */
 export function useImprovement(improvementId: string): ImprovementLoadState {
   const safe = isSafeImprovementId(improvementId)
   const [state, setState] = useState<ImprovementLoadState>({ phase: 'loading' })
+  const [tick, setTick] = useState(0)
 
   useEffect(() => {
     if (!safe) return
     const controller = new AbortController()
-    load(improvementId, controller.signal)
-      .then((next) => {
-        if (!controller.signal.aborted) setState(next)
+    getImprovement(improvementId, controller.signal)
+      .then((job) => {
+        if (controller.signal.aborted) return
+        setState({ phase: 'success', job, view: job.improvement ? toImprovementView(job.improvement) : null })
       })
       .catch((error: unknown) => {
-        if (controller.signal.aborted) return
-        console.error(error)
-        setState({ phase: 'error' })
+        if (controller.signal.aborted || isAbortError(error)) return
+        setState(isApiError(error) && error.status === 404 ? { phase: 'notFound' } : { phase: 'error' })
       })
     return () => controller.abort()
-  }, [improvementId, safe])
+  }, [improvementId, safe, tick])
+
+  const active = state.phase === 'success' && isActiveJob(state.job)
+  useEffect(() => {
+    if (!active) return undefined
+    const timer = setTimeout(() => setTick((t) => t + 1), IMPROVEMENT_POLL_MS)
+    return () => clearTimeout(timer)
+  }, [active, state])
 
   return safe ? state : { phase: 'notFound' }
 }

@@ -1,5 +1,5 @@
 /*
- * 디자인 토큰. 라이트 고정이며 Stitch 시안 v5의 DESIGN.md(팀 확정 전 안)를 바탕으로 devs7ud.io의 느낌(떠 있는 카드, 큰 둥근 모서리, 노란 강조, 잉크색 알약 버튼)을 반영했다.
+ * 디자인 토큰. 라이트·다크 두 벌이며(기본은 기기 설정, 상단 바 버튼으로 바꾼다) Stitch 시안 v5의 DESIGN.md(팀 확정 전 안)를 바탕으로 devs7ud.io의 느낌(떠 있는 카드, 큰 둥근 모서리, 노란 강조, 잉크색 알약 버튼)을 반영했다.
  * 컴포넌트 CSS는 색·간격·라운딩을 이 변수로만 참조한다.
  */
 @import '@fontsource-variable/inter';
@@ -7,7 +7,6 @@
 @import 'pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css';
 
 :root {
-  /* 라이트 고정. 다크 모드와 전환하지 않는다 */
   color-scheme: light;
 
   /* 면: canvas(바닥) < surface(카드) 순으로 카드가 바닥 위에 떠 보인다.
@@ -35,6 +34,12 @@
   --um-brand-text: #2740c4;
   --um-highlight: #ffc82c;
   --um-highlight-ink: #2a2100;
+  /* 진한 면(brand·accent) 위 글자, 상단 바 반투명 면 */
+  --um-on-brand: #ffffff;
+  --um-topbar-bg: rgb(255 255 255 / 88%);
+  /* 스크린샷 위 표시: 고른 버튼(빨강), 뒤로 가기(갈색). 두 테마에서 같다 */
+  --um-mark: #dc2626;
+  --um-back-mark: #b45309;
 
   /* 상태: 배경·글자·테두리 세트 */
   --um-success: #14935a;
@@ -91,6 +96,93 @@
   font: 14px/22px var(--font-sans);
   color: var(--um-text);
   background: var(--um-canvas);
+}
+
+/* 다크 테마. 사용자가 고르지 않았으면 기기 설정을 따르고, 고르면 `<html data-theme>`이 이긴다 */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+  color-scheme: dark;
+  --um-canvas: #111216;
+  --um-surface: #1a1b21;
+  --um-surface-subtle: #212329;
+  --um-surface-raised: #2a2c33;
+  --um-border: #31333b;
+  --um-border-strong: #4a4d57;
+  --um-text: #ecebe6;
+  --um-text-secondary: #c4c6cd;
+  --um-text-muted: #a0a3ad;
+  --um-text-placeholder: #767a85;
+  --um-brand: #ecebe6;
+  --um-brand-hover: #d6d5cf;
+  --um-on-brand: #14141a;
+  --um-accent: #7d95ff;
+  --um-accent-strong: #a6b6ff;
+  --um-brand-soft: rgb(125 149 255 / 16%);
+  --um-brand-border: rgb(125 149 255 / 45%);
+  --um-brand-text: #a6b6ff;
+  --um-success: #3fc184;
+  --um-success-bg: #11291d;
+  --um-success-text: #7fdcaa;
+  --um-success-border: #24583e;
+  --um-warning: #f0ad2c;
+  --um-warning-bg: #2d2410;
+  --um-warning-text: #f3c86a;
+  --um-warning-border: #5d4b1d;
+  --um-danger: #ff6b5e;
+  --um-danger-bg: #331816;
+  --um-danger-text: #ff9a91;
+  --um-danger-border: #6d2d28;
+  --um-info-bg: rgb(125 149 255 / 16%);
+  --um-info-text: #a6b6ff;
+  --um-info-border: rgb(125 149 255 / 45%);
+  --um-before: #3cb7d6;
+  --um-after: #ff8a4c;
+  --um-topbar-bg: rgb(26 27 33 / 88%);
+  --um-shadow-card: 0 1px 2px rgb(0 0 0 / 40%), 0 10px 28px rgb(0 0 0 / 30%);
+  --um-shadow-hover: 0 2px 4px rgb(0 0 0 / 45%), 0 14px 34px rgb(0 0 0 / 40%);
+  }
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --um-canvas: #111216;
+  --um-surface: #1a1b21;
+  --um-surface-subtle: #212329;
+  --um-surface-raised: #2a2c33;
+  --um-border: #31333b;
+  --um-border-strong: #4a4d57;
+  --um-text: #ecebe6;
+  --um-text-secondary: #c4c6cd;
+  --um-text-muted: #a0a3ad;
+  --um-text-placeholder: #767a85;
+  --um-brand: #ecebe6;
+  --um-brand-hover: #d6d5cf;
+  --um-on-brand: #14141a;
+  --um-accent: #7d95ff;
+  --um-accent-strong: #a6b6ff;
+  --um-brand-soft: rgb(125 149 255 / 16%);
+  --um-brand-border: rgb(125 149 255 / 45%);
+  --um-brand-text: #a6b6ff;
+  --um-success: #3fc184;
+  --um-success-bg: #11291d;
+  --um-success-text: #7fdcaa;
+  --um-success-border: #24583e;
+  --um-warning: #f0ad2c;
+  --um-warning-bg: #2d2410;
+  --um-warning-text: #f3c86a;
+  --um-warning-border: #5d4b1d;
+  --um-danger: #ff6b5e;
+  --um-danger-bg: #331816;
+  --um-danger-text: #ff9a91;
+  --um-danger-border: #6d2d28;
+  --um-info-bg: rgb(125 149 255 / 16%);
+  --um-info-text: #a6b6ff;
+  --um-info-border: rgb(125 149 255 / 45%);
+  --um-before: #3cb7d6;
+  --um-after: #ff8a4c;
+  --um-topbar-bg: rgb(26 27 33 / 88%);
+  --um-shadow-card: 0 1px 2px rgb(0 0 0 / 40%), 0 10px 28px rgb(0 0 0 / 30%);
+  --um-shadow-hover: 0 2px 4px rgb(0 0 0 / 45%), 0 14px 34px rgb(0 0 0 / 40%);
 }
 
 :focus-visible {

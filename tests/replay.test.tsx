@@ -79,10 +79,11 @@ it('고정 키의 저장된 Run 목록을 보이고 Run을 만드는 요청은 �
   expect(urls.some((request) => request.url.includes(`experimentKey=${REPLAY_EXPERIMENT_KEY}`))).toBe(true)
 })
 
-it('MOCK 데이터의 재생 표시는 실측이 아니라 MOCK 재생 테스트이고 원본 배지는 그대로다', async () => {
+it('결과 화면에서 MOCK 데이터의 재생 표시는 실측이 아니라 MOCK 재생 테스트다 (원본 배지는 결과 화면에 없다)', async () => {
   renderAt('/runs/run_mock_replay_before/result')
   expect((await screen.findByRole('note')).textContent).toBe(MOCK_NOTE)
-  expect(document.querySelector('.origin-badge')?.textContent).toBe('MOCK')
+  // 결과 화면은 사용자용이라 resultOrigin 배지를 보이지 않는다 (경로 기준 배지만 남는다)
+  expect(document.querySelector('.origin-badge[data-origin]')).toBeNull()
 })
 
 it('LIVE 결과의 재생 화면은 저장된 실측 결과 재생을 보이고 원본 LIVE 배지를 유지한다', async () => {

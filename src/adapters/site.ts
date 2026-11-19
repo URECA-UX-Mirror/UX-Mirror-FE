@@ -24,6 +24,8 @@ export function toSite(dto: SiteDto): Site {
     siteId: dto.siteId,
     name: dto.name,
     mode: dto.mode,
+    siteUrl: dto.siteUrl ?? null,
+    allowedHosts: (dto.allowedHosts ?? []).map((host) => host.toLowerCase()),
     startPage: dto.startPage,
     pages: dto.pages.map((page) => toSitePage(page, dto.startPage)),
     siteMapAvailable: dto.siteMap.available,

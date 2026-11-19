@@ -67,8 +67,8 @@ it('경로에 없는 NO_CHANGE Step과 같은 Issue의 다른 Step 근거를 각
   expect(within(selectedRow).getByText('75.0%')).toBeTruthy()
   expect(selectedRow.classList.contains('candidate-selected')).toBe(true)
   expect(nextEvidence.querySelectorAll('.screenshot-box-selected')).toHaveLength(1)
-  expect(screen.getByText('Issue 근거 (일부 값은 최초 관찰 기준)')).toBeTruthy()
-  expect(within(screen.getByLabelText('Issue 근거')).getByText('2')).toBeTruthy()
+  expect(screen.getByText('근거')).toBeTruthy()
+  expect(within(screen.getByLabelText('근거')).getByText('2')).toBeTruthy()
 })
 
 it('이미지 로딩에 실패한 Step을 다시 선택하면 다시 시도한다', () => {
@@ -108,13 +108,14 @@ it('완료된 빈 후보는 유효성과 무효성을 구분한다', () => {
   expect(screen.queryByText('0건 탐지됨')).toBeNull()
 })
 
-it('목표 미도달은 화면 대신 실행 전체 결과로 표시한다', () => {
+it('목표 미도달은 화면 대신 진단 전체 결과로 표시한다', () => {
   const issues = { ...issueList, items: [{ ...issueList.items[0], issueType: 'GOAL_NOT_REACHED' }] }
   render(<IssuePanel runId="run_test" steps={[]} stepsFailed={false} onRetrySteps={() => {}}
     issues={issues} pollingStatus="success" error={null} retrying={false} onRetry={() => {}}
     labelPage={() => '마이페이지'} validity="VALID" />)
   fireEvent.click(screen.getByRole('button', { name: /메뉴 선택 확률 분산/ }))
-  expect(screen.getByText(/실행 전체 결과/)).toBeTruthy()
+  expect(screen.getByText(/목표에 도달하지 못함 · 진단 전체/)).toBeTruthy()
+  expect(screen.queryByText(/GOAL_NOT_REACHED/)).toBeNull()
   expect(screen.queryByText(/화면: 마이페이지/)).toBeNull()
 })
 
@@ -124,6 +125,9 @@ it('화면 검토 후보의 화면 이름은 label로 표시한다', () => {
     labelPage={() => '마이페이지'} validity="VALID" />)
   fireEvent.click(screen.getByRole('button', { name: /메뉴 선택 확률 분산/ }))
   expect(screen.getByText(/화면: 마이페이지/)).toBeTruthy()
+  // 문제 유형은 코드값 대신 사용자 문구로 보인다
+  expect(screen.getByText(/고르기 어려운 화면/)).toBeTruthy()
+  expect(screen.queryByText(/CHOICE_AMBIGUITY/)).toBeNull()
 })
 
 it('대기 조회가 끝나도 대기를 유지하고 실패는 별도로 표시한다', () => {

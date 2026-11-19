@@ -28,7 +28,7 @@ function RunDetails({ title, run }: { title: string; run: VerificationRun | null
       <p>목표 도달: {run.validity === 'INVALID' ? '판단 불가' : run.goalReached === null ? '정보 없음' : run.goalReached ? '도달' : '미도달'}</p>
       <p>경로: {run.path.length ? run.path.join(' → ') : '정보 없음'}</p>
       <p>단계 수: {run.stepCount === null ? '정보 없음' : `${run.stepCount}단계`}</p>
-      <p>Issue: {run.issues.length ? run.issues.join(', ') : '없음'}</p>
+      <p>Issue: {run.issues.length ? run.issues.join(', ') : run.validity === 'INVALID' ? '판단 불가' : '저장된 Issue 없음 (분석 상태 확인 불가)'}</p>
       <p>결과 출처: {run.resultOrigin ?? '정보 없음'}</p>
       {valid ? <nav aria-label={`${title} 재생`} className="verification-links">
         {internalPath(run.resultPath) ? <Link to={run.resultPath}>결과 보기</Link> : null}

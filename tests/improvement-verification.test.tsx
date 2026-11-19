@@ -81,3 +81,29 @@ it.each(['status', 'path', 'issues'])('단계와 도달이 같아도 %s가 다�
   expect(screen.queryByText('변화 없음')).toBeNull()
   expect(screen.getByText('1단계 성공 → 1단계 성공')).toBeTruthy()
 })
+
+it('무효 Run의 빈 Issue 목록을 판단 불가로 표시한다', () => {
+  const data = sample()
+  data.verification.pairs = [data.verification.pairs[0]]
+  data.verification.pairs[0].before.validity = 'INVALID'
+  data.verification.pairs[0].before.issues = []
+  show(data)
+  expect(within(screen.getByRole('heading', { name: /v1/ }).parentElement!).getByText('Issue: 판단 불가')).toBeTruthy()
+})
+
+it('분석 상태가 저장되지 않은 빈 목록은 결과 없음을 단정하지 않는다', () => {
+  const data = sample()
+  data.verification.pairs = [data.verification.pairs[1]]
+  show(data)
+  // 대기·실패·정상 빈 결과는 모두 같은 빈 목록으로 저장되어 구분할 수 없다.
+  expect(screen.getAllByText('Issue: 저장된 Issue 없음 (분석 상태 확인 불가)')).toHaveLength(2)
+})
+
+it('무효 Run에도 저장된 Issue 코드가 있으면 원문을 표시한다', () => {
+  const data = sample()
+  data.verification.pairs = [data.verification.pairs[0]]
+  data.verification.pairs[0].before.validity = 'INVALID'
+  data.verification.pairs[0].before.issues = ['UNKNOWN_CODE']
+  show(data)
+  expect(screen.getByText('Issue: UNKNOWN_CODE')).toBeTruthy()
+})

@@ -2,8 +2,8 @@
 
 ## 실행 환경과 흐름
 
-- 프론트(React + TypeScript + Vite, `http://localhost:5173`)는 FastAPI(`http://127.0.0.1:8000`)와만 통신한다. Zoro-1 GPU 서버와 쇼핑몰(8001·8002)에는 직접 접근하지 않는다.
-- 흐름: 분석 조건 선택 → `POST /api/runs` → `runId` 수신 → 폴링으로 상태 조회 → 종료 후 단일 Run 결과 표시 → 두 Run 비교 조회.
+- 프론트(React + TypeScript + Vite, `http://localhost:5173`)는 FastAPI(`http://127.0.0.1:8000`)와만 통신한다. Zoro-1 GPU 서버와 쇼핑몰에는 직접 접근하지 않는다.
+- 흐름: 분석 조건 선택 → `POST /api/runs` → `runId` 수신 → 폴링으로 상태 조회 → 종료 후 단일 Run 결과 표시. 변경 후 버전과의 비교는 자동 개선 최종안 행의 비교 링크로 연다.
 - 장기 데이터 계층은 `Project → Version → Run → Step`이다. P0 백엔드는 MORO MARKET의 Before/After(`variant`)만 다루므로 Version 관리는 `P1`이다.
 - API와 타입의 정본은 계약서다([문서 목차](../README.md)). 이 문서는 화면별 사용처와 표시 규칙만 정한다.
 
@@ -13,7 +13,7 @@
 
 | # | 화면 | 사용 API | 화면 상태(서버 데이터 아님) |
 | --- | --- | --- | --- |
-| 1 | 새 UX 분석 | `GET /api/health`, `GET /api/runs`, `POST /api/runs` | 입력한 목표·사용자 유형·성공 조건, 최대 탐색 횟수, 비교할 두 버전 선택 |
+| 1 | 새 UX 분석 | `GET /api/health`, `GET /api/runs`, `POST /api/runs` | 입력한 목표·사용자 유형·성공 조건, 최대 탐색 횟수, v1 분석 시작, 자동 개선 최종안 비교 링크 |
 | 2 | AI 탐색 진행 | `GET /api/health`, `GET /api/runs/{runId}`, `/steps`, `/screenshots/{stepId}` | 열람 중인 stepId(기록 열람 / 최신) |
 | 3 | UX 탐색 분석 결과 | `GET /api/health`, `GET /api/runs`, `GET /api/runs/{runId}`, `/steps`, `/screenshots/{stepId}`, `/screenshots/goal`, `/issues` | 선택한 경로 노드, 열린 Issue 상세, 지표 패널 펼침 |
 | 4 | 버전 비교 | `GET /api/health`, `GET /api/comparisons/{experimentKey}`, `GET /api/runs/{runId}`, `/api/runs/{runId}/steps`, `/api/runs/{runId}/screenshots/{stepId}` | 지표 표 펼침 |
@@ -26,14 +26,15 @@
 
 ### 1. 새 UX 분석
 
-- 사이트(MORO MARKET)·버전 이름·변경 내용(Before `이용정보` → After `주문·환불`, 상단 메뉴 라벨 한 곳)·최대 탐색 횟수 범위(1~15, 기본 8)는 프론트 상수다. 목표·사용자 유형은 preset에서 고르지 않고 직접 입력하므로 `GET /api/presets`는 호출하지 않는다.
+- 사이트(MORO MARKET)·버전 이름·변경 내용(v1 `이용정보`, 상단 메뉴 라벨 한 곳. 변경 후 이름은 자동 개선 결과에서 읽는다)·최대 탐색 횟수 범위(1~15, 기본 8)는 프론트 상수다. 목표·사용자 유형은 preset에서 고르지 않고 직접 입력하므로 `GET /api/presets`는 호출하지 않는다.
 - 분석 사이트는 입력란이다. 기본값은 MORO MARKET이며 입력값은 요청에 싣지 않는다. MORO MARKET이 아니거나 비어 있으면 안내를 보이고 분석 시작을 막는다([OI-8](../operations/open_issue.md#oi-8)). 실행할 버전에 따라 백엔드가 대상을 정한다. 서버에 등록된 외부 사이트 선택은 시나리오 테스트의 [OI-11](../operations/open_issue.md#oi-11)에서 다룬다.
 - 탐색 목표·사용자 유형은 문장으로 직접 입력한다(200자까지). 목표와 함께 성공 조건(도착 화면, 화면에 보여야 할 글자 100자까지, 찾는 범위)을 입력한다. 도착 화면을 고르면 그 화면에만 보이는 제목(`GOAL_PAGES`의 `text`, 예: `주문 / 배송 조회`)을 글자 칸에 채운다. 띄어쓰기까지 화면과 같아야 판정되기 때문이다. 정확 일치는 입력받지 않고 보내지 않는다(서버 기본값 `false`, 부분 일치). 도착 화면은 `GOAL_PAGES` 목록에서만 고르고(서버가 실행 전에 실제 화면과 글자를 검사한다), 시작 화면(home)은 뺀다. 금지 문자열 등 서버 `422`는 `message`를 그대로 보인다. [OI-9](../operations/open_issue.md#oi-9)
-- 버전 표의 행은 `variant`(`before`, `after`)에 대응한다. 표시 이름은 `v1 (변경 전)`, `v2 (변경 후)`다. 두 Run은 같은 `experimentKey`로 묶고 목표·사용자 유형·`maxSteps`를 같게 보낸다. 기존 실험이면 입력 칸을 첫 Run에 저장된 문장·성공 조건으로 채워 잠그고 두 번째 요청에 그대로 쓴다. 예전에 preset ID로 만든 실험은 서버가 같은 입력으로 보도록 그 ID(`goalId`·`personaId`)를 그대로 보낸다. 저장된 성공 조건이 없어 목표를 다시 만들 수 없으면 안내하고 시작을 막는다.
-- 행의 "마지막 Run ID·분석 상태·목표 달성 상태"는 `GET /api/runs?experimentKey=&variant=`의 첫 항목(최신 Run)으로 채운다.
+- 버전 표에는 직접 분석하는 `v1 (변경 전)` 행(`variant=before`)과 `에이전트 최종안` 행이 있다. 화면은 `variant=after` Run을 만들지 않는다. 기존 실험이면 입력 칸을 첫 Run에 저장된 문장·성공 조건으로 채워 잠근다. 예전에 preset ID로 만든 실험은 그 ID(`goalId`·`personaId`)를 그대로 쓴다. 저장된 성공 조건이 없어 목표를 다시 만들 수 없으면 안내하고 시작을 막는다.
+- `에이전트 최종안` 행(`FinalVariantRow`)은 `FINAL_IMPROVEMENT_ID`의 자동 개선 결과(`public/improvements/<id>.json`)를 읽는다. 채택 이름('이용정보 → 주문 환불')과 목표별 점수 변화를 보이고, 검증이 `COMPLETED`이면 `verification.pairs[].comparisonPath`(예: `/comparisons/imp-1119b-S1`)로 가는 "비교 보기" 링크와 자동 개선 리포트 링크를 보인다. `NO_IMPROVEMENT`이면 "개선안 없음"만 보이고, 결과를 읽지 못해도 v1 분석 시작은 막지 않는다. 최종안 Run은 백엔드 스크립트가 만들어 두며, 고정 목표(환불·문의)만 비교할 수 있고 직접 입력한 목표에는 최종안 비교가 없다([OI-14](../operations/open_issue.md#oi-14)).
+- v1 행의 "마지막 Run ID·분석 상태·목표 달성 상태"는 `GET /api/runs?experimentKey=&variant=before`의 첫 항목(최신 Run)으로 채운다.
 - 기존 실험 키를 입력하고 조회 버튼을 눌러 서버의 실행 기록을 조회하고 첫 Run의 조건을 다음 Run에 재사용한다. 시작 후 진행 화면 주소에도 실험 키를 남긴다.
 - `+ 버전 추가`와 `v3` 행은 `P1`이라 비활성으로 둔다.
-- 비교 버튼은 두 버전에 종료된 유효 Run이 있을 때만 활성화하고, 같은 버전을 두 번 고르면 오류를 보인다. 최신 Run이 무효여도 이전 유효 Run을 비교 대상으로 쓴다. 재실행은 해당 버전의 모든 Run이 무효일 때만 허용한다.
+- v1 재실행은 해당 버전의 모든 Run이 무효일 때만 허용한다. 비교는 이 화면이 아니라 최종안 행의 링크로 연다.
 - 엔진 상태는 `GET /api/health`로 표시한다. 상태가 `READY`가 아니거나 `activeRun`이 있으면 새 분석 시작을 막는다. 상태 조회에 실패하면 시작을 막고 확인 불가를 안내하며 재확인을 제공한다. `activeOptimization`(UX Optimizer 진행 중)이 있으면 안내만 보이고 시작은 막지 않으며, 서버가 `409 RUN_ALREADY_ACTIVE`를 주면 `message`를 그대로 보인다.
 
 ### 2. AI 탐색 진행
@@ -115,7 +116,7 @@
 - ② 실제 브라우저 검증: `VerificationSection`이 검증 상태와 목표별 저장 Run 요약을 표시한다. 종료된 유효 Run에만 재생 링크를, 양쪽 Run이 모두 종료된 유효 Run인 경우 비교 링크와 요약을 표시한다.
 - 보조 정보(`OfficialSection`)는 `official`의 이름·점수·`buildCheck`(`ONLY_LABEL_DIFF`는 "이름 외 차이 없음", 모르는 값은 원문)·`maxDiffAvsB`를 보이고 `official=null`이면 "공식 평가 결과 없음"이다. `decision`이 `REJECTED`(B 평가 탈락)이면 "공식 평가 최종안"이 아니라 "공식 평가에서 탈락한 이름"과 `choose.rejected[0]`의 사유(`reason`에 `guardGoals`를 `:S4`로 붙임)를 보이고, 개선 효과 영역에도 `summary.officialRejected`의 B 탈락 이력을 보인다. `decision`이 없으면 확정으로 본다. B 점수를 모으지 못해 `null`이면 0이나 영역 오류가 아니라 "값 없음"이고, 점수 키가 없거나 숫자·`null`이 아니면 이 영역만 오류다. 한 영역이 오류이면 그 영역에만 "데이터 오류"와 사유를 보이고 다른 영역은 막지 않는다. `limitations` 문구는 항상 하단에 보이고, JSON에 없거나 비어 있으면 기본 안내(`DEFAULT_LIMITATIONS`)를 보인다.
 
-- 진입: 사이드바의 "자동 개선 리포트" 링크는 `features/improvement/constants.ts`의 `FINAL_IMPROVEMENT_ID`가 있을 때만 보이고 그 id의 화면을 연다. 값은 공식 실행 결과 `imp-1119`이고 `null`이면 링크를 보이지 않는다. 반영 절차는 [자동 개선 JSON 반영 절차](../operations/improvement-release.md)다.
+- 진입: 사이드바의 "자동 개선 리포트" 링크는 `features/improvement/constants.ts`의 `FINAL_IMPROVEMENT_ID`가 있을 때만 보이고 그 id의 화면을 연다. 값은 2차 공식 실행 결과 `imp-1119b`이고(1차 `imp-1119`는 `/improvements/imp-1119`로 연다) `null`이면 링크를 보이지 않는다. 반영 절차는 [자동 개선 JSON 반영 절차](../operations/improvement-release.md)다.
 
 ### 저장된 실측 결과 재생
 
@@ -178,7 +179,7 @@ src/
     polling/               # poller.ts(간격·backoff 규칙), usePolling(범용 폴링 훅)
 public/
   mock/screens/            # 목업 쇼핑몰을 찍은 mock 스크린샷 PNG({before,after}/{home,mypage,orders,support,refund}.png)
-  improvements/            # 자동 개선 결과 정적 JSON(공식 결과 imp-1119.json, OI-13)
+  improvements/            # 자동 개선 결과 정적 JSON(공식 결과 imp-1119.json·imp-1119b.json, OI-13)
   mockServiceWorker.js     # MSW 생성 파일
 ```
 

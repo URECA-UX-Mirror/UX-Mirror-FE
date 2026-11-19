@@ -151,6 +151,8 @@ export interface Run {
   mode: Open<'SCENARIO'> | null
   /** 임시(OI-12). UX Optimizer 검증 Run이면 연결 정보, 일반 Run이면 `null` */
   optimizationContext: OptimizationContext | null
+  /** 임시(OI-14). 자동 개선 검증 Run이면 연결 정보, 일반 Run이면 `null` */
+  improvementContext: ImprovementContext | null
 }
 
 /** Run 목록의 한 줄 (`GET /api/runs`). 전체 Run은 `getRun`으로 조회한다 */
@@ -432,6 +434,15 @@ export interface OptimizationContext {
   label: string
   siteInstanceId: string
   executionRole: OptimizerRole
+}
+
+/** 자동 개선 검증 Run의 연결. 어느 라벨 사이트인지는 `Run.variant`가 아니라 `label`로 구분한다 */
+export interface ImprovementContext {
+  improvementId: string
+  goalId: string
+  label: string
+  siteInstanceId: string
+  executionRole: Open<'BASELINE' | 'CANDIDATE'>
 }
 
 /** Optimization·후보 평가의 오류. 서버의 `details`는 가져오지 않는다 */

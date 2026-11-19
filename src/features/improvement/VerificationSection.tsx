@@ -1,15 +1,6 @@
 import { Link } from 'react-router'
 import type { ImprovementVerification, VerificationPair, VerificationRun } from '../../domain/improvement.ts'
-import { isTerminalStatus } from '../../domain/runStatus.ts'
-
-// 프로토콜 상대 주소, 역슬래시, 제어 문자는 브라우저가 외부 주소로 해석할 수 있다.
-function internalPath(path: string | null): path is string {
-  return path !== null && /^\/(?!\/)[^\\\s]*$/.test(path)
-}
-
-function canReplay(run: VerificationRun | null): run is VerificationRun {
-  return run !== null && run.validity === 'VALID' && run.status !== null && isTerminalStatus(run.status)
-}
+import { canReplay, internalPath } from './verificationLinks.ts'
 
 function outcome(run: VerificationRun): string {
   const steps = run.stepCount === null ? '단계 수 없음' : `${run.stepCount}단계`

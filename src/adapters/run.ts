@@ -99,6 +99,19 @@ export function toRun(dto: RunDto): Run {
     siteId: dto.siteId ?? null,
     mode: dto.mode ?? null,
     optimizationContext: toOptimizationContext(dto.optimizationContext),
+    improvementContext: toImprovementContext(dto.improvementContext),
+  }
+}
+
+/** 필드가 없거나 `null`이거나 `improvementId`·`label`이 문자열이 아니면 일반 Run이다 */
+function toImprovementContext(dto: RunDto['improvementContext']): Run['improvementContext'] {
+  if (!dto || typeof dto.improvementId !== 'string' || typeof dto.label !== 'string') return null
+  return {
+    improvementId: dto.improvementId,
+    goalId: dto.goalId,
+    label: dto.label,
+    siteInstanceId: dto.siteInstanceId,
+    executionRole: dto.executionRole,
   }
 }
 

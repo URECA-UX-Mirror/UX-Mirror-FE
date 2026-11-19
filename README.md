@@ -34,7 +34,7 @@ npm test           # 자동 테스트 1회 실행
 | UX Optimizer 후보 평가·검증·보고서 (`/optimizations/:optimizationId`) | `GET /api/optimizations/{optimizationId}`, `POST /api/optimizations/{optimizationId}/verify`, `GET /api/optimizations/{optimizationId}/report` |
 | 자동 개선 리포트 (`/improvements/:improvementId`) | 정적 파일 `/improvements/{improvementId}.json`(API 호출 없음, [OI-13](docs/operations/open_issue.md#oi-13)). `improvementId`는 영숫자·`_`·`-`만 허용한다 |
 
-자동 개선 리포트의 개선 회차는 기본으로 접혀 있으며, 펼치면 회차별 진단·기준·후보 평가와 채택 사유 및 종료 사유를 확인할 수 있다. 평가 실패나 미실행 점수는 0점으로 표시하지 않는다. 사이드바 링크는 최종 리포트 id(`src/features/improvement/constants.ts`의 `FINAL_IMPROVEMENT_ID`, 현재 `imp-1119`)가 있을 때만 보인다. 최종 JSON 반영 절차는 [자동 개선 JSON 반영 절차](docs/operations/improvement-release.md)를 따른다.
+자동 개선 리포트의 개선 회차는 기본으로 접혀 있으며, 펼치면 회차별 진단·기준·후보 평가와 채택 사유 및 종료 사유를 확인할 수 있다. 평가 실패나 미실행 점수는 0점으로 표시하지 않는다. 사이드바 링크는 최종 리포트 id(`src/features/improvement/constants.ts`의 `FINAL_IMPROVEMENT_ID`, 현재 `imp-1119b`)가 있을 때만 보인다. 최종 JSON 반영 절차는 [자동 개선 JSON 반영 절차](docs/operations/improvement-release.md)를 따른다.
 
 자동 개선 리포트의 실제 브라우저 검증 영역은 저장된 Run의 경로·단계·Issue와 유효성을 표시한다. 종료된 유효 Run의 결과·진행 및 양쪽 Run이 종료된 유효 Run인 비교 링크는 실행 서버가 연결되어 있어야 열린다.
 
@@ -46,7 +46,7 @@ mock 모드에서 ③ 결과 화면(`/runs/:runId/result`)은 시드 Run으로 �
 
 ④ 비교 화면은 mock 모드에서 `/comparisons/mock-sitemap`(양쪽 사이트 지도 기준, 우회 이동 행 표시), `/comparisons/mock-basis-mismatch`(기준 불일치로 `REFERENCE_PATH_CONFIG_MATCHED` 실패), `/comparisons/mock-done`(허용 경로)으로 확인한다. 비교 응답에는 기준이 없어 각 Run(`GET /api/runs/{runId}`)의 기준을 읽어 Run 단위 비교에 표시한다.
 
-새 UX 분석은 고정 사이트 MORO MARKET의 버전별 실행을 지원한다. 탐색 목표·사용자 유형은 문장으로 직접 입력하고, 성공 조건(도착 화면·보여야 할 글자)을 함께 입력한다. 엔진 상태가 `READY`로 확인된 경우에만 시작할 수 있다. 기존 실험 키를 입력하고 조회하면 서버에서 실행 기록과 분석 조건을 불러온다. 실행 시작 후 진행 화면 주소의 `experimentKey`로 같은 실험을 다시 열 수 있다.
+새 UX 분석은 고정 사이트 MORO MARKET의 v1 실행을 지원하고, 변경 후 버전은 자동 개선 최종안 행의 비교 링크로 연다. 탐색 목표·사용자 유형은 문장으로 직접 입력하고, 성공 조건(도착 화면·보여야 할 글자)을 함께 입력한다. 엔진 상태가 `READY`로 확인된 경우에만 시작할 수 있다. 기존 실험 키를 입력하고 조회하면 서버에서 실행 기록과 분석 조건을 불러온다. 실행 시작 후 진행 화면 주소의 `experimentKey`로 같은 실험을 다시 열 수 있다.
 
 시나리오 테스트는 서버에 등록된 사이트를 고르고 상황 문장·사용자 유형·도착 화면을 입력해 Run 1개를 시작한 뒤 진행 화면으로 이동한다. 비교·버전 선택은 없다(임시, [OI-11](docs/operations/open_issue.md#oi-11)).
 

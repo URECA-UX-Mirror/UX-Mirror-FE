@@ -352,6 +352,15 @@ fieldset.card > legend + * {
   font-size: 12px;
 }
 
+.final-scores {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
 .row-future {
   opacity: 0.55;
 }

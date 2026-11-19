@@ -16,8 +16,9 @@ import { SelectedAction } from '../../shared/SelectedAction.tsx'
 import { selectedLabel, stepTime } from '../../shared/stepLabel.ts'
 import { useRunSite } from '../../shared/useRunSite.ts'
 import { StepMetricsPanel } from '../run-result/StepMetricsPanel.tsx'
-import { VERSIONS } from '../new-analysis/constants.ts'
+import { versionName } from '../new-analysis/constants.ts'
 import { ReplayNotice } from '../replay/ReplayNotice.tsx'
+import { improvementRunText } from '../../shared/improvementRun.ts'
 import { OptimizerRunTag } from '../../shared/OptimizerRunTag.tsx'
 import { statusLabel } from './statusLabel.ts'
 import { useRunProgress } from './useRunProgress.ts'
@@ -58,7 +59,6 @@ function RunProgress({ runId }: { runId: string }) {
 
   const { run, steps } = snapshot
   const terminal = isTerminalStatus(run.status)
-  const version = VERSIONS.find((item) => item.variant === run.variant)
 
   return (
     <section className="run-progress">
@@ -91,8 +91,14 @@ function RunProgress({ runId }: { runId: string }) {
           </div>
           <div>
             <dt>버전</dt>
-            <dd>{isScenarioRun(run) ? `시나리오 테스트 · ${site?.name ?? run.siteId ?? '-'}` : version ? (run.optimizationContext ? version.name : `${version.name} · ${version.change}`) : run.variant}</dd>
+            <dd>{isScenarioRun(run) ? `시나리오 테스트 · ${site?.name ?? run.siteId ?? '-'}` : versionName(run.variant, !!(run.optimizationContext || run.improvementContext))}</dd>
           </div>
+          {run.improvementContext ? (
+            <div>
+              <dt>자동 개선 검증</dt>
+              <dd>{improvementRunText(run.improvementContext)}</dd>
+            </div>
+          ) : null}
           {run.optimizationContext ? (
             <div>
               <dt>Optimizer 검증</dt>

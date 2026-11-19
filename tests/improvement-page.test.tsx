@@ -75,12 +75,15 @@ it('불러오는 동안 안내하고, 끝난 결과는 개선 효과·다시 확
 })
 
 it.each([
-  ['LIVE', '직접 실행한 결과'],
+  ['LIVE', '심사위원 실행 (공식 기록 아님)'],
   ['OFFICIAL', '사전 등록 공식 결과'],
+  ['UNKNOWN', '출처 확인 안 된 결과'],
+  ['SOMETHING_NEW', '출처 확인 안 된 결과'],
 ])('kind %s는 %s 표시를 붙인다', async (kind, label) => {
   serve(job({ kind }))
   renderPage()
   expect(await screen.findByText(label)).toBeTruthy()
+  expect(document.body.textContent).not.toContain(kind)
 })
 
 it('kind가 없으면 표시를 붙이지 않는다', async () => {

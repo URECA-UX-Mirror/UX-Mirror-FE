@@ -15,13 +15,19 @@ import { findOptimization, resetMockOptimizations } from '../src/mocks/store.ts'
 import { errorResponse } from '../src/mocks/errors.ts'
 import { server } from './setup.ts'
 
-// UX Optimizer 검증 시작·진행·실패·보고서 화면과 Optimizer Run 구분 표시 (FE #70). 시드와 시나리오는 src/mocks/fixtures/optimization.ts 주석을 따른다.
+// 메뉴 이름 후보 비교의 검증 시작·진행·실패·보고서 화면과 후보 비교 확인 실행 구분 표시 (FE #70). 시드와 시나리오는 src/mocks/fixtures/optimization.ts 주석을 따른다.
 
 afterEach(() => resetMockOptimizations())
 
 const FAR_FUTURE = Date.parse('2100-01-01T00:00:00Z')
 const seeded = (id: string): OptimizationDto => buildOptimization(findOptimization(id)!, FAR_FUTURE)
 const seededReport = (id: string): OptimizationReportDto => buildReport(findOptimization(id)!, FAR_FUTURE)!
+
+/** 화면 글자에 서버 코드값·ID가 보이지 않는다 */
+function expectNoCodes(...codes: string[]) {
+  const text = document.body.textContent ?? ''
+  for (const code of codes) expect(text).not.toContain(code)
+}
 
 function serve(dto: OptimizationDto) {
   server.use(http.get(apiUrl(`/api/optimizations/${dto.optimizationId}`), () => HttpResponse.json(dto)))
@@ -60,7 +66,8 @@ it('검증 시작: 검증 후보와 한 번만 가능함을 알리고 한 번만
   )
   renderOptimization('opt_mock_evaluated')
   const panel = await screen.findByRole('region', { name: '선정 결과' })
-  expect(within(panel).getByText(/검증 후보 C2 주문·환불로/)).toBeTruthy()
+  expect(within(panel).getByText(/검증 후보 "주문·환불" 화면을/)).toBeTruthy()
+  expectNoCodes('C0', 'C2')
   expect(within(panel).getByText(/한 번만 시작할 수 있습니다/)).toBeTruthy()
   const button = screen.getByRole('button', { name: '검증 시작' })
   fireEvent.click(button)
@@ -112,8 +119,9 @@ it('VERIFYING: Run이 만들어지기 전에는 아직이라 하고 만들어진
   renderOptimization('opt_mock_evaluated')
   const panel = await screen.findByRole('region', { name: '검증 진행' })
   expect(within(panel).getByText('지금 후보 실행을 진행 중입니다.')).toBeTruthy()
-  expect(within(panel).getByRole('link', { name: 'run_base' }).getAttribute('href')).toBe('/runs/run_base')
+  expect(within(panel).getByRole('link', { name: '진행 보기' }).getAttribute('href')).toBe('/runs/run_base')
   expect(within(panel).getByText('아직 만들어지지 않음')).toBeTruthy()
+  expectNoCodes('run_base', 'CANDIDATE')
 })
 
 it('VERIFYING: 기준 Run을 만들기 전에는 phase가 BASELINE이어도 사이트 확인 중으로 보인다', async () => {
@@ -122,25 +130,28 @@ it('VERIFYING: 기준 Run을 만들기 전에는 phase가 BASELINE이어도 사�
   const panel = await screen.findByRole('region', { name: '검증 진행' })
   expect(within(panel).getByText('지금 사이트 확인 중입니다.')).toBeTruthy()
   expect(screen.getByText('후보 검증 중 · 사이트 확인 중', { selector: '[role="status"]' })).toBeTruthy()
-  expect(within(panel).getByText('기준 실행 (C0)')).toBeTruthy()
+  expect(within(panel).getByText('기준 실행 ("이용정보")')).toBeTruthy()
 })
 
 it('VERIFYING: 기준 실행 이름은 후보 풀의 BASELINE role에서 읽는다', async () => {
   const dto = verifying('BASELINE', 'run_base', null)
   dto.candidateLabels = dto.candidateLabels.map((c) =>
-    c.role === 'BASELINE' ? { ...c, candidateId: 'B9' } : c,
+    c.role === 'BASELINE' ? { ...c, candidateId: 'B9', label: '내 주문' } : c,
   )
   serve(dto)
   renderOptimization('opt_mock_evaluated')
   const panel = await screen.findByRole('region', { name: '검증 진행' })
-  expect(within(panel).getByText('기준 실행 (B9)')).toBeTruthy()
+  expect(within(panel).getByText('기준 실행 ("내 주문")')).toBeTruthy()
+  expectNoCodes('B9')
 })
 
-it('VERIFYING: 모르는 verificationPhase도 오류 없이 원문으로 보인다', async () => {
+it('VERIFYING: 모르는 verificationPhase는 오류 없이 단계 문구만 빼고 원문은 보이지 않는다', async () => {
   serve(verifying('SITE_RECHECK', 'run_base', null))
   renderOptimization('opt_mock_evaluated')
   const panel = await screen.findByRole('region', { name: '검증 진행' })
-  expect(within(panel).getByText('지금 SITE_RECHECK을 진행 중입니다.')).toBeTruthy()
+  expect(screen.getByText('후보 검증 중', { selector: '[role="status"]' })).toBeTruthy()
+  expect(within(panel).queryByText(/^지금 /)).toBeNull()
+  expectNoCodes('SITE_RECHECK')
 })
 
 it('VERIFYING에서 COMPLETED로 바뀌면 보고서가 나타난다', async () => {
@@ -161,16 +172,16 @@ it('FAILED SITE_INSTANCE_CHANGED: 사이트가 바뀌었고 Run이 만들어지�
   renderOptimization('opt_mock_site_changed')
   const alert = await screen.findByRole('alert')
   expect(alert.textContent).toContain('평가한 뒤 후보 사이트가 바뀌어 검증을 시작하지 못했습니다.')
-  expect(alert.textContent).toContain('SITE_INSTANCE_CHANGED')
   expect(alert.textContent).toContain('실패 단계 후보 검증')
+  expectNoCodes('SITE_INSTANCE_CHANGED', '오류 코드')
   const panel = screen.getByRole('region', { name: '검증 진행' })
-  expect(within(panel).getByText('검증 전에 멈춰 검증 Run이 만들어지지 않았습니다.')).toBeTruthy()
+  expect(within(panel).getByText('검증 전에 멈춰 확인 실행을 하지 않았습니다.')).toBeTruthy()
   expect(screen.queryByRole('region', { name: '검증 보고서' })).toBeNull()
 })
 
 const FAILURES: [string, string, string][] = [
-  ['SITE_RECHECK_FAILED', '검증 전에 후보 화면을 다시 확인하지 못했습니다.', '검증 전에 멈춰 검증 Run이 만들어지지 않았습니다.'],
-  ['SITE_INSTANCE_CHANGED', '평가한 뒤 후보 사이트가 바뀌어 검증을 시작하지 못했습니다.', '검증 전에 멈춰 검증 Run이 만들어지지 않았습니다.'],
+  ['SITE_RECHECK_FAILED', '검증 전에 후보 화면을 다시 확인하지 못했습니다.', '검증 전에 멈춰 확인 실행을 하지 않았습니다.'],
+  ['SITE_INSTANCE_CHANGED', '평가한 뒤 후보 사이트가 바뀌어 검증을 시작하지 못했습니다.', '검증 전에 멈춰 확인 실행을 하지 않았습니다.'],
 ]
 
 for (const [code, message, runNote] of FAILURES) {
@@ -195,8 +206,8 @@ it('FAILED RUN_TIMEOUT: 만들어진 Run을 링크로 남긴다', async () => {
   renderOptimization('opt_mock_site_changed')
   expect((await screen.findByRole('alert')).textContent).toContain('검증 실행이 제한 시간 안에 끝나지 않았습니다.')
   const panel = screen.getByRole('region', { name: '검증 진행' })
-  expect(within(panel).getByRole('link', { name: 'run_base' })).toBeTruthy()
-  expect(within(panel).queryByText(/Run이 만들어지지 않았습니다/)).toBeNull()
+  expect(within(panel).getByRole('link', { name: '진행 보기' }).getAttribute('href')).toBe('/runs/run_base')
+  expect(within(panel).queryByText(/확인 실행을 (하지 않았|만들기 전에)/)).toBeNull()
 })
 
 it('FAILED OPTIMIZATION_INTERRUPTED(검증 단계): 중단 문구를 보인다', async () => {
@@ -219,32 +230,39 @@ function renderReport(report: OptimizationReportDto) {
 it('보고서: 판단·이동 비용 변화·두 Run 요약·한계·resultOrigin·비교 링크를 보인다', async () => {
   const report = seededReport('opt_mock_completed')
   const panel = within(await renderReport(report))
-  expect(await panel.findByText('IMPROVEMENT_OBSERVED')).toBeTruthy()
-  expect(panel.getByText('NAVIGATION_COST')).toBeTruthy()
-  expect(panel.getByText(/기준과 검증 후보를 각각 1회만 실행한 단일 관찰값/)).toBeTruthy()
-  expect(panel.getByText('MOCK')).toBeTruthy()
-  expect(panel.getByRole('link', { name: /버전 비교 화면/ }).getAttribute('href')).toBe('/comparisons/opt_mock_completed')
+  expect(await panel.findByText('미리 정한 개선 조건이 관찰됨')).toBeTruthy()
+  expect(panel.getByText('두 실행 모두 목표 화면에 도달해 이동 비용으로 비교')).toBeTruthy()
+  expect(panel.getByRole('note').textContent).toContain('기준 1회 · 후보 1회 실행한 결과입니다.')
+  expect(panel.getByText('예시 데이터')).toBeTruthy()
+  expect(panel.getByRole('link', { name: /지금 화면 vs 개선안 화면/ }).getAttribute('href')).toBe('/comparisons/opt_mock_completed')
   const table = panel.getByRole('table')
-  expect(within(table).getByRole('link', { name: report.runs.baseline.runId })).toBeTruthy()
-  expect(within(table).getByRole('link', { name: report.runs.candidate.runId })).toBeTruthy()
-  expect(within(table).getByText(/이용정보 \(기준\)/)).toBeTruthy()
+  const links = within(table).getAllByRole('link', { name: '결과 보기' }).map((a) => a.getAttribute('href'))
+  expect(links).toEqual([`/runs/${report.runs.baseline.runId}/result`, `/runs/${report.runs.candidate.runId}/result`])
+  expect(within(table).getByText(/"이용정보" \(기준\)/)).toBeTruthy()
+  // 방문 경로는 화면 이름으로 보인다
+  const pathCells = within(table).getByRole('rowheader', { name: '방문 경로' }).parentElement!.querySelectorAll('td')
+  expect(pathCells[0].textContent).toMatch(/^홈/)
+  // 서버 코드·ID·개발자 이름은 화면 어디에도 보이지 않는다
+  expectNoCodes('IMPROVEMENT_OBSERVED', 'NAVIGATION_COST', 'MOCK', 'Optimizer', report.runs.baseline.runId, report.runs.candidate.runId, 'opt_mock_completed', 'SUCCESS', 'mock-endpoint', 'selection-v1')
   // 종료 상태는 Run 상태 문구(SUCCESS → 도착함)로 보인다
   const statusCells = within(table).getByRole('rowheader', { name: '종료 상태' }).parentElement!.querySelectorAll('td')
   expect([...statusCells].map((cell) => cell.textContent)).toEqual([
     '도착함',
     '도착함',
   ])
-  expect(within(table).getByText(/주문·환불 \(후보\)/)).toBeTruthy()
+  expect(within(table).getByText(/"주문·환불" \(후보\)/)).toBeTruthy()
 })
 
-it('보고서: null 값은 0이 아니라 계산 불가이고 모르는 판단·이유 코드는 원문이다', async () => {
+it('보고서: null 값은 0이 아니라 계산 불가이고 모르는 판단·이유 코드는 확인 필요다', async () => {
   const report = seededReport('opt_mock_completed')
   report.finalDecision = 'SOMETHING_NEW'
   report.verification = { ...report.verification!, finalDecision: 'SOMETHING_NEW', reasonCode: 'NEW_REASON', navigationCostDelta: null }
   report.runs.candidate = { ...report.runs.candidate, navigationCost: null, stepCount: null, executionTimeMs: null, goalReached: null, backCount: null, path: [] }
   const panel = within(await renderReport(report))
-  expect(await panel.findByText('SOMETHING_NEW')).toBeTruthy()
-  expect(panel.getByText('NEW_REASON')).toBeTruthy()
+  expect(await panel.findByText('이동 비용 변화')).toBeTruthy()
+  expect(panel.getByText('최종 판단').nextElementSibling!.textContent).toBe('확인 필요')
+  expect(panel.getByText('판단 이유').nextElementSibling!.textContent).toBe('확인 필요')
+  expectNoCodes('SOMETHING_NEW', 'NEW_REASON')
   const delta = panel.getByText('이동 비용 변화').nextElementSibling!
   // NAVIGATION_COST가 아닌 이유로 판단했으면 null은 계산 실패가 아니라 쓰지 않는 값이다
   expect(delta.textContent).toBe('해당 없음 (이 판단 이유에서는 이동 비용 변화를 쓰지 않음)')
@@ -252,7 +270,7 @@ it('보고서: null 값은 0이 아니라 계산 불가이고 모르는 판단·
     const cells = panel.getByRole('rowheader', { name: row }).parentElement!.querySelectorAll('td')
     expect(cells[1].textContent).toBe('계산 불가')
   }
-  expect(panel.getByText(/기준과 검증 후보를 각각 1회만/)).toBeTruthy()
+  expect(panel.getByRole('note').textContent).toContain('기준 1회 · 후보 1회')
 })
 
 it('보고서: 판단 이유가 NAVIGATION_COST인데 delta가 null이면 계산 불가이고 0이 아니다', async () => {
@@ -267,29 +285,30 @@ const KNOWN_DECISIONS: [string, string, string, string][] = [
   ['NEEDS_MORE_EVIDENCE', '근거가 더 필요함', 'BOTH_GOALS_NOT_REACHED', '두 실행 모두 목표 화면에 도달하지 못함'],
   ['INCONCLUSIVE', '판단할 수 없음', 'INVALID_OR_MISSING_RUN_DATA', '실행 데이터가 무효이거나 없음'],
   ['INCONCLUSIVE', '판단할 수 없음', 'RUN_CONDITIONS_MISMATCH_OR_MISSING', '두 실행의 조건이 다르거나 확인할 수 없음'],
-  ['IMPROVEMENT_OBSERVED', '사전 정의한 개선 조건이 관찰됨', 'GOAL_REACHED_GAINED', '후보에서만 목표 화면에 도달'],
+  ['IMPROVEMENT_OBSERVED', '미리 정한 개선 조건이 관찰됨', 'GOAL_REACHED_GAINED', '후보에서만 목표 화면에 도달'],
 ]
 
 for (const [decision, decisionText, reason, reasonText] of KNOWN_DECISIONS) {
-  it(`보고서: ${decision}·${reason}는 풀이와 원문을 함께 보이고 이동 비용 변화는 해당 없음이다`, async () => {
+  it(`보고서: ${decision}·${reason}는 원문 없이 풀이만 보이고 이동 비용 변화는 해당 없음이다`, async () => {
     const report = seededReport('opt_mock_completed')
     report.finalDecision = decision
     report.verification = { ...report.verification!, finalDecision: decision, reasonCode: reason, navigationCostDelta: null }
     const panel = within(await renderReport(report))
-    expect(await panel.findByText(decision)).toBeTruthy()
-    expect(panel.getByText(new RegExp(decisionText))).toBeTruthy()
-    expect(panel.getByText(reason)).toBeTruthy()
-    expect(panel.getByText(new RegExp(reasonText))).toBeTruthy()
+    expect(await panel.findByText(decisionText)).toBeTruthy()
+    expect(panel.getByText(reasonText)).toBeTruthy()
+    expectNoCodes(decision, reason)
     expect(panel.getByText('이동 비용 변화').nextElementSibling!.textContent).toMatch(/^해당 없음/)
   })
 }
 
-it('보고서: 정책 버전·모델 메타데이터는 접혀 있고 펼치면 보인다', async () => {
-  const panel = within(await renderReport(seededReport('opt_mock_completed')))
-  const details = (await panel.findByText('정책·모델·동결 조건')).closest('details')!
+it('보고서: 비교 조건은 접혀 있고 펼치면 목표·사용자 유형을 보인다 (정책·모델 버전 같은 개발 정보는 없다)', async () => {
+  const report = seededReport('opt_mock_completed')
+  const panel = within(await renderReport(report))
+  const details = (await panel.findByText('비교 조건')).closest('details')!
   expect(details.open).toBe(false)
-  expect(within(details).getByText('selection-v1')).toBeTruthy()
-  expect(within(details).getByText('mock-endpoint')).toBeTruthy()
+  expect(within(details).getByText(report.frozenConditions.goal)).toBeTruthy()
+  expect(within(details).queryByText('모델 엔드포인트')).toBeNull()
+  expect(within(details).queryByText('selection-v1')).toBeNull()
 })
 
 it('보고서 조회가 실패하면 이유를 보이고 다시 시도할 수 있다', async () => {
@@ -304,7 +323,7 @@ it('보고서 조회가 실패하면 이유를 보이고 다시 시도할 수 �
   expect(screen.getByRole('button', { name: '다시 시도' })).toBeTruthy()
 })
 
-// ---- Optimizer Run 구분 ----
+// ---- 후보 비교 확인 실행 구분 ----
 
 const CONTEXT = {
   optimizationId: 'opt_mock_completed',
@@ -347,7 +366,8 @@ it('Run 목록: optimizationContext가 있으면 후보 라벨과 역할을 vari
   )
   const [optimizerRow, plainRow] = screen.getAllByRole('listitem')
   expect(optimizerRow.textContent).toContain('개선안 · ')
-  expect(optimizerRow.textContent).toContain(' · Optimizer 검증 · 후보 C2 주문·환불')
+  expect(optimizerRow.textContent).toContain(' · 메뉴 이름 후보 비교 · 후보 "주문·환불"')
+  expect(optimizerRow.textContent).not.toMatch(/Optimizer|C2/)
   expect(plainRow.textContent).toMatch(/^개선안 · \d{2}-\d{2} \d{2}:\d{2} · /)
   expect(plainRow.textContent).not.toContain('run_plain')
   expect(plainRow.textContent).not.toContain('COMPLETED')
@@ -369,12 +389,13 @@ it('비교·결과 화면: 검증 Run은 라벨 사이트와 역할을 보이고
     </MemoryRouter>,
   )
   const setup = await screen.findByRole('region', { name: '비교 대상' })
-  expect(await within(setup).findByText('Optimizer 검증 · 기준 C0 이용정보')).toBeTruthy()
+  expect(await within(setup).findByText('메뉴 이름 후보 비교 · 기준 "이용정보"')).toBeTruthy()
   // 고정 변경 문구(상단 메뉴 '…')는 어느 후보인지와 충돌할 수 있어 붙이지 않는다
   expect(within(setup).queryByText(/상단 메뉴 '/)).toBeNull()
   expect(runGets['run_opt_mock_completed_baseline']).toBe(1)
   expect(runGets['run_opt_mock_completed_candidate']).toBe(1)
-  expect(within(setup).getByText('Optimizer 검증 · 후보 C2 주문·환불')).toBeTruthy()
+  expect(within(setup).getByText('메뉴 이름 후보 비교 · 후보 "주문·환불"')).toBeTruthy()
+  expect(setup.textContent).not.toMatch(/Optimizer/)
   comparison.unmount()
 
   const result = (runId: string) =>
@@ -386,13 +407,15 @@ it('비교·결과 화면: 검증 Run은 라벨 사이트와 역할을 보이고
       </MemoryRouter>,
     )
   const optimizerRun = result('run_opt_mock_completed_candidate')
-  expect(await screen.findByText('Optimizer 검증 · 후보 C2 주문·환불', {}, { timeout: 3000 })).toBeTruthy()
+  expect(await screen.findByText('메뉴 이름 후보 비교 · 후보 "주문·환불"', {}, { timeout: 3000 })).toBeTruthy()
+  expect(screen.getByRole('link', { name: '후보 비교 결과 보기' }).getAttribute('href')).toBe('/optimizations/opt_mock_completed')
+  expect(document.body.textContent).not.toMatch(/Optimizer/)
   expect(screen.queryByText(/상단 메뉴 '/)).toBeNull()
   optimizerRun.unmount()
   result('run_mock_done_before')
   // 일반 Run은 버전 이름에 고정 변경 문구를 그대로 붙인다
   expect(await screen.findByText("지금 화면 · 상단 메뉴 '이용정보'", {}, { timeout: 3000 })).toBeTruthy()
-  expect(screen.queryByText(/Optimizer 검증/)).toBeNull()
+  expect(screen.queryByText(/메뉴 이름 후보 비교 ·/)).toBeNull()
 })
 
 const IMPROVEMENT_CONTEXT = { improvementId: 'imp-1119b', goalId: 'S1', label: '주문 환불', siteInstanceId: 'site-final', executionRole: 'CANDIDATE' }

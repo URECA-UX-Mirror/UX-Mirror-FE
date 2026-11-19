@@ -85,7 +85,7 @@ function sentenceError(text: unknown, field: string): string | null {
 /** 목표·사용자 유형 입력을 검사하고 저장할 값으로 정리한다. 오류면 문자열 */
 function resolveInputs(body: Partial<CreateRunRequestDto>, site?: SiteDto): Inputs | string {
   if ((body.goalId === undefined) === (body.goal === undefined)) return 'goalId와 goal 중 하나만 보내야 합니다.'
-  if (site && body.goalId !== undefined) return '시나리오 테스트는 goal과 verification을 직접 보내야 합니다.'
+  if (site && body.goalId !== undefined) return '다른 사이트 진단은 goal과 verification을 직접 보내야 합니다.'
   if ((body.personaId === undefined) === (body.persona === undefined)) return 'personaId와 persona 중 하나만 보내야 합니다.'
   const inputs: Inputs = { goalId: null, personaId: null }
   if (body.goalId !== undefined) {
@@ -160,7 +160,7 @@ export const runsHandlers = [
       return validationError('요청 값이 올바르지 않습니다')
     }
     if (scenarioRun && body.variant !== 'before') {
-      return validationError('시나리오 테스트의 variant는 before여야 합니다')
+      return validationError('다른 사이트 진단의 variant는 before여야 합니다')
     }
     const inputs = resolveInputs(body, site)
     if (typeof inputs === 'string') return validationError(inputs)

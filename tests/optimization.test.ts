@@ -315,8 +315,10 @@ it('오류 문구(실패 원인): FAILED Optimization의 코드마다 다른 문
     expect(message).not.toMatch(/[A-Z_]{8,}/)
   }
   expect(optimizationFailureMessage('NEW_CODE', '  서버 안내  ')).toBe('서버 안내')
-  expect(optimizationFailureMessage('NEW_CODE')).toBe('요청을 처리하지 못했습니다.')
-  expect(optimizationFailureMessage('toString', null)).toBe('요청을 처리하지 못했습니다.')
+  expect(optimizationFailureMessage('NEW_CODE')).toBe('후보 비교를 끝내지 못했습니다. 다시 시작해 주세요.')
+  expect(optimizationFailureMessage('toString', null)).toBe('후보 비교를 끝내지 못했습니다. 다시 시작해 주세요.')
+  // 한글이 없는 서버 문구(영어 예외 문구)는 보이지 않는다
+  expect(optimizationFailureMessage('NEW_CODE', 'baseline invalid')).toBe('후보 비교를 끝내지 못했습니다. 다시 시작해 주세요.')
 })
 
 it('오류 문구(후보 오류): 같은 MODEL_TIMEOUT도 후보 하나의 오류는 평가를 멈췄다고 하지 않는다', () => {
@@ -326,7 +328,8 @@ it('오류 문구(후보 오류): 같은 MODEL_TIMEOUT도 후보 하나의 오�
   expect(optimizationFailureMessage('MODEL_TIMEOUT')).toMatch(/멈췄/)
   expect(candidateErrorMessage('BROWSER_ERROR')).toBe('후보 화면을 열지 못했습니다.')
   expect(candidateErrorMessage('NEW_CODE', '서버 안내')).toBe('서버 안내')
-  expect(candidateErrorMessage(null, '')).toBe('요청을 처리하지 못했습니다.')
+  expect(candidateErrorMessage(null, '')).toBe('이 후보를 평가하지 못했습니다.')
+  expect(candidateErrorMessage('NEW_CODE', 'KeyError: probabilities')).toBe('이 후보를 평가하지 못했습니다.')
 })
 
 it('오류 문구(API 오류): 서버 메시지가 있으면 코드와 상관없이 그대로 쓰고 비어 있을 때만 대체 문구를 쓴다', () => {

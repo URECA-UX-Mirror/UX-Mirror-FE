@@ -3,9 +3,10 @@ import type { ScreenComparison, Step } from '../../domain/types.ts'
 import { ScreenshotViewer } from '../../shared/screenshot/ScreenshotViewer.tsx'
 import { candidateNumbers } from './candidateNumbers.ts'
 import type { RunStepsState } from './useComparisonData.ts'
+import { SIDE_NAMES } from './labels.ts'
 
 interface ScreenshotPaneProps {
-  title: string
+  side: 'before' | 'after'
   runId: string
   stepId: number | null
   stepsState: RunStepsState
@@ -14,12 +15,13 @@ interface ScreenshotPaneProps {
 
 /** 한 버전의 스크린샷과 후보 박스. 박스는 이 Run의 Step에서만 가져온다 */
 export function ScreenshotPane({
-  title,
+  side,
   runId,
   stepId,
   stepsState,
   screen,
 }: ScreenshotPaneProps) {
+  const title = SIDE_NAMES[side]
   const step: Step | undefined =
     stepId === null ? undefined : stepsState.steps.get(stepId)
   let body
@@ -40,7 +42,7 @@ export function ScreenshotPane({
     body = (
       <ScreenshotViewer
         src={screenshotUrl(runId, step.stepId)}
-        alt={`${title} 화면 (${runId}, Step ${step.stepId})`}
+        alt={`${title} 화면 (${step.stepId}번째 클릭)`}
         viewport={step.page.viewport}
         screenshotSize={step.page.screenshotSize}
         scroll={step.page.scroll}
@@ -56,7 +58,7 @@ export function ScreenshotPane({
     )
   }
   return (
-    <figure className="comparison-pane" data-side={title.toLowerCase()}>
+    <figure className="comparison-pane" data-side={side}>
       <figcaption className="browser-bar">
         <span className="browser-dots" aria-hidden="true">
           <i />
@@ -64,9 +66,7 @@ export function ScreenshotPane({
           <i />
         </span>
         <span className="browser-url mono">{step?.page.path ?? '-'}</span>
-        <span className="browser-tag">
-          {title} <span className="run-id">{runId}</span>
-        </span>
+        <span className="browser-tag">{title}</span>
       </figcaption>
       {body}
     </figure>

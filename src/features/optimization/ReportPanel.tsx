@@ -8,9 +8,11 @@ import { ResultOriginBadge } from '../../shared/ResultOriginBadge.tsx'
 import { SectionTitle } from '../../shared/SectionTitle.tsx'
 import { optimizerRoleLabel } from '../../shared/optimizerRun.ts'
 import { CheckCircleIcon } from '../../shared/icons.tsx'
+import { PAGE_NAMES } from '../../shared/pageNames.ts'
 import { usePolling } from '../../shared/polling/usePolling.ts'
 import { statusLabel } from '../run-progress/statusLabel.ts'
 import { formatCount, NOT_APPLICABLE } from '../run-result/format.ts'
+import { screenName } from '../improvement/labels.ts'
 import {
   finalDecisionLabel,
   verificationReasonLabel,
@@ -42,7 +44,8 @@ function goalText(value: boolean | null): string {
   return value ? '도달' : '미도달'
 }
 
-const pathText = (path: string[]) => (path.length === 0 ? NOT_APPLICABLE : path.join(' → '))
+/** 방문 경로(pageKey 목록)를 화면 이름으로. 모르는 화면은 "다른 화면" */
+const pathText = (path: string[]) => (path.length === 0 ? NOT_APPLICABLE : path.map(screenName).join(' → '))
 
 interface RunRow {
   name: string
@@ -63,12 +66,10 @@ function RunColumnHead({ title, run }: { title: string; run: OptimizerRunOutcome
   return (
     <th scope="col">
       {title}
-      {run.label ? ` · ${run.label}` : ''}
+      {run.label ? ` · "${run.label}"` : ''}
       {run.executionRole ? ` (${optimizerRoleLabel(run.executionRole)})` : ''}
       <br />
-      <Link to={`/runs/${encodeURIComponent(run.runId)}/result`}>
-        <span className="run-id">{run.runId}</span>
-      </Link>
+      <Link to={`/runs/${encodeURIComponent(run.runId)}/result`}>결과 보기</Link>
     </th>
   )
 }
@@ -76,35 +77,15 @@ function RunColumnHead({ title, run }: { title: string; run: OptimizerRunOutcome
 function Decision({ report }: { report: OptimizationReport }) {
   const decision = report.finalDecision ?? report.verification?.decision ?? null
   const reason = report.verification?.reasonCode ?? null
-  const decisionLabel = decision ? finalDecisionLabel(decision) : null
-  const reasonLabel = reason ? verificationReasonLabel(reason) : null
   return (
     <dl className="meta-row">
       <div>
         <dt>최종 판단</dt>
-        <dd>
-          {decision ? (
-            <>
-              {decisionLabel ? `${decisionLabel} ` : null}
-              <code>{decision}</code>
-            </>
-          ) : (
-            '-'
-          )}
-        </dd>
+        <dd>{decision ? finalDecisionLabel(decision) : '-'}</dd>
       </div>
       <div>
         <dt>판단 이유</dt>
-        <dd>
-          {reason ? (
-            <>
-              {reasonLabel ? `${reasonLabel} ` : null}
-              <code>{reason}</code>
-            </>
-          ) : (
-            '-'
-          )}
-        </dd>
+        <dd>{reason ? verificationReasonLabel(reason) : '-'}</dd>
       </div>
       <div>
         <dt>이동 비용 변화</dt>
@@ -112,6 +93,19 @@ function Decision({ report }: { report: OptimizationReport }) {
       </div>
     </dl>
   )
+}
+
+/**
+ * 한계 문구. 서버 `limitations.note`에는 판단 코드(예: 개선 관찰 코드)가 섞여 있어 그대로 보이지 않고,
+ * 실행 횟수·반복 여부로 같은 뜻의 문구를 만든다.
+ */
+function limitationText(report: OptimizationReport): string {
+  const { baselineRunCount, candidateRunCount, repeated } = report.limitations
+  const counts = `기준 ${baselineRunCount}회 · 후보 ${candidateRunCount}회 실행한 결과입니다.`
+  const variance = repeated
+    ? ' 반복 실행했지만 결과가 늘 같다고 보장하지는 않습니다.'
+    : ' 반복 실행하지 않아 실행마다 결과가 달라질 수 있는지는 확인하지 않았습니다.'
+  return `${counts}${variance} 미리 정한 개선 조건이 관찰됐다는 뜻이며, 실제 사용자 경험이 좋아졌다는 증명은 아닙니다.`
 }
 
 function ReportBody({ report }: { report: OptimizationReport }) {
@@ -146,43 +140,18 @@ function ReportBody({ report }: { report: OptimizationReport }) {
       </div>
 
       <p className="report-limitations" role="note">
-        <strong>한계</strong> {report.limitations.note}
-        <span className="muted">
-          {' '}
-          (기준 {report.limitations.baselineRunCount}회 · 후보 {report.limitations.candidateRunCount}회
-          {report.limitations.repeated ? ' · 반복 실행' : ' · 반복 없음'})
-        </span>
+        <strong>한계</strong> {limitationText(report)}
       </p>
 
       <p>
         <Link to={`/comparisons/${encodeURIComponent(report.optimizationId)}`}>
-          버전 비교 화면에서 두 실행 자세히 보기
+          {PAGE_NAMES.comparison} 화면에서 두 실행 자세히 보기
         </Link>
       </p>
 
       <details className="report-details">
-        <summary>정책·모델·동결 조건</summary>
+        <summary>비교 조건</summary>
         <dl className="meta-row">
-          <div>
-            <dt>선정 정책</dt>
-            <dd>{report.policyVersions.selection ?? '-'}</dd>
-          </div>
-          <div>
-            <dt>검증 정책</dt>
-            <dd>{report.policyVersions.verification ?? '-'}</dd>
-          </div>
-          <div>
-            <dt>모델 버전</dt>
-            <dd>{report.model.modelVersion ?? '-'}</dd>
-          </div>
-          <div>
-            <dt>모델 엔드포인트</dt>
-            <dd>{report.model.modelEndpointId ?? '-'}</dd>
-          </div>
-          <div>
-            <dt>프롬프트 버전</dt>
-            <dd>{report.model.promptVersion ?? '-'}</dd>
-          </div>
           <div>
             <dt>목표</dt>
             <dd>{report.conditions.goal}</dd>
@@ -192,11 +161,7 @@ function ReportBody({ report }: { report: OptimizationReport }) {
             <dd>{report.conditions.persona}</dd>
           </div>
           <div>
-            <dt>시작 경로</dt>
-            <dd className="mono">{report.conditions.startPath}</dd>
-          </div>
-          <div>
-            <dt>모델 호출 수</dt>
+            <dt>AI 호출 수</dt>
             <dd className="num">{report.executionMetadata.modelCallCount}</dd>
           </div>
           <div>

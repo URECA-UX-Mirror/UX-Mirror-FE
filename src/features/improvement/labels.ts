@@ -24,11 +24,11 @@ export function shortTime(iso: string | null | undefined): string | null {
   return `${two(date.getMonth() + 1)}-${two(date.getDate())} ${two(date.getHours())}:${two(date.getMinutes())}`
 }
 
-/** `LIVE`·`OFFICIAL` (BE #131) */
+/** 결과의 출처 (`kind`, BE #131). `UNKNOWN`(연습 실행처럼 출처를 확인할 수 없는 결과 파일)과 모르는 값은 같은 문구다 */
 export function kindLabel(kind: string): string {
-  if (kind === 'LIVE') return '직접 실행한 결과'
+  if (kind === 'LIVE') return '심사위원 실행 (공식 기록 아님)'
   if (kind === 'OFFICIAL') return '사전 등록 공식 결과'
-  return kind
+  return '출처 확인 안 된 결과'
 }
 
 /** AI 개선 시작 실패 안내 */

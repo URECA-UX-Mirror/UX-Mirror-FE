@@ -1,15 +1,21 @@
+import { hasHangul } from '../shared/hangul.ts'
+
 // UX Optimizer의 오류 코드를 화면 문구로 바꾼다. 문구는 이 파일 한 곳에서만 정한다(임시, OI-12).
 // 같은 코드가 상황마다 뜻이 달라서(예: `MODEL_TIMEOUT`은 후보 하나의 평가 오류이면서 평가 전체의 실패 원인이고,
 // `BROWSER_ERROR`는 후보 화면 오류이면서 검증 시작의 503이다) 어디서 온 코드인지에 따라 함수를 나눈다.
 //   1. API 오류 응답(`ApiError.code`)            → `optimizationApiErrorMessage`   서버 메시지가 우선
 //   2. `FAILED`인 Optimization의 `error.code`     → `optimizationFailureMessage`    실패 원인 코드
 //   3. 후보 평가의 `evaluations[].error.code`     → `candidateErrorMessage`         그 후보 하나의 오류
-// 모르는 코드는 서버 `message`(비어 있지 않으면), 그것도 없으면 일반 안내를 쓴다. 서버 `details`는 쓰지 않는다.
+// 모르는 코드는 서버 `message`(비어 있지 않으면, 2·3은 한글이 있을 때만), 그것도 없으면 일반 안내를 쓴다. 서버 `details`는 쓰지 않는다.
 
 const GENERIC_MESSAGE = '요청을 처리하지 못했습니다.'
 
 const serverOr = (serverMessage: string | null | undefined, fallback: string) =>
   serverMessage?.trim() ? serverMessage.trim() : fallback
+
+/** 서버 문구가 한국어(한글 포함)일 때만 쓴다. 영어 예외 문구(`baseline invalid` 등)는 화면에 보이지 않는다 */
+const koreanOr = (serverMessage: string | null | undefined, fallback: string) =>
+  hasHangul(serverMessage) ? serverMessage!.trim() : fallback
 
 const lookup = (
   table: Readonly<Record<string, string>>,
@@ -50,12 +56,12 @@ const FAILURE_MESSAGES: Readonly<Record<string, string>> = {
   OPTIMIZATION_FAILED: '후보 평가·검증 중 오류가 발생했습니다.',
 }
 
-/** `FAILED`인 Optimization의 실패 원인 문구. 모르는 코드는 서버 `message`를 쓴다 */
+/** `FAILED`인 Optimization의 실패 원인 문구. 모르는 코드는 한국어 서버 `message`, 아니면 일반 안내다 */
 export function optimizationFailureMessage(
   code: string | null,
   serverMessage?: string | null,
 ): string {
-  return lookup(FAILURE_MESSAGES, code) ?? serverOr(serverMessage, GENERIC_MESSAGE)
+  return lookup(FAILURE_MESSAGES, code) ?? koreanOr(serverMessage, '후보 비교를 끝내지 못했습니다. 다시 시작해 주세요.')
 }
 
 // 3. 후보 하나의 평가 오류. 다른 후보의 평가는 계속되므로 "평가를 멈췄다"고 쓰지 않는다.
@@ -66,10 +72,10 @@ const CANDIDATE_MESSAGES: Readonly<Record<string, string>> = {
   LEAK_CHECK_FAILED: '모델 요청에 내부 정보가 섞여 이 후보를 평가하지 않았습니다.',
 }
 
-/** 후보 평가 오류(`evaluations[].error`) 문구. 모르는 코드는 서버 `message`를 쓴다 */
+/** 후보 평가 오류(`evaluations[].error`) 문구. 모르는 코드는 한국어 서버 `message`, 아니면 일반 안내다 */
 export function candidateErrorMessage(
   code: string | null,
   serverMessage?: string | null,
 ): string {
-  return lookup(CANDIDATE_MESSAGES, code) ?? serverOr(serverMessage, GENERIC_MESSAGE)
+  return lookup(CANDIDATE_MESSAGES, code) ?? koreanOr(serverMessage, '이 후보를 평가하지 못했습니다.')
 }

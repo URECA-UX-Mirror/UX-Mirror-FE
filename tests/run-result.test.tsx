@@ -20,9 +20,9 @@ it('요약은 목표 달성·클릭 수·살펴볼 점 카드를 보이고 전�
   expect(within(summary).getByText('목표 달성')).toBeTruthy()
   expect(within(summary).getByText('클릭 수')).toBeTruthy()
   expect(within(summary).getByText('살펴볼 점')).toBeTruthy()
-  expect(within(summary).queryByText('추가 이동(extraSteps)')).toBeNull()
+  expect(within(summary).queryByText('추가 이동')).toBeNull()
   fireEvent.click(within(summary).getByRole('button', { name: '요약 전체 보기' }))
-  expect(within(summary).getByText('추가 이동(extraSteps)')).toBeTruthy()
+  expect(within(summary).getByText('추가 이동')).toBeTruthy()
   expect(within(summary).getByText('끝난 이유')).toBeTruthy()
   // 개발자용 코드값(CLICK·GO_BACK·상태 코드)은 보이지 않는다
   expect(summary.textContent).not.toMatch(/CLICK|GO_BACK|SUCCESS|GOAL_VERIFIED/)
@@ -113,7 +113,7 @@ it('SITE_MAP Run은 기준 배지와 최단 경로 대비 추가 단계·우회 
   expect(within(summary).getByText('목표 거리가 줄지 않은 이동')).toBeTruthy()
   expect(within(summary).queryByText('허용 경로 이탈')).toBeNull()
   expect(within(summary).queryByText('사용 안 함')).toBeNull()
-  expect(within(summary).queryByText('추가 이동(extraSteps)')).toBeNull()
+  expect(within(summary).queryByText('추가 이동')).toBeNull()
   expect(summary.textContent).not.toMatch(/개선|단축/)
 })
 
@@ -132,14 +132,14 @@ it('지도 오류 Run은 목표 종류와 무관하게 원인을 단정하지 �
 it('허용 경로 Run은 기존 표시를 유지하고 우회 이동 행이 없다', async () => {
   const summary = await openFullSummary('run_mock_goback')
   expect(within(summary).getByText('허용 경로')).toBeTruthy()
-  expect(within(summary).getByText('추가 이동(extraSteps)')).toBeTruthy()
+  expect(within(summary).getByText('추가 이동')).toBeTruthy()
   expect(within(summary).queryByText('우회 이동')).toBeNull()
 })
 
 it('basis가 없는 과거 Run은 허용 경로로 읽는다', async () => {
   const summary = await openFullSummary('run_mock_legacy_basis')
   expect(within(summary).getByText('허용 경로')).toBeTruthy()
-  expect(within(summary).getByText('추가 이동(extraSteps)')).toBeTruthy()
+  expect(within(summary).getByText('추가 이동')).toBeTruthy()
 })
 
 it('목표 미도달 Run의 추가 이동은 해당 없음이다', async () => {

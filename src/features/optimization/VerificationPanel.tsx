@@ -13,9 +13,7 @@ function RunLink({ label, runId }: { label: string; runId: string | null }) {
       <dt>{label}</dt>
       <dd>
         {runId ? (
-          <Link to={`/runs/${encodeURIComponent(runId)}`}>
-            <span className="run-id">{runId}</span>
-          </Link>
+          <Link to={`/runs/${encodeURIComponent(runId)}`}>진행 보기</Link>
         ) : (
           '아직 만들어지지 않음'
         )}
@@ -25,8 +23,8 @@ function RunLink({ label, runId }: { label: string; runId: string | null }) {
 }
 
 /**
- * 검증 진행과 검증 단계 실패. 기준 Run → 후보 Run 순으로 만들어지므로 Run ID는 아직 `null`일 수 있다.
- * 모르는 `verificationPhase`는 원문을 그대로 보이고 오류로 만들지 않는다.
+ * 검증 진행과 검증 단계 실패. 기준 Run → 후보 Run 순으로 만들어지므로 Run ID는 아직 `null`일 수 있다(화면에는 ID 대신 링크만 보인다).
+ * 모르는 `verificationPhase`는 단계 문구 없이 두고 오류로 만들지 않는다.
  * `FAILED`의 원인 문구는 `FailureNotice`가 보이고, 여기서는 검증 Run이 만들어졌는지만 알린다.
  */
 export function VerificationPanel({ optimization }: { optimization: Optimization }) {
@@ -38,20 +36,20 @@ export function VerificationPanel({ optimization }: { optimization: Optimization
   const code = optimization.error?.code ?? null
   const step = verificationStepLabel(optimization)
   // 기준은 후보 풀의 role로 고른다(서버도 `BASELINE` role로 고른다)
-  const baselineName = optimization.candidates.find((c) => c.role === 'BASELINE')?.candidateId
+  const baselineName = optimization.candidates.find((c) => c.role === 'BASELINE')?.label
   return (
     <section className="card" aria-label="검증 진행">
       <SectionTitle icon={<RouteIcon />} title="후보 검증" />
       {step ? <p>지금 {step}{step === '사이트 확인 중' ? '입니다.' : '을 진행 중입니다.'}</p> : null}
       <dl className="meta-row">
-        <RunLink label={baselineName ? `기준 실행 (${baselineName})` : '기준 실행'} runId={baselineRunId} />
+        <RunLink label={baselineName ? `기준 실행 ("${baselineName}")` : '기준 실행'} runId={baselineRunId} />
         <RunLink label="후보 실행" runId={validationRunId} />
       </dl>
       {failed && baselineRunId === null && validationRunId === null ? (
         <p className="muted">
           {code !== null && NO_RUN_CODES.has(code)
-            ? '검증 전에 멈춰 검증 Run이 만들어지지 않았습니다.'
-            : '검증 Run이 만들어지기 전에 멈췄습니다.'}
+            ? '검증 전에 멈춰 확인 실행을 하지 않았습니다.'
+            : '확인 실행을 만들기 전에 멈췄습니다.'}
         </p>
       ) : null}
     </section>

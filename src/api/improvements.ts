@@ -15,8 +15,8 @@ export interface ImprovementInputDto {
 /** GET /api/improvements/{id} (BE #130·#131). `improvement`는 리포트(`improvement-v1` JSON), 루프가 끝나기 전에는 `null` */
 export interface ImprovementJobDto {
   improvementId: string
-  /** `LIVE` = 서버에서 시작한 실행(심사·시연용), `OFFICIAL` = 사전 등록 공식 실행 결과 */
-  kind?: 'LIVE' | 'OFFICIAL' | string
+  /** `LIVE` = 서버에서 시작한 실행(심사·시연용, 공식 기록 아님), `OFFICIAL` = 사전 등록 공식 실행 결과, `UNKNOWN` = 출처를 확인할 수 없는 결과 파일(연습 실행 등) */
+  kind?: 'LIVE' | 'OFFICIAL' | 'UNKNOWN' | string
   status: ImprovementJobStatus
   phase: ImprovementPhase | null
   phases?: { phase: string; at: string }[]

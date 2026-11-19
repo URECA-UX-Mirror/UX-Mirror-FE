@@ -147,7 +147,7 @@ function ResultBody({ run }: { run: Run }) {
         </dl>
       </section>
 
-      <DiagnosisCard run={run} steps={steps.data} runs={runs.data} />
+      <DiagnosisCard run={run} steps={steps.data} />
 
       <RunSummaryPanel run={run} issues={issues.data} siteMapUnavailable={scenario && site?.siteMapAvailable === false} />
 

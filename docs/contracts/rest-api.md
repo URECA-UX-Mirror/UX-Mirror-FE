@@ -179,7 +179,7 @@
 - 계산할 수 없는 지표(`targetOptionProbability`, `goalPathProbability` 등)는 `null`이며 0으로 바꾸지 않는다. 사유는 `metricNullReasons`(지표 이름 → 코드)이다. `baseUrl` 같은 내부 주소는 응답에 없다.
 - 검증 Run은 `experimentKey`가 `optimizationId`이고 기준은 `variant=before`, 후보는 `after`다. 어느 라벨 사이트인지는 `variant`가 아니라 Run의 `optimizationContext`(`optimizationId`, `candidateId`, `label`, `executionRole`, `siteInstanceId`)로만 구분한다. 일반 Run에는 이 필드가 없고 Adapter는 `null`로 읽는다. 비교는 기존 `GET /api/comparisons/{optimizationId}`를 쓴다.
 - 선정 이유(`selection.selectionReasonCode`, `excludedCandidates[].reasonCodes`)·판단 이유(`verification.reasonCode`)·`finalDecision`·`invalidReasons`는 정책 모듈이 정하는 값이다. 목록이 확정되기 전이므로 모르는 값을 오류로 만들지 않고 원문 문자열을 그대로 둔다.
-- 오류 코드와 화면 문구는 `src/domain/optimizationErrors.ts` 한 곳에서 정하되, 같은 코드가 상황마다 뜻이 달라 세 함수로 나눈다. API 오류 응답은 서버 `message`를 우선하고(없을 때만 코드별 대체 문구), `FAILED`인 Optimization의 `error.code`와 후보 평가의 `error.code`(후보 하나만 실패, 평가는 계속)는 각각 따로 문구를 정한다. 모르는 코드는 서버 `message`를 그대로 쓴다.
+- 오류 코드와 화면 문구는 `src/domain/optimizationErrors.ts` 한 곳에서 정하되, 같은 코드가 상황마다 뜻이 달라 세 함수로 나눈다. API 오류 응답은 서버 `message`를 우선하고(없을 때만 코드별 대체 문구), `FAILED`인 Optimization의 `error.code`와 후보 평가의 `error.code`(후보 하나만 실패, 평가는 계속)는 각각 따로 문구를 정한다. API 오류의 모르는 코드는 서버 `message`를 그대로 쓰고, 실패 원인·후보 평가 오류의 모르는 코드는 서버 `message`에 한글이 있을 때만 쓰며 아니면 일반 안내("후보 비교를 끝내지 못했습니다. 다시 시작해 주세요." / "이 후보를 평가하지 못했습니다.")다.
 
 | HTTP | `error.code` |
 | --- | --- |

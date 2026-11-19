@@ -8,21 +8,11 @@ import {
   selectionStatusLabel,
 } from './labels.ts'
 
-function ReasonCode({ code }: { code: string }) {
-  const label = reasonLabel(code)
-  return (
-    <>
-      {label ? `${label} ` : null}
-      <code>{code}</code>
-    </>
-  )
-}
-
-/** 후보 이름. 후보 풀에 없는 ID는 ID만 보인다 */
+/** 후보 이름. 후보 ID는 보이지 않고, 후보 목록에 없는 ID는 "알 수 없는 후보"다 */
 function nameOf(optimization: Optimization, candidateId: string | null): string {
   if (candidateId === null) return '없음'
   const found = optimization.candidates.find((c) => c.candidateId === candidateId)
-  return found ? `${candidateId} ${found.label}` : candidateId
+  return found ? found.label : '알 수 없는 후보'
 }
 
 /**
@@ -64,7 +54,7 @@ export function SelectionPanel({
         </div>
         <div>
           <dt>선정 사유</dt>
-          <dd>{selection.reasonCode ? <ReasonCode code={selection.reasonCode} /> : '-'}</dd>
+          <dd>{selection.reasonCode ? reasonLabel(selection.reasonCode) : '-'}</dd>
         </div>
       </dl>
       {optimization.recommendedCandidateId === null ? (
@@ -89,9 +79,7 @@ export function SelectionPanel({
                 {item.reasonCodes.length > 0 ? (
                   <ul>
                     {item.reasonCodes.map((code) => (
-                      <li key={code}>
-                        <ReasonCode code={code} />
-                      </li>
+                      <li key={code}>{reasonLabel(code)}</li>
                     ))}
                   </ul>
                 ) : null}

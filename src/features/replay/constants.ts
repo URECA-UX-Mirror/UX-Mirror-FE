@@ -19,4 +19,4 @@ export function isReplayKey(experimentKey: string): boolean {
 export const REPLAY_LABEL = '저장된 실측 결과 재생'
 
 /** `resultOrigin`에 `MOCK`이 섞인 재생에는 실측이라고 표시하지 않는다 */
-export const REPLAY_MOCK_LABEL = 'MOCK 재생 테스트'
+export const REPLAY_MOCK_LABEL = '예시 데이터 재생'

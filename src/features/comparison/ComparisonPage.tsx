@@ -16,6 +16,7 @@ import { OriginBadges } from './OriginBadges.tsx'
 import { RunComparison } from './RunComparison.tsx'
 import { ScreenComparisonCard } from './ScreenComparisonCard.tsx'
 import { SingleScreenView } from './SingleScreenView.tsx'
+import { PAGE_NAMES } from '../../shared/pageNames.ts'
 import { useComparison, useRunMeta, useRunSteps } from './useComparisonData.ts'
 
 function ComparisonBody({ comparison }: { comparison: Comparison }) {
@@ -115,7 +116,7 @@ export function ComparisonPage() {
     <section className="comparison-page">
       <header className="page-header">
         <div className="page-title-row">
-          <h1>버전 비교</h1>
+          <h1>{PAGE_NAMES.comparison}</h1>
           {comparison ? (
             <OriginBadges
               before={comparison.beforeResultOrigin}
@@ -130,9 +131,6 @@ export function ComparisonPage() {
           ) : null}
         </div>
         <p className="page-lead">두 버전의 AI 탐색 결과와 검토 항목을 비교합니다.</p>
-        <p className="page-lead">
-          <span className="mono">experimentKey: {experimentKey}</span>
-        </p>
       </header>
 
       {loading ? <p role="status">비교 결과를 불러오는 중</p> : null}

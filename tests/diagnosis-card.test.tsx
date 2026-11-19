@@ -5,7 +5,7 @@ import { expect, it } from 'vitest'
 import { toRun } from '../src/adapters/run.ts'
 import { toStepList } from '../src/adapters/step.ts'
 import { apiUrl } from '../src/api/client.ts'
-import type { Run, RunListItem, Step } from '../src/domain/types.ts'
+import type { Run, Step } from '../src/domain/types.ts'
 import { DiagnosisCard } from '../src/features/run-result/DiagnosisCard.tsx'
 import { errorResponse } from '../src/mocks/errors.ts'
 import { buildRun, buildSteps } from '../src/mocks/fixtures/run.ts'
@@ -38,11 +38,11 @@ function Where() {
   return <p data-testid="location">{location.pathname + location.search}</p>
 }
 
-function renderCard(run: Run, steps: Step[] | null, runs: RunListItem[] | null = []) {
+function renderCard(run: Run, steps: Step[] | null) {
   return render(
     <MemoryRouter initialEntries={['/runs/x/result']}>
       <Routes>
-        <Route path="/runs/x/result" element={<DiagnosisCard run={run} steps={steps} runs={runs} />} />
+        <Route path="/runs/x/result" element={<DiagnosisCard run={run} steps={steps} />} />
         <Route path="*" element={<Where />} />
       </Routes>
     </MemoryRouter>,
@@ -119,54 +119,31 @@ it('AI 개선 시작이 409이면 다른 작업 진행 중, 503이면 서버 문
   expect(screen.getByRole('button', { name: 'AI에게 고쳐 달라고 하기' })).toHaveProperty('disabled', false)
 })
 
-it('"개선안 화면으로도 해 보기"는 같은 입력으로 after Run을 만들고 진행 화면으로 이동한다', async () => {
-  let body: Record<string, unknown> | null = null
-  server.use(
-    http.post(apiUrl('/api/runs'), async ({ request }) => {
-      body = (await request.json()) as Record<string, unknown>
-      return HttpResponse.json({
-        runId: 'run_after_new', experimentKey: 'mock-direct', variant: 'after', status: 'READY', maxSteps: 8,
-        createdAt: '2026-11-01T00:00:00Z',
-      }, { status: 201 })
-    }),
-  )
-  const run = runOf('run_mock_direct_before')
-  renderCard(run, null)
-  fireEvent.click(screen.getByRole('button', { name: '개선안 화면으로도 해 보기' }))
-  expect((await screen.findByTestId('location')).textContent).toBe('/runs/run_after_new?experimentKey=mock-direct')
-  expect(body).toEqual({
-    experimentKey: 'mock-direct',
-    variant: 'after',
-    goal: '주문 내역 화면 찾기',
-    verification: { path: '/shop/orders', text: '주문 / 배송 조회', exact: false, scope: 'page' },
-    persona: '쇼핑몰을 처음 쓰는 사용자',
-    maxSteps: run.maxSteps,
-  })
+it('개선안 화면 진단 버튼과 비교·진행 링크는 진단 결과에 없다 (고정 개선안 사이트는 AI가 고른 이름과 다를 수 있다)', () => {
+  renderCard(runOf('run_mock_direct_before'), null)
+  expect(screen.queryByRole('button', { name: /개선안 화면으로도/ })).toBeNull()
+  expect(screen.queryByRole('link', { name: /개선안/ })).toBeNull()
+  expect(screen.getByRole('button', { name: 'AI에게 고쳐 달라고 하기' })).toBeTruthy()
 })
 
-it('preset 목표 진단은 목표·고객 ID로 after Run을 만든다', async () => {
-  let body: Record<string, unknown> | null = null
-  server.use(
-    http.post(apiUrl('/api/runs'), async ({ request }) => {
-      body = (await request.json()) as Record<string, unknown>
-      return HttpResponse.json({
-        runId: 'run_after_preset', experimentKey: 'mock-maxsteps', variant: 'after', status: 'READY', maxSteps: 2,
-        createdAt: '2026-11-01T00:00:00Z',
-      }, { status: 201 })
-    }),
-  )
-  const run = runOf('run_mock_maxsteps')
-  renderCard(run, null)
-  fireEvent.click(screen.getByRole('button', { name: '개선안 화면으로도 해 보기' }))
-  await screen.findByTestId('location')
-  expect(body).toMatchObject({ experimentKey: run.experimentKey, variant: 'after', goalId: run.goalId, personaId: run.personaId, maxSteps: run.maxSteps })
-  expect(body).not.toHaveProperty('verification')
+it.each<[string, Partial<Run>]>([
+  ['진행 중인 진단', { status: 'RUNNING', validity: null }],
+  ['결과로 쓸 수 없는 진단', { validity: 'INVALID' }],
+  ['검증 전 진단', { validity: null }],
+  ['개선안(after) 화면 진단', { variant: 'after' }],
+  ['다른 사이트 진단', { siteId: 'site_x' }],
+  ['후보 비교 확인 실행', { optimizationContext: { optimizationId: 'opt_1', candidateId: 'C2', label: '주문·환불', executionRole: 'CANDIDATE' } as Run['optimizationContext'] }],
+  ['AI 개선 확인 실행', { improvementContext: {} as Run['improvementContext'] }],
+])('%s에는 "AI에게 고쳐 달라고 하기"를 보이지 않는다', (_name, patch) => {
+  renderCard({ ...runOf('run_mock_maxsteps'), ...patch }, stepsOf('run_mock_maxsteps'))
+  expect(screen.queryByRole('button', { name: 'AI에게 고쳐 달라고 하기' })).toBeNull()
+  expect(screen.queryByText(/AI가 이 메뉴 이름을 바꿔 볼 수 있어요/)).toBeNull()
 })
 
-it('개선안 결과가 이미 있으면 다시 만들지 않고 비교 링크를 보인다', () => {
-  const run = runOf('run_mock_direct_before')
-  const after = { runId: 'run_after', variant: 'after', validity: 'VALID' } as RunListItem
-  renderCard(run, null, [after])
-  expect(screen.queryByRole('button', { name: '개선안 화면으로도 해 보기' })).toBeNull()
-  expect(screen.getByRole('link', { name: '지금 화면 vs 개선안 비교' }).getAttribute('href')).toBe('/comparisons/mock-direct')
+it('목표에 못 가고 멈춘(MAX_STEPS·BLOCKED) 유효한 진단도 AI 개선을 시작할 수 있다', () => {
+  for (const status of ['MAX_STEPS', 'BLOCKED']) {
+    const view = renderCard({ ...runOf('run_mock_maxsteps'), status, validity: 'VALID' }, null)
+    expect(screen.getByRole('button', { name: 'AI에게 고쳐 달라고 하기' })).toBeTruthy()
+    view.unmount()
+  }
 })

@@ -29,7 +29,7 @@ export function StepMetricsPanel({ decision, basis }: StepMetricsPanelProps) {
       {open ? (
         <>
           <dl className="summary-grid">
-            <dt>정규화 엔트로피</dt>
+            <dt>고르기 어려운 정도</dt>
             <dd>{formatRatio(decision.normalizedEntropy)}</dd>
             <dt>클릭 후보 엔트로피</dt>
             <dd>{formatRatio(decision.clickOnlyNormalizedEntropy)}</dd>

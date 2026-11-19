@@ -20,26 +20,14 @@ beforeEach(() => {
   delete document.documentElement.dataset.theme
 })
 
-it('상단 메뉴는 진단하기와 AI 개선 두 개뿐이다', () => {
-  renderLayout()
+it('상단 줄에는 로고와 "새 진단"만 있고 다른 메뉴는 없다', () => {
+  renderLayout('/runs/run_1')
   const nav = screen.getByRole('navigation', { name: '주요 메뉴' })
   const links = within(nav).getAllByRole('link')
-  expect(links.map((a) => [a.textContent, a.getAttribute('href')])).toEqual([
-    ['진단하기', '/'],
-    ['AI 개선', '/improvements'],
-  ])
-  // 메뉴에서 뺀 화면은 링크가 없다
-  expect(screen.queryByRole('link', { name: /다른 사이트|후보 비교|지난 결과/ })).toBeNull()
+  expect(links.map((a) => [a.textContent, a.getAttribute('href')])).toEqual([['새 진단', '/']])
+  // AI 개선·다른 사이트 진단·후보 비교·지난 결과로 가는 메뉴는 없다
+  expect(screen.queryByRole('link', { name: /AI 개선|다른 사이트|후보 비교|지난 결과|받은 개선안/ })).toBeNull()
   expect(screen.queryByRole('separator')).toBeNull()
-})
-
-it.each([
-  ['/', '진단하기'],
-  ['/improvements', 'AI 개선'],
-  ['/improvements/imp_1', 'AI 개선'],
-])('%s에서는 %s 메뉴가 현재 화면으로 표시된다', (path, name) => {
-  renderLayout(path)
-  expect(screen.getByRole('link', { name }).getAttribute('aria-current')).toBe('page')
 })
 
 it('로고를 누르면 첫 화면으로 간다', () => {

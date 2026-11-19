@@ -5,7 +5,7 @@ import { describeReason } from './reasons.ts'
 
 /**
  * 점수 계산: 개선안 화면을 실제로 만든 뒤 다시 잰 점수(BE 공식 평가 B). "어떻게 골랐는지 보기" 안에 들어간다.
- * `goalNames`: 목표 키(`S1` 등) → 이름. 이름을 모르면 "다른 고객"으로 보인다.
+ * `goalNames`: 목표 키(`S1` 등) → 이름. 이름을 모르면 "다른 목표"로 보인다.
  */
 export function OfficialSection({ official, goalNames = {} }: {
   official: ImprovementOfficial
@@ -26,10 +26,10 @@ export function OfficialSection({ official, goalNames = {} }: {
         {rejected ? ` (${official.rejectedReason ? describeReason(official.rejectedReason, goalNames) : '이유를 알 수 없어요'})` : ''}
       </p>
       <ul className="imp-score-list">
-        <li><span>이 고객</span><strong className="imp-num">{formatScore(scores.mainScore)}</strong></li>
+        <li><span>이번 목표</span><strong className="imp-num">{formatScore(scores.mainScore)}</strong></li>
         {guardKeys.map((key) => (
           <li key={key}>
-            <span>{goalNames[key] ? `${goalNames[key]} 고객` : '다른 고객'}</span>
+            <span>{goalNames[key] ?? '다른 목표'}</span>
             <strong className="imp-num">{formatScore(scores.guardScores[key])}</strong>
           </li>
         ))}

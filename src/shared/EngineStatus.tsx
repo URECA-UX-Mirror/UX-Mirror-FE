@@ -18,7 +18,7 @@ export function EngineStatus({ refreshKey }: EngineStatusProps) {
 
   const owner = health.activeOwner
   if (owner?.improvementId) {
-    return <Status state="busy" label="AI 개선 중" to={`/improvements/${encodeURIComponent(owner.improvementId)}`} />
+    return <Status state="busy" label="개선안 찾는 중" to={`/improvements/${encodeURIComponent(owner.improvementId)}`} />
   }
   if (health.activeRunId) return <Status state="busy" label="진단 중" to={`/runs/${encodeURIComponent(health.activeRunId)}`} />
   if (health.activeOptimization) {

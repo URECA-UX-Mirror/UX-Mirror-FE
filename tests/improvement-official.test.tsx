@@ -54,12 +54,11 @@ it('2차 결과는 네 영역이 오류 없이 변환되고 채택·공식 확�
   expect(view.verification.data.pairs.map((pair) => pair.comparisonPath)).toEqual(['/comparisons/imp-1119b-S1', '/comparisons/imp-1119b-S4'])
 })
 
-it('2차 결과 화면은 공식 결과 표시·바꿀 이름·나란히 비교 링크를 보이고 영역 안내가 없다', async () => {
+it('2차 결과 화면은 공식 결과 표시·바꿀 이름·화면별 비교 링크를 보이고 영역 안내가 없다', async () => {
   renderOfficial('imp-1119b')
   expect(await screen.findByText('사전 등록 공식 결과')).toBeTruthy()
-  expect(screen.getByRole('region', { name: '결론' }).querySelector('.imp-headline strong')?.textContent).toBe("'주문 환불'")
-  expect(screen.getByRole('region', { name: '결론' }).textContent).toContain("'주문 환불'로 바꿔 보세요")
-  expect(screen.getAllByRole('link', { name: '나란히 비교하기' }).map((a) => a.getAttribute('href'))).toEqual(['/comparisons/imp-1119b-S1', '/comparisons/imp-1119b-S4'])
+  expect(screen.getByRole('region', { name: '어떻게 바꾸면 좋을까요?' }).querySelector('.tl-answer')?.textContent).toBe("상단 메뉴 '이용정보' → '주문 환불'")
+  expect(screen.getAllByRole('link', { name: '화면별로 비교하기' }).map((a) => a.getAttribute('href'))).toEqual(['/comparisons/imp-1119b-S1', '/comparisons/imp-1119b-S4'])
   expect(screen.getByRole('region', { name: '점수 계산' })).toBeTruthy()
   expect(screen.queryByText('이 부분을 보여 드릴 수 없어요.')).toBeNull()
 })

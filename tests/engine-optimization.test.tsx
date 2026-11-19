@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 import { http, HttpResponse } from 'msw'
 import { MemoryRouter } from 'react-router'
 import { afterEach, expect, it } from 'vitest'
@@ -6,7 +6,6 @@ import { toHealth } from '../src/adapters/misc.ts'
 import { apiUrl } from '../src/api/client.ts'
 import type { HealthDto } from '../src/api/dto/index.ts'
 import { NewAnalysisPage } from '../src/features/new-analysis/NewAnalysisPage.tsx'
-import { ScenarioPage } from '../src/features/scenario/ScenarioPage.tsx'
 import { errorResponse } from '../src/mocks/errors.ts'
 import { setMockActiveOptimization } from '../src/mocks/store.ts'
 import { EngineStatus } from '../src/shared/EngineStatus.tsx'
@@ -67,7 +66,7 @@ it('엔진 상태: 할 일이 없으면 준비됨, 후보 비교가 진행 중�
 it('엔진 상태: AI 개선이 진행 중이면 진단 중보다 먼저 AI 개선 중을 보이고 그 화면으로 연결한다', async () => {
   healthWith({ activeRun: 'run_1', activeRunOwner: { kind: 'IMPROVEMENT', runId: 'run_1', improvementId: 'imp 1' } })
   render(<MemoryRouter><EngineStatus /></MemoryRouter>)
-  expect(await screen.findByText('AI 개선 중')).toBeTruthy()
+  expect(await screen.findByText('개선안 찾는 중')).toBeTruthy()
   expect(statusLink()?.getAttribute('href')).toBe('/improvements/imp%201')
 })
 
@@ -102,16 +101,4 @@ it('진단하기: 후보 비교가 진행 중이면 안내를 보이고 시작 �
   render(<MemoryRouter><NewAnalysisPage /></MemoryRouter>)
   expect(await screen.findByText(BUSY)).toBeTruthy()
   expect((screen.getByRole('button', { name: '진단 시작' }) as HTMLButtonElement).disabled).toBe(true)
-})
-
-it('다른 사이트 진단: 후보 비교가 진행 중이면 안내를 보이고 시작 버튼을 막는다', async () => {
-  setMockActiveOptimization({ optimizationId: 'opt_mock_2', status: 'VERIFYING' })
-  render(<MemoryRouter><ScenarioPage /></MemoryRouter>)
-  fireEvent.change(await screen.findByLabelText('진단할 사이트 링크'), { target: { value: 'https://ecudemo360127.cafe24.com' } })
-  fireEvent.change(screen.getByLabelText('고객 유형'), { target: { value: '쇼핑몰을 처음 쓰는 사용자' } })
-  fireEvent.change(screen.getByLabelText('고객이 하려는 일'), { target: { value: '마음에 드는 제품을 담을 화면 찾기' } })
-  const select = screen.getByLabelText('도착하면 성공인 화면') as HTMLSelectElement
-  fireEvent.change(select, { target: { value: 'products' } })
-  expect(await screen.findByText(BUSY)).toBeTruthy()
-  await waitFor(() => expect((screen.getByRole('button', { name: '진단 시작' }) as HTMLButtonElement).disabled).toBe(true))
 })

@@ -23,7 +23,7 @@ export function ComparisonSummary({ comparison, meta }: SummaryProps) {
       {comparison.conditionsMatched ? null : (
         <p className="comparison-note" role="status">
           두 진단의 설정이 달라서 결과를 바로 견주기 어려워요.{' '}
-          <Link to={`/?experimentKey=${encodeURIComponent(comparison.experimentKey)}`}>다시 진단하기</Link>
+          <Link to="/">다시 진단하기</Link>
         </p>
       )}
       <div className="comparison-sides">

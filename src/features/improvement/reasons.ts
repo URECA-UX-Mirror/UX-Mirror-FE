@@ -14,7 +14,7 @@ const labels: Record<string, string> = {
   EVALUATION_FAILED: '점수를 내지 못했어요',
   SCORE_MISSING: '점수가 없어요',
   INVALID_CANDIDATE: '쓸 수 없는 후보예요',
-  GUARD_LOSS_EXCEEDED: '다른 고객이 많이 떨어졌어요',
+  GUARD_LOSS_EXCEEDED: '다른 목표가 많이 떨어졌어요',
   ESTIMATE_NOT_COMPLETE: '계산을 끝내지 못했어요',
   TARGET_REACHED: '목표 점수에 닿았어요',
   NO_ADOPTION_STREAK: '여러 번 연달아 고를 이름이 없었어요',
@@ -26,13 +26,13 @@ const labels: Record<string, string> = {
 
 const OTHER = '다른 이유가 있었어요'
 
-/** `goals`: 목표 키(`S4` 등) → 이름(`문의`). 모르는 키는 이름 없이 "다른 고객"으로 말한다 */
+/** `goals`: 목표 키(`S4` 등) → 이름(`문의`). 모르는 키는 이름 없이 "다른 목표"로 말한다 */
 export function describeReason(code: string, goals: Record<string, string> = {}): string {
   const [kind, ...parts] = code.split(':')
   const argument = parts.join(':')
   if (kind === 'GUARD_LOSS_EXCEEDED' && argument) {
     const names = argument.split(',').map((key) => goals[key]).filter(Boolean)
-    return names.length ? `${names.join('·')} 고객이 많이 떨어졌어요` : labels.GUARD_LOSS_EXCEEDED
+    return names.length ? `${names.join('·')} 쪽이 많이 떨어졌어요` : labels.GUARD_LOSS_EXCEEDED
   }
   if ((kind === 'INVALID_CANDIDATE' || kind === 'EVALUATION_FAILED') && argument) {
     const details = argument.split(',').map((item) => labels[item]).filter(Boolean)

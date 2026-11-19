@@ -2,7 +2,7 @@ import type { Run } from '../../domain/types.ts'
 
 const LABELS: Record<string, string> = {
   READY: '시작 준비 중',
-  RUNNING: 'AI 고객이 둘러보는 중',
+  RUNNING: 'AI가 둘러보는 중',
   SUCCESS: '도착함',
   BLOCKED: '찾지 못하고 멈춤',
   MAX_STEPS: '클릭 수를 다 씀',

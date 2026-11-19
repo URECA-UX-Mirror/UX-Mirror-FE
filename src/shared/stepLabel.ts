@@ -18,11 +18,11 @@ export function formatDateTime(timestamp: string | null): string {
   return `${date.getFullYear()}.${pad2(date.getMonth() + 1)}.${pad2(date.getDate())} ${pad2(date.getHours())}:${pad2(date.getMinutes())}`
 }
 
-/** 그 Step에서 모델이 고른 후보의 이름. GO_BACK은 후보가 아니라서 따로 쓴다 */
+/** 그 Step에서 모델이 고른 후보의 이름. GO_BACK은 후보가 아니라서 따로 쓴다. 후보를 못 찾아도 선택지 ID는 보이지 않는다 */
 export function selectedLabel(step: Step): string {
   if (step.decision.selectedActionType === 'GO_BACK') return '이전 화면으로 돌아가기'
   return (
     step.candidates.find((c) => c.optionId === step.decision.selectedOptionId)?.label ??
-    step.decision.selectedOptionId
+    '알 수 없는 버튼'
   )
 }

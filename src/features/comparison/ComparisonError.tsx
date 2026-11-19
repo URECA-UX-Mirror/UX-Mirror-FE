@@ -3,13 +3,12 @@ import { isApiError } from '../../api/client.ts'
 import { ErrorNotice } from '../../shared/ErrorNotice.tsx'
 
 interface ComparisonErrorProps {
-  experimentKey: string
   error: unknown
   onRetry: () => void
 }
 
 /** 비교 조회 실패 안내. 오류 코드별로 한 문장과 다음 할 일 하나만 보인다(docs/contracts/rest-api.md) */
-export function ComparisonError({ experimentKey, error, onRetry }: ComparisonErrorProps) {
+export function ComparisonError({ error, onRetry }: ComparisonErrorProps) {
   const code = isApiError(error) ? error.code : null
 
   if (code === 'RUN_NOT_FOUND') {
@@ -34,7 +33,7 @@ export function ComparisonError({ experimentKey, error, onRetry }: ComparisonErr
     return (
       <div role="alert" className="error-notice">
         <p>한쪽 진단이 제대로 끝나지 않았어요</p>
-        <Link to={`/?experimentKey=${encodeURIComponent(experimentKey)}`}>다시 진단하기</Link>
+        <Link to="/">다시 진단하기</Link>
       </div>
     )
   }

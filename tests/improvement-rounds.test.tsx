@@ -21,11 +21,11 @@ it('시도마다 막힌 곳·시작 이름·후보별 찾아올 가능성과 결
   show('tests/fixtures/improvement.improved.json')
   expect(screen.getByRole('heading', { name: '시험한 이름 (3번 시도)' })).toBeTruthy()
   const first = round(1)
-  expect(first.textContent).toContain("고객이 '이용정보' 대신 '고객센터'를 더 많이 눌렀어요.")
+  expect(first.textContent).toContain("AI가 '이용정보' 대신 '고객센터'를 더 많이 눌렀어요.")
   expect(first.textContent).toContain("시작 이름 '이용정보' · 38.5%")
   expect(rowOf(first, '주문 관리').dataset.adopted).toBe('true')
   expect(rowOf(first, '주문 관리').textContent).toBe("'주문 관리' · 사람이 낸 이름54.0%골랐어요")
-  expect(rowOf(first, '주문·환불').textContent).toContain('문의 고객이 많이 떨어졌어요')
+  expect(rowOf(first, '주문·환불').textContent).toContain('문의 쪽이 많이 떨어졌어요')
   expect(rowOf(first, '주문·서비스').textContent).toContain('안 해 봄')
   expect(rowOf(first, '주문·서비스').textContent).toContain('쓸 수 없는 후보예요 (글자가 화면 밖으로 나가요)')
   expect(rowOf(first, '주문·지원').textContent).toContain('점수 못 냄')
@@ -50,8 +50,8 @@ it('모르는 사유 코드는 원문 대신 "다른 이유가 있었어요"로 
 it('BE 정책 사유를 목표 이름으로 풀어 쓴다', () => {
   show('tests/fixtures/improvement.policy-reasons.json')
   const first = round(1)
-  expect(rowOf(first, '주문·환불').textContent).toContain('문의 고객이 많이 떨어졌어요')
-  expect(rowOf(first, '주문·반품').textContent).toContain('배송·문의 고객이 많이 떨어졌어요')
+  expect(rowOf(first, '주문·환불').textContent).toContain('문의 쪽이 많이 떨어졌어요')
+  expect(rowOf(first, '주문·반품').textContent).toContain('배송·문의 쪽이 많이 떨어졌어요')
   expect(rowOf(first, '주문·배송').textContent).toContain('나아진 폭이 작았어요')
   expect(screen.getByText('멈춘 이유: 여러 번 연달아 고를 이름이 없었어요')).toBeTruthy()
 })
@@ -68,10 +68,10 @@ it.each([
   ['EVALUATION_FAILED', '점수를 내지 못했어요'],
   ['SCORE_MISSING', '점수가 없어요'],
   ['INVALID_CANDIDATE', '쓸 수 없는 후보예요'],
-  ['GUARD_LOSS_EXCEEDED', '다른 고객이 많이 떨어졌어요'],
+  ['GUARD_LOSS_EXCEEDED', '다른 목표가 많이 떨어졌어요'],
   ['MAIN_GAIN_INSUFFICIENT', '나아진 폭이 작았어요'],
-  ['GUARD_LOSS_EXCEEDED:S4,S9', '문의 고객이 많이 떨어졌어요'],
-  ['GUARD_LOSS_EXCEEDED:S9', '다른 고객이 많이 떨어졌어요'],
+  ['GUARD_LOSS_EXCEEDED:S4,S9', '문의 쪽이 많이 떨어졌어요'],
+  ['GUARD_LOSS_EXCEEDED:S9', '다른 목표가 많이 떨어졌어요'],
   ['INVALID_CANDIDATE:LABEL_OVERFLOW,UNKNOWN', '쓸 수 없는 후보예요 (글자가 화면 밖으로 나가요)'],
   ['EVALUATION_FAILED:UNKNOWN', '점수를 내지 못했어요'],
   ['UNKNOWN:DETAIL', '다른 이유가 있었어요'],

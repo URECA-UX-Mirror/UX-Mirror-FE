@@ -3,7 +3,10 @@ import { MemoryRouter, Route, Routes } from 'react-router'
 import { describe, expect, it } from 'vitest'
 import { ComparisonPage } from '../src/features/comparison/ComparisonPage.tsx'
 import { outcomeText, verdictText } from '../src/features/comparison/verdict.ts'
+import { toRun } from '../src/adapters/run.ts'
 import type { Comparison, RunOutcome } from '../src/domain/types.ts'
+import { buildRun } from '../src/mocks/fixtures/run.ts'
+import { findRun } from '../src/mocks/store.ts'
 
 // mock 키는 src/mocks/handlers/comparisons.ts 상단 주석을 따른다.
 function renderPage(experimentKey: string) {
@@ -58,7 +61,7 @@ describe('결론 문장', () => {
   })
 })
 
-it('제목·고객과 할 일·두 쪽 결과·진단 링크를 보인다', async () => {
+it('제목·하려는 일·두 쪽 결과·진단 링크를 보인다', async () => {
   renderPage('mock-done')
   const region = await summary()
   expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('지금 화면 vs 개선안')
@@ -68,8 +71,10 @@ it('제목·고객과 할 일·두 쪽 결과·진단 링크를 보인다', asyn
   expect(within(region).getByRole('link', { name: '지금 화면 진단 보기' }).getAttribute('href')).toBe('/runs/run_mock_done_before')
   expect(within(region).getByRole('link', { name: '개선안 진단 보기' }).getAttribute('href')).toBe('/runs/run_mock_done_after')
   expect(within(region).getByText(/더 빨리 찾았어요|차이가 없어요|에서만 찾았어요|둘 다 못 찾았어요/)).toBeTruthy()
-  // 고객·할 일은 Run에서 읽어 한 줄로 보인다
-  await waitFor(() => expect(document.querySelector('.comparison-task')?.textContent).toMatch(/^.+ · .+$/))
+  // 하려는 일만 Run에서 읽어 한 줄로 보인다 (고객 유형은 보이지 않는다)
+  const run = toRun(buildRun(findRun('run_mock_done_before')!, Date.parse('2100-01-01T00:00:00Z')))
+  await waitFor(() => expect(document.querySelector('.comparison-task')?.textContent).toBe(run.goal))
+  expect(document.body.textContent).not.toContain(run.persona)
   expectPlainText()
 })
 
@@ -118,7 +123,7 @@ it('설정이 다르면 결론과 화면별 비교 없이 이유 한 문장과 �
   renderPage('mock-mismatch')
   const region = await summary()
   expect(within(region).getByText(/두 진단의 설정이 달라서/)).toBeTruthy()
-  expect(within(region).getByRole('link', { name: '다시 진단하기' }).getAttribute('href')).toBe('/?experimentKey=mock-mismatch')
+  expect(within(region).getByRole('link', { name: '다시 진단하기' }).getAttribute('href')).toBe('/')
   expect(within(region).queryByText(/찾았어요|차이가 없어요/)).toBeNull()
   expect(screen.queryByText('화면별로 자세히 보기')).toBeNull()
   // 두 쪽 결과와 지나간 길은 그대로 보인다
@@ -158,10 +163,10 @@ it('RUN_NOT_FOUND는 진단하러 가기 링크를 보인다', async () => {
   expect(screen.getByRole('link', { name: '진단하러 가기' }).getAttribute('href')).toBe('/')
 })
 
-it('COMPARISON_RUN_INVALID는 실험 키를 담은 다시 진단 링크를 보인다', async () => {
+it('COMPARISON_RUN_INVALID는 다시 진단 링크를 보인다', async () => {
   renderPage('mock-invalid-run')
   const link = await screen.findByRole('link', { name: '다시 진단하기' })
-  expect(link.getAttribute('href')).toBe('/?experimentKey=mock-invalid-run')
+  expect(link.getAttribute('href')).toBe('/')
 })
 
 it('ANALYSIS_ERROR는 다시 시도 버튼을 보인다', async () => {

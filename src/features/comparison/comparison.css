@@ -1,7 +1,13 @@
 .comparison-page {
   display: flex;
   flex-direction: column;
-  gap: var(--um-space-4);
+  gap: var(--um-space-8);
+  width: 100%;
+  max-width: 960px;
+  margin: 0 auto;
+  padding: var(--um-space-6) 0 64px;
+  font-size: 15px;
+  line-height: 1.6;
 }
 
 .comparison-page > *,
@@ -20,8 +26,8 @@
 }
 
 .comparison-task {
-  margin-top: calc(-1 * var(--um-space-2));
-  color: var(--um-text-secondary);
+  margin-top: calc(-1 * var(--um-space-6));
+  color: var(--um-text-muted);
 }
 
 /* 쪽 이름 표시: 색 점 + 이름 */
@@ -58,17 +64,15 @@
 .comparison-verdict {
   margin: 0;
   color: var(--um-text);
-  font-size: 20px;
-  font-weight: 700;
+  font-size: 30px;
+  line-height: 1.25;
+  font-weight: 800;
+  letter-spacing: -0.03em;
 }
 
 .comparison-note {
   margin: 0;
-  padding: var(--um-space-3) var(--um-space-4);
-  border: 1px solid var(--um-warning-border);
-  border-radius: var(--um-radius-card);
   color: var(--um-warning-text);
-  background: var(--um-warning-bg);
 }
 
 .comparison-sides {
@@ -83,10 +87,8 @@
   flex-direction: column;
   align-items: flex-start;
   gap: var(--um-space-2);
-  padding: var(--um-space-4);
-  border: 1px solid var(--um-border);
-  border-radius: var(--um-radius-card);
-  background: var(--um-surface);
+  padding-top: var(--um-space-3);
+  border-top: 1px solid var(--um-border-strong);
 }
 
 .comparison-side > * {
@@ -95,8 +97,10 @@
 
 .comparison-side-result {
   color: var(--um-text);
-  font-size: 18px;
+  font-size: 22px;
   font-weight: 700;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
 }
 
 /* ---------- 지나간 길 ---------- */
@@ -133,16 +137,9 @@
 
 /* ---------- 화면별로 자세히 보기 ---------- */
 
-.comparison-details {
-  padding: var(--um-space-4);
-  border: 1px solid var(--um-border);
-  border-radius: var(--um-radius-card);
-  background: var(--um-surface);
-}
-
 .comparison-details > summary {
+  color: var(--um-accent);
   cursor: pointer;
-  font-weight: 600;
 }
 
 .comparison-details[open] {

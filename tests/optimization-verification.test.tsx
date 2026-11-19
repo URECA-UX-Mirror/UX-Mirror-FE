@@ -325,7 +325,7 @@ it('보고서 조회가 실패하면 이유를 보이고 다시 시도할 수 �
 
 
 
-it('진단 화면: 후보 비교 확인 진단은 바꿔 본 메뉴 이름을, 일반 진단은 지금 화면을 보인다', async () => {
+it('진단 화면: 후보 비교 확인 진단은 바꿔 본 메뉴 이름을, 일반 진단은 쇼핑몰 이름만 보인다', async () => {
   const { RunPage } = await import('../src/features/run-result/RunPage.tsx')
   const view = (runId: string) =>
     render(<MemoryRouter initialEntries={[`/runs/${runId}`]}><Routes><Route path="/runs/:runId" element={<RunPage />} /></Routes></MemoryRouter>)
@@ -334,7 +334,7 @@ it('진단 화면: 후보 비교 확인 진단은 바꿔 본 메뉴 이름을, �
   expect(document.body.textContent).not.toMatch(/Optimizer|run_opt|C2/)
   optimizerRun.unmount()
   view('run_mock_done_before')
-  expect(await screen.findByText(/MORO MARKET 지금 화면/, {}, { timeout: 3000 })).toBeTruthy()
+  expect(await screen.findByText(/^MORO MARKET · 찾을 화면/, {}, { timeout: 3000 })).toBeTruthy()
   expect(screen.queryByText(/바꿔 본 화면/)).toBeNull()
 })
 

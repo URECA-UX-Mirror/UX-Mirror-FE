@@ -68,7 +68,7 @@ function ScreenList({ comparison }: { comparison: Comparison }) {
   const afterSteps = useRunSteps(comparison.afterRunId)
   return (
     <>
-      <p className="muted">AI가 예상한 값이라 실제 고객 수치와는 달라요.</p>
+      <p className="muted">AI가 예상한 값이라 실제 사람들의 수치와는 달라요.</p>
       {comparison.screenComparisons.map((screen) => (
         <ScreenCard
           key={screen.pageKey}

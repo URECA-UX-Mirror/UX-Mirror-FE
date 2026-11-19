@@ -64,8 +64,8 @@ it('마지막 확인이 확정이면 이름·확정·점수·이름 외 변화 �
   body.official.decision = 'CONFIRMED'
   const area = await renderBody(body)
   expect(area.textContent).toContain("'주문내역' · 확정")
-  expect(scoreOf(area, '이 고객')).toBe('70.1%')
-  expect(scoreOf(area, '배송 고객')).toBe('81.2%')
+  expect(scoreOf(area, '이번 목표')).toBe('70.1%')
+  expect(scoreOf(area, '배송')).toBe('81.2%')
   expect(within(area).getByText('메뉴 이름 말고는 바뀐 게 없어요.')).toBeTruthy()
   expect(within(area).getByText('미리 계산한 점수와 차이: 최대 0.6%p')).toBeTruthy()
   expect(area.textContent).not.toMatch(/떨어졌어요|방식|B\)|S2/)
@@ -97,12 +97,12 @@ it('마지막 확인에서 떨어지면 떨어진 이름과 이유를 보이고 
     data: { decision: 'REJECTED', rejectedReason: 'GUARD_LOSS_EXCEEDED:S4' },
   })
   const area = await renderBody(body)
-  expect(area.textContent).toContain("'주문내역' · 떨어졌어요 (문의 고객이 많이 떨어졌어요)")
-  const conclusion = screen.getByRole('region', { name: '결론' })
-  expect(conclusion.querySelector('.imp-headline')?.textContent).toBe('이름만 바꿔서는 나아지지 않았어요')
-  expect(conclusion.textContent).toContain("마지막 후보 '주문내역'도 다시 재 보니 기준에 못 미쳤어요 (문의 고객이 많이 떨어졌어요).")
+  expect(area.textContent).toContain("'주문내역' · 떨어졌어요 (문의 쪽이 많이 떨어졌어요)")
+  const conclusion = screen.getByRole('region', { name: '어떻게 바꾸면 좋을까요?' })
+  expect(conclusion.querySelector('.tl-answer')?.textContent).toBe('이름만 바꿔서는 나아지지 않았어요')
+  expect(conclusion.textContent).toContain("마지막 후보 '주문내역'도 다시 재 보니 기준에 못 미쳤어요 (문의 쪽이 많이 떨어졌어요).")
   expect(document.body.textContent).not.toContain('GUARD_LOSS_EXCEEDED')
-  expect(document.body.textContent).not.toContain('바꿔 보세요')
+  expect(document.body.textContent).not.toMatch(/바꿔 보세요|반영해 보세요/)
 })
 
 it('점수를 모으지 못했으면 0이나 영역 안내가 아니라 값 없음으로 보인다', async () => {
@@ -117,8 +117,8 @@ it('점수를 모으지 못했으면 0이나 영역 안내가 아니라 값 없�
   const area = await renderBody(body)
   expect(within(area).queryByRole('alert')).toBeNull()
   expect(area.textContent).toContain('떨어졌어요 (점수를 내지 못했어요)')
-  expect(scoreOf(area, '이 고객')).toBe('값 없음')
-  expect(scoreOf(area, '쿠폰 고객')).toBe('90.0%')
+  expect(scoreOf(area, '이번 목표')).toBe('값 없음')
+  expect(scoreOf(area, '쿠폰')).toBe('90.0%')
   expect(within(area).queryByText('0.0%')).toBeNull()
 })
 
@@ -126,8 +126,8 @@ it('결론을 못 읽어도 점수 계산은 계획의 목표 이름으로 보�
   const body = improved()
   delete body.summary.main.before
   const area = await renderBody(body)
-  expect(within(screen.getByRole('region', { name: '결론' })).getByRole('alert')).toBeTruthy()
-  expect(scoreOf(area, '배송 고객')).toBe('81.2%')
+  expect(within(screen.getByRole('region', { name: '어떻게 바꾸면 좋을까요?' })).getByRole('alert')).toBeTruthy()
+  expect(scoreOf(area, '배송')).toBe('81.2%')
 })
 
 it('점수 키가 없거나 숫자·null이 아니면 공식 평가 영역만 오류이고 화면에서는 점수 계산만 숨긴다', async () => {
@@ -153,7 +153,6 @@ it('점수 키가 없거나 숫자·null이 아니면 공식 평가 영역만 �
       </Routes>
     </MemoryRouter>,
   )
-  expect(await screen.findByRole('region', { name: '결론' })).toBeTruthy()
+  expect(await screen.findByRole('region', { name: '시험한 이름' })).toBeTruthy()
   expect(screen.queryByRole('region', { name: '점수 계산' })).toBeNull()
-  expect(screen.getByRole('region', { name: '시험한 이름' })).toBeTruthy()
 })

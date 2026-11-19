@@ -86,7 +86,7 @@ it('고정 키의 저장된 Run 목록을 보이고 Run을 만드는 요청은 �
 
 it('진단 화면은 재생 키의 Run이어도 재생 표시나 결과 출처 배지를 보이지 않는다', async () => {
   renderAt('/runs/run_mock_replay_before/result')
-  expect(await screen.findByRole('heading', { name: '지나간 길' })).toBeTruthy()
+  expect(await screen.findByRole('list', { name: '지나간 길' })).toBeTruthy()
   expect(screen.queryByRole('note')).toBeNull()
   expect(document.querySelector('.origin-badge[data-origin]')).toBeNull()
 })

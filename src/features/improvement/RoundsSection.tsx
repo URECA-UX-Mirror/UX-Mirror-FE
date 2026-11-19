@@ -31,7 +31,7 @@ export function RoundsSection({ rounds, stop, goals: goalList }: Props) {
           <section className="imp-round" key={round.round} aria-label={`${round.round}번째 시도`}>
             <h4>{round.round}번째 시도</h4>
             {round.diagnosis?.targetButton?.label && round.diagnosis.rivalButton?.label ? (
-              <p>고객이 {quote(round.diagnosis.targetButton.label)} 대신 {quote(round.diagnosis.rivalButton.label)}{eulOf(round.diagnosis.rivalButton.label)} 더 많이 눌렀어요.</p>
+              <p>AI가 {quote(round.diagnosis.targetButton.label)} 대신 {quote(round.diagnosis.rivalButton.label)}{eulOf(round.diagnosis.rivalButton.label)} 더 많이 눌렀어요.</p>
             ) : null}
             {round.baseline?.label ? (
               <p className="muted">시작 이름 {quote(round.baseline.label)} · {formatScore(round.baseline.mainScore)}</p>

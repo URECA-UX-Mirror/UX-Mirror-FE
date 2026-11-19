@@ -10,12 +10,10 @@ import { ScreenDetails } from './ScreenDetails.tsx'
 import { useComparison, useRunMeta } from './useComparisonData.ts'
 
 function ComparisonBody({ comparison }: { comparison: Comparison }) {
-  // 고객·할 일·메뉴 이름은 비교 응답에 없어 각 Run에서 읽는다
+  // 하려는 일·메뉴 이름은 비교 응답에 없어 각 Run에서 읽는다
   const before = useRunMeta(comparison.beforeRunId)
   const after = useRunMeta(comparison.afterRunId)
-  const persona = before.persona ?? after.persona
-  const goal = before.goal ?? after.goal
-  const task = [persona, goal].filter(Boolean).join(' · ')
+  const task = before.goal ?? after.goal
   const mock =
     !isReplayKey(comparison.experimentKey) &&
     [comparison.beforeResultOrigin, comparison.afterResultOrigin].includes('MOCK')
@@ -49,7 +47,7 @@ export function ComparisonPage() {
       </header>
 
       {loading ? <p role="status">불러오는 중이에요</p> : null}
-      {error ? <ComparisonError experimentKey={experimentKey} error={error} onRetry={reload} /> : null}
+      {error ? <ComparisonError error={error} onRetry={reload} /> : null}
       {comparison ? <ComparisonBody comparison={comparison} /> : null}
     </section>
   )

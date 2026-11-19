@@ -22,6 +22,8 @@ interface ScreenshotViewerProps {
   boxes: ReadonlyArray<ViewerBox>
   /** 이미지가 없을 때 자리표시 문구를 정한다. 진행 중이면 "화면 준비 중", 종료됐으면 "화면 없음" */
   runInProgress: boolean
+  /** 이미지를 불러오지 못했을 때 `runInProgress`로 정한 기본 문구 대신 보일 문구 */
+  missingText?: string
   /**
    * 값이 바뀌면 이미지 로드 실패 기록을 지우고 다시 불러온다. 진행 중 일시적으로 실패한 이미지를
    * 다음 폴링 응답 때 복구하려면 폴링 회차나 `progress.lastUpdatedAt` 같은 값을 넘긴다.
@@ -40,6 +42,7 @@ export function ScreenshotViewer({
   scroll = NO_SCROLL,
   boxes,
   runInProgress,
+  missingText,
   retryKey,
 }: ScreenshotViewerProps) {
   // 실패한 주소·그때의 진행 여부·`retryKey`를 함께 기억한다. 셋 중 하나라도 달라지면
@@ -62,7 +65,7 @@ export function ScreenshotViewer({
     >
       {missing ? (
         <div className="screenshot-placeholder" role="status">
-          {runInProgress ? '화면 준비 중' : '화면 없음'}
+          {missingText ?? (runInProgress ? '화면 준비 중' : '화면 없음')}
         </div>
       ) : (
         <>

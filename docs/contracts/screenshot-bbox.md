@@ -63,4 +63,10 @@ height  = bbox.height * scale
 ## 이미지가 없는 경우
 
 - `404`이면 자리표시를 보인다(진행 중 "화면 준비 중", 종료 "화면 없음"). `rest-api.md`의 스크린샷 절을 따른다.
-- **도착 화면(목표 화면)의 이미지는 조회할 방법이 없다.** 모델 판단 없이 도착만 한 화면은 Step이 없고 스크린샷 API가 `stepId` 기준이기 때문이다. `계약 §15.3`에서도 Step이 없는 화면이 있음을 전제한다. 경로의 마지막 노드에 "도착 화면 이미지 없음"을 표시한다. 저장·API 방식은 [OI-3](../operations/open_issue.md#oi-3)에서 정해진다.
+## 도착 화면 이미지
+
+모델 판단 없이 도착만 한 화면은 Step이 없고(`계약 §15.3`) 스크린샷 API가 `stepId` 기준이라, 별도 endpoint `GET /api/runs/{runId}/screenshots/goal`로 가져온다(임시, [OI-3](../operations/open_issue.md#oi-3)).
+
+- 경로의 마지막 노드이고 `Run.terminationReason`이 `GOAL_VERIFIED`일 때만 이미지를 요청한다. 다른 종료 사유의 Run은 호출하지 않고 "도착 화면 이미지 없음"을 표시한다.
+- 요청한 이미지가 `404`이거나 불러오지 못하면 같은 문구를 표시한다.
+- Step의 후보 좌표가 없으므로 bbox 오버레이는 그리지 않는다.

@@ -361,6 +361,14 @@ function buildPath(rec: RunRecord): PathVisitDto[] {
   return visits
 }
 
+/** 도착 화면 이미지(`GET /screenshots/goal`)로 쓸 mock 화면 키. 목표 화면에 도착한 종료 Run만 있고 아니면 `null` */
+export function goalImagePageKey(rec: RunRecord, nowMs: number): PageKey | null {
+  if (!getTiming(rec, nowMs).terminal || isMaxStepsStopped(rec)) return null
+  const specs = specsOf(rec).slice(0, stepLimit(rec))
+  const last = simulate(specs, specs.length).at(-1)
+  return last && !last.back ? last.to : null
+}
+
 export function buildSummary(rec: RunRecord): RunSummaryDto {
   const specs = specsOf(rec).slice(0, stepLimit(rec))
   const stopped = isMaxStepsStopped(rec)

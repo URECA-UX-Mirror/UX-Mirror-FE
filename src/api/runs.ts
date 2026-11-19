@@ -97,3 +97,11 @@ export function screenshotUrl(runId: string, stepId: number): string {
     `${runPath(runId)}/screenshots/${stepId}?kind=original`,
   )
 }
+
+/**
+ * 도착 화면 이미지 주소 (OI-3, UX-Mirror-BE #56). 목표 화면에 도착한 Run(`GOAL_VERIFIED`)만 있고,
+ * 도착하지 않았거나 사진이 없으면 서버가 `404 RUN_NOT_FOUND`를 돌려준다. `stepId` 기준 API로는 가져올 수 없다.
+ */
+export function goalScreenshotUrl(runId: string): string {
+  return apiUrl(`${runPath(runId)}/screenshots/goal`)
+}

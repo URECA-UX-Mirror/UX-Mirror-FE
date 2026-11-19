@@ -157,6 +157,8 @@ function ResultBody({ run }: { run: Run }) {
           stepsRetrying={steps.retrying}
           onRetrySteps={steps.retry}
           goalReached={run.summary.goalReached}
+          terminationReason={run.terminationReason}
+          viewport={run.viewport}
           selected={selected}
           onSelect={setSelected}
         />

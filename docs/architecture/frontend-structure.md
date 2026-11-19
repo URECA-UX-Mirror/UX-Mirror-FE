@@ -15,7 +15,7 @@
 | --- | --- | --- | --- |
 | 1 | 새 UX 분석 | `GET /api/health`, `GET /api/runs`, `POST /api/runs` | 입력한 목표·사용자 유형·성공 조건, 최대 탐색 횟수, 비교할 두 버전 선택 |
 | 2 | AI 탐색 진행 | `GET /api/health`, `GET /api/runs/{runId}`, `/steps`, `/screenshots/{stepId}` | 열람 중인 stepId(기록 열람 / 최신) |
-| 3 | UX 탐색 분석 결과 | `GET /api/health`, `GET /api/runs`, `GET /api/runs/{runId}`, `/steps`, `/screenshots/{stepId}`, `/issues` | 선택한 경로 노드, 열린 Issue 상세, 지표 패널 펼침 |
+| 3 | UX 탐색 분석 결과 | `GET /api/health`, `GET /api/runs`, `GET /api/runs/{runId}`, `/steps`, `/screenshots/{stepId}`, `/screenshots/goal`, `/issues` | 선택한 경로 노드, 열린 Issue 상세, 지표 패널 펼침 |
 | 4 | 버전 비교 | `GET /api/health`, `GET /api/comparisons/{experimentKey}`, `GET /api/runs/{runId}`, `/api/runs/{runId}/steps`, `/api/runs/{runId}/screenshots/{stepId}` | 지표 표 펼침 |
 | 5 | 시나리오 테스트 | `GET /api/health`, `GET /api/sites`, `POST /api/runs` | 선택한 사이트·도착 화면, 입력한 상황 문장·사용자 유형, 최대 탐색 횟수 |
 
@@ -48,7 +48,7 @@
 
 - 화면은 위에서 아래로 실행 정보 카드(상태, 출처, 실행 ID, 버전, 실행 일시, 사용자 유형, 목표, 버전 비교 보기 링크), 요약 카드 3개(목표 달성, 탐색 단계, UX 검토 후보)와 접힌 전체 요약, AI 탐색 경로(노드 사이에 그 이동을 만든 행동), 단계별 탐색 상세(스크린샷과 의사결정 2단), UX 검토 후보 카드, 다른 실행 보기다.
 - 요약(종료 상태, 목표 달성, 탐색 단계, CLICK·GO_BACK 횟수, 검토 후보 수)은 `Run.summary`를 그대로 쓴다.
-- 탐색 경로의 노드는 `summary.path`(`PathVisit`)다. `PathVisit.stepId`는 그 노드에 **들어오게 만든** Step이다(시작 화면과 시스템 BACK은 `null`, `계약 §6.4`). 한 노드의 화면에서 모델이 판단한 Step은 **다음 노드의 `stepId`**(노드 사이 화살표의 `CLICK [후보 이름]`도 이 Step에서 가져온다)이므로, 노드를 고르면 다음 노드의 `stepId`로 Step·스크린샷·확률·지표를 찾는다. 다음 노드가 없거나(도착 화면) 그 `stepId`가 `null`이면 이미지 없이 표시한다. [OI-3](../operations/open_issue.md#oi-3)
+- 탐색 경로의 노드는 `summary.path`(`PathVisit`)다. `PathVisit.stepId`는 그 노드에 **들어오게 만든** Step이다(시작 화면과 시스템 BACK은 `null`, `계약 §6.4`). 한 노드의 화면에서 모델이 판단한 Step은 **다음 노드의 `stepId`**(노드 사이 화살표의 `CLICK [후보 이름]`도 이 Step에서 가져온다)이므로, 노드를 고르면 다음 노드의 `stepId`로 Step·스크린샷·확률·지표를 찾는다. 다음 노드가 없거나(도착 화면) 그 `stepId`가 `null`이면 Step 이미지가 없다. 이때 마지막 노드이고 `Run.terminationReason`이 `GOAL_VERIFIED`이면 `GET /api/runs/{runId}/screenshots/goal`로 도착 화면 이미지를 bbox 없이 표시하고, `404`·로드 실패나 다른 종료 사유면 "도착 화면 이미지 없음"을 표시한다. [OI-3](../operations/open_issue.md#oi-3)
 - 모델 GO_BACK으로 돌아온 노드(`enteredBy = GO_BACK`)는 "이전 화면 복귀"로 구분한다. 선택한 Step의 스크린샷·후보 확률은 공용 뷰어와 `CandidateProbabilityList`를 쓰고, 지표 패널(`decision` 값, `null`은 "계산 불가")은 접힘이 기본이다.
 - 시나리오 Run은 사이트 목록에서 이름과 화면 label을 찾아 표시하고 버전 비교 링크를 숨긴다. 조회에 실패하면 사이트 ID와 화면 키를 사용한다. 사이트 지도 안내는 사이트의 지도 사용 가능 여부가 `false`일 때만 보인다.
 - 결과 요약은 기준을 허용 경로·사이트 지도·기준 없음으로 표시한다. 사이트 지도는 최단 경로 대비 추가 단계와 우회 이동을 표시하고 허용 경로 이탈은 사용하지 않는다. 기준이 없으면 원인을 추정하지 않고 "계산 불가 (경로 기준 없음)"으로 표시한다. 기준이 있는 `extraSteps` 계열은 목표 미도달이면 "해당 없음", 도달 후 `null`이면 "계산 불가"다. 사이트 지도 응답은 [OI-10](../operations/open_issue.md#oi-10)의 임시 항목이다. `validity = INVALID`이면 "무효 처리된 실행"과 `invalidReason`을 보이고 `replacementRunId`가 있으면 그 Run의 결과 화면 링크를 둔다.

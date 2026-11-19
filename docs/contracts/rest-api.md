@@ -34,6 +34,7 @@
 | GET | `/api/runs/{runId}/steps` | 2, 3, 4 | `계약 §17.4` |
 | GET | `/api/runs/{runId}/issues` | 3 | `계약 §17.5` |
 | GET | `/api/runs/{runId}/screenshots/{stepId}` | 2, 3, 4 | `계약 §17.7` |
+| GET | `/api/runs/{runId}/screenshots/goal` | 3 | 임시, [OI-3](../operations/open_issue.md#oi-3) |
 | GET | `/api/comparisons/{experimentKey}` | 4 | `계약 §17.6` |
 
 `/events` 조회는 `P1`이라 프론트는 호출하지 않는다.
@@ -135,6 +136,10 @@
 
 - 404(`RUN_NOT_FOUND`)이면 이미지 영역에 자리표시를 보인다. 실행이 아직 진행 중이면 "화면 준비 중", 종료됐으면 "화면 없음"이다.
 - 파일 경로는 알 수 없고 주소는 `VITE_API_BASE_URL`과 이 경로로 만든다. `계약 §17.7`
+
+### GET /api/runs/{runId}/screenshots/goal
+
+도착 화면 이미지(`image/png`)다. 목표 화면에 도착한 Run(`GOAL_VERIFIED`)만 있고 도착하지 않았거나 사진이 없으면 `404 RUN_NOT_FOUND`다. 계약서에 없는 임시 endpoint이며([OI-3](../operations/open_issue.md#oi-3)) 주소는 `VITE_API_BASE_URL`과 이 경로로 만든다. 프론트는 `GOAL_VERIFIED`인 Run의 마지막 경로 노드에서만 호출한다. 표시 방식은 [스크린샷과 bbox](screenshot-bbox.md)에 있다.
 
 ### GET /api/comparisons/{experimentKey}
 

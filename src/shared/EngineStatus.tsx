@@ -47,7 +47,11 @@ export function EngineStatus({ refreshKey }: EngineStatusProps) {
       {health.activeOptimization ? (
         <>
           {' · '}
-          Optimizer {activeOptimizationLabel(health.activeOptimization.status)}
+          <Link
+            to={`/optimizations/${encodeURIComponent(health.activeOptimization.optimizationId)}`}
+          >
+            Optimizer {activeOptimizationLabel(health.activeOptimization.status)}
+          </Link>
         </>
       ) : null}
     </span>

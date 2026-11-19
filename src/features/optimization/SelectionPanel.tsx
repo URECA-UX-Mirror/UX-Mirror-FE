@@ -1,0 +1,108 @@
+import type { Optimization } from '../../domain/types.ts'
+import { SectionTitle } from '../../shared/SectionTitle.tsx'
+import { CheckCircleIcon } from '../../shared/icons.tsx'
+import {
+  recommendationLabel,
+  reasonLabel,
+  selectionStatusLabel,
+} from './labels.ts'
+
+function ReasonCode({ code }: { code: string }) {
+  const label = reasonLabel(code)
+  return (
+    <>
+      {label ? `${label} ` : null}
+      <code>{code}</code>
+    </>
+  )
+}
+
+/** 후보 이름. 후보 풀에 없는 ID는 ID만 보인다 */
+function nameOf(optimization: Optimization, candidateId: string | null): string {
+  if (candidateId === null) return '없음'
+  const found = optimization.candidates.find((c) => c.candidateId === candidateId)
+  return found ? `${candidateId} ${found.label}` : candidateId
+}
+
+/**
+ * 선정 결과. 추천 후보와 검증 후보는 다를 수 있어(검증 후보는 전체 적격 후보 중 1위) 따로 보인다.
+ * "검증 시작" 버튼은 자리만 두고 동작은 #70에서 연결한다.
+ */
+export function SelectionPanel({ optimization }: { optimization: Optimization }) {
+  const selection = optimization.selection
+  if (!selection) return null
+  const canVerify =
+    optimization.status === 'EVALUATED' && optimization.verificationCandidateId !== null
+  return (
+    <section className="card" aria-label="선정 결과">
+      <SectionTitle icon={<CheckCircleIcon />} title="선정 결과" />
+      <dl className="meta-row selection-meta">
+        <div>
+          <dt>선정 상태</dt>
+          <dd>{selection.status ? selectionStatusLabel(selection.status) : '-'}</dd>
+        </div>
+        <div>
+          <dt>추천 여부</dt>
+          <dd>
+            {optimization.recommendationStatus
+              ? recommendationLabel(optimization.recommendationStatus)
+              : '-'}
+          </dd>
+        </div>
+        <div>
+          <dt>추천 후보</dt>
+          <dd>{nameOf(optimization, optimization.recommendedCandidateId)}</dd>
+        </div>
+        <div>
+          <dt>검증 후보</dt>
+          <dd>{nameOf(optimization, optimization.verificationCandidateId)}</dd>
+        </div>
+        <div>
+          <dt>선정 사유</dt>
+          <dd>{selection.reasonCode ? <ReasonCode code={selection.reasonCode} /> : '-'}</dd>
+        </div>
+      </dl>
+      {optimization.recommendedCandidateId !== optimization.verificationCandidateId ? (
+        <p className="muted">
+          검증 후보는 전체 적격 후보 중 1위이고 추천 후보와 다를 수 있습니다.
+        </p>
+      ) : null}
+      {selection.excludedCandidates.length > 0 ? (
+        <>
+          <h3>제외된 후보</h3>
+          <ul className="reason-list" aria-label="제외된 후보">
+            {selection.excludedCandidates.map((item) => (
+              <li key={item.candidateId}>
+                <strong>{nameOf(optimization, item.candidateId)}</strong>
+                {item.reasonCodes.length > 0 ? (
+                  <ul>
+                    {item.reasonCodes.map((code) => (
+                      <li key={code}>
+                        <ReasonCode code={code} />
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        </>
+      ) : null}
+      {optimization.status === 'EVALUATED' ? (
+        <div className="optimization-actions">
+          <button
+            type="button"
+            disabled
+            title={
+              canVerify
+                ? '검증 시작은 검증 화면 작업(#70)에서 연결합니다'
+                : '검증할 후보가 없습니다'
+            }
+          >
+            검증 시작
+          </button>
+        </div>
+      ) : null}
+    </section>
+  )
+}

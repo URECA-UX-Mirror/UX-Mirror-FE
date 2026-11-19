@@ -1,0 +1,123 @@
+.optimization-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--um-space-4);
+  max-width: 1040px;
+  margin: 0 auto;
+}
+
+.optimization-page > * {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+.optimization-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.run-status[data-status='FAILED'] {
+  border-color: var(--um-danger-border);
+  color: var(--um-danger-text);
+  background: var(--um-danger-bg);
+}
+
+.run-status[data-status='EVALUATED'],
+.run-status[data-status='COMPLETED'] {
+  border-color: var(--um-success-border);
+  color: var(--um-success-text);
+  background: var(--um-success-bg);
+}
+
+.candidate-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--um-space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.candidate-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--um-space-2);
+  padding: var(--um-space-3) var(--um-space-4);
+  border: 1px solid var(--um-border);
+  border-radius: var(--um-radius-control);
+  background: var(--um-surface);
+}
+
+.candidate-card[data-status='FAILED'] {
+  border-color: var(--um-danger-border);
+}
+
+.candidate-card[data-status='SKIPPED'],
+.candidate-card[data-status='skipped-by-stop'] {
+  border-color: var(--um-warning-border);
+}
+
+.candidate-card[data-status='evaluating'] {
+  border-color: var(--um-brand-border);
+}
+
+.candidate-card-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--um-space-2);
+}
+
+.candidate-status {
+  margin-left: auto;
+  color: var(--um-text-secondary);
+  font-size: 13px;
+}
+
+.candidate-role {
+  padding: 0 8px;
+  border: 1px solid var(--um-border);
+  border-radius: var(--um-radius-pill);
+  color: var(--um-text-secondary);
+  font-size: 12px;
+}
+
+.candidate-marks {
+  display: flex;
+  gap: var(--um-space-2);
+  margin: 0;
+}
+
+.candidate-mark {
+  padding: 0 8px;
+  border: 1px solid var(--um-brand-border);
+  border-radius: var(--um-radius-pill);
+  color: var(--um-brand-text);
+  background: var(--um-brand-soft);
+  font-size: 12px;
+}
+
+.candidate-metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--um-space-6);
+  margin: 0;
+}
+
+.candidate-metrics dt {
+  color: var(--um-text-muted);
+  font-size: 12px;
+}
+
+.candidate-metrics dd {
+  margin: 0;
+}
+
+.candidate-reason p {
+  margin: 0;
+}
+
+.reason-list {
+  margin: 0;
+  padding-left: var(--um-space-4);
+}

@@ -9,7 +9,7 @@
 
 ## 화면별 사용 API
 
-화면은 다섯 개다(번호 없는 저장된 결과 재생 제외). 화면 배치와 시각 규칙은 아래 "스타일" 절을 따른다.
+화면은 일곱 개다(번호 없는 저장된 결과 재생 제외). 화면 배치와 시각 규칙은 아래 "스타일" 절을 따른다.
 
 | # | 화면 | 사용 API | 화면 상태(서버 데이터 아님) |
 | --- | --- | --- | --- |
@@ -18,6 +18,8 @@
 | 3 | UX 탐색 분석 결과 | `GET /api/health`, `GET /api/runs`, `GET /api/runs/{runId}`, `/steps`, `/screenshots/{stepId}`, `/screenshots/goal`, `/issues` | 선택한 경로 노드, 열린 Issue 상세, 지표 패널 펼침 |
 | 4 | 버전 비교 | `GET /api/health`, `GET /api/comparisons/{experimentKey}`, `GET /api/runs/{runId}`, `/api/runs/{runId}/steps`, `/api/runs/{runId}/screenshots/{stepId}` | 지표 표 펼침 |
 | 5 | 시나리오 테스트 | `GET /api/health`, `GET /api/sites`, `POST /api/runs` | 선택한 사이트·도착 화면, 입력한 상황 문장·사용자 유형, 최대 탐색 횟수 |
+| 6 | UX Optimizer 시작 | `GET /api/health`, `POST /api/optimizations` | 시작 중 여부, 시작 오류 문구 |
+| 7 | UX Optimizer 후보 평가 | `GET /api/optimizations/{optimizationId}`(폴링), `GET /api/health`(공통 영역) | 없음(주소의 `optimizationId`로 다시 열 수 있다) |
 
 `GET /api/health`는 모든 화면의 공통 영역(엔진 상태 표시)에서 호출하고, 라우트가 바뀔 때마다 다시 조회한다(다시 조회하는 동안은 이전 결과를 보인다). 화면 1에서는 시작 가능 여부 판단에도 쓴다. 화면 4는 `CandidateComparison`에 `bbox`가 없으므로 `beforeRunId`·`afterRunId`의 `/steps`에서 해당 Step을 가져온다.
 
@@ -88,6 +90,17 @@
 - 시작은 `createExperimentKey()`로 만든 키와 `variant: before`, `siteId`로 `createRun`을 한 번 호출하고 성공하면 `/runs/:runId`로 이동한다. 엔진이 `READY`가 아니거나 `activeRun`이 있으면 막는다.
 - 오류: `422`는 서버 `message`, `503`은 Run이 생성되지 않았음을 알리고 `retryable`이면 다시 시도를 보인다. 비교·버전 선택·기존 실험 키 조회는 이 화면에 없다.
 
+### UX Optimizer 후보 평가
+
+`임시`([OI-12](../operations/open_issue.md#oi-12), FE #69). 경로는 `/optimizations`(시작)과 `/optimizations/:optimizationId`(평가), 구현은 `features/optimization/`이고 사이드바 메뉴 "UX Optimizer"로 들어간다. 화면은 Run이 아니라 Optimization 단위이며 기존 화면은 바꾸지 않는다.
+
+- 시작: "후보 평가 시작"이 `createOptimization()`을 호출하고 성공하면 평가 화면으로 이동한다. 입력 칸은 없고 진단 Run은 주소의 `?sourceRunId=`로만 받는다. 엔진이 `READY`이고 `activeRun`·`activeOptimization`이 없을 때만 시작할 수 있으며, 아니면 이유와 진행 중인 화면 링크를 보인다. 시작 오류(`409 RUN_ALREADY_ACTIVE`, `503 MODEL_UNAVAILABLE`·`OPTIMIZER_POLICY_UNAVAILABLE`, `422 EXPERIMENT_CONDITION_MISMATCH`)는 `optimizationApiErrorMessage`로 서버 `message` 우선 문구를 보이고 시작 화면에 머문다.
+- 평가: `useOptimizationProgress`로 폴링한다(`COMPLETED`·`FAILED`에서 멈추고 `EVALUATED`에서는 검증 시작을 기다리며 계속 조회한다). 후보 풀(`candidates`)을 후보 순서대로 카드로 보이고, 평가가 끝난 후보(`evaluations`)에는 결과를, 다음 후보에는 "평가 중"을, 나머지에는 "평가 대기"를 붙인다. 상태가 `FAILED`이면 끝나지 않은 후보는 "평가하지 못함"이다.
+- 지표: `COMPLETED` 후보는 대상 메뉴 확률·목표 경로 확률을 보이며 `null`은 0이 아니라 "계산 불가"와 `metricNullReasons` 사유다. `FAILED` 후보는 `candidateErrorMessage` 문구와 오류 코드, `SKIPPED`·무효 후보는 `invalidReasons`를 보인다. 기준(C0)이 `INVALID_CANDIDATE`이면 모델 평가를 하지 않았다고 알린다.
+- 선정 결과(`selection`이 있을 때): 추천 후보와 검증 후보를 따로 보이고(다를 수 있다), 선정 사유·`recommendationStatus`·제외된 후보와 `reasonCodes`를 보인다. 알려진 코드는 풀이와 원문을, 모르는 코드는 원문만 보인다(`features/optimization/labels.ts`). "검증 시작" 버튼은 자리만 있고 동작하지 않는다(#70에서 연결).
+- 실패: `error.code`를 `optimizationFailureMessage` 문구로, `failedPhase`·`lastStatus`를 함께 보인다. `OPTIMIZATION_INTERRUPTED`는 시작 화면으로 가는 다시 시작 링크를 둔다.
+- 공통 영역의 엔진 상태에서 진행 중인 Optimizer 표시(`activeOptimization`)는 이 평가 화면으로 연결된다.
+
 ### 저장된 실측 결과 재생
 
 - 진입은 새 UX 분석 화면의 "저장된 결과 보기" 링크이며 경로는 `/replay`다. 구현은 `features/replay/`다.
@@ -143,7 +156,7 @@ src/
   domain/                  # types.ts(도메인 모델), runStatus.ts(isTerminalStatus), site.ts(isScenarioRun, pageLabel), optimizationStatus.ts(isTerminalOptimizationStatus), optimizationErrors.ts(Optimizer 오류 문구)
   mocks/                   # MSW. browser.ts, store.ts, errors.ts, fixtures/(run, scenario, runResult, comparison, sites, optimization), handlers/(endpoint별)
   features/
-    new-analysis/, scenario/, run-progress/, run-result/, comparison/, replay/   # 화면별. 라우트는 App.tsx
+    new-analysis/, scenario/, run-progress/, run-result/, comparison/, replay/, optimization/   # 화면별. 라우트는 App.tsx
   shared/                  # Layout(상단 바·접이식 사이드바), SectionTitle(카드 제목 줄), RunGauge(탐색 진행 게이지), icons, ProbabilityGauge, SelectedAction, stepLabel, EngineStatus, optimizationStatus, ErrorNotice, ResultOriginBadge, useHealth, useOptimizationProgress(Optimization 폴링)
     screenshot/            # boxStyle.ts(좌표 변환), ScreenshotViewer, CandidateProbabilityList
     polling/               # poller.ts(간격·backoff 규칙), usePolling(범용 폴링 훅)
@@ -152,7 +165,7 @@ public/
   mockServiceWorker.js     # MSW 생성 파일
 ```
 
-화면 라우트는 `/`(새 UX 분석), `/scenario`(시나리오 테스트), `/runs/:runId`(AI 탐색 진행), `/runs/:runId/result`(분석 결과), `/comparisons/:experimentKey`(버전 비교), `/replay`(저장된 결과 재생)다. 경로는 프론트가 정한 값이며 계약서 대상이 아니다. 좌표 변환 함수, 폴링 훅 같은 화면 공용 코드는 `shared/` 아래에 둔다.
+화면 라우트는 `/`(새 UX 분석), `/scenario`(시나리오 테스트), `/runs/:runId`(AI 탐색 진행), `/runs/:runId/result`(분석 결과), `/comparisons/:experimentKey`(버전 비교), `/optimizations`(UX Optimizer 시작), `/optimizations/:optimizationId`(후보 평가), `/replay`(저장된 결과 재생)다. 경로는 프론트가 정한 값이며 계약서 대상이 아니다. 좌표 변환 함수, 폴링 훅 같은 화면 공용 코드는 `shared/` 아래에 둔다.
 
 ## 목업 쇼핑몰
 
@@ -165,7 +178,7 @@ public/
 
 - 디자인 토큰은 `src/styles/tokens.css`의 CSS 변수(`--um-*`)이며 `src/index.css`가 가져온다. 색·간격·라운딩은 이 변수로만 참조하고 컴포넌트 CSS에 색 값을 새로 쓰지 않는다. 값의 출처는 Stitch 시안 v5의 `DESIGN.md`(팀 확정 전 안)이고 `devs7ud.io`의 느낌을 반영했다. 테마는 라이트 고정이며 다크 모드와 전환하지 않는다.
 - 글꼴 변수는 `--font-sans`와 `--font-mono`다. `--font-sans`는 Inter(400·500·600·700, `@fontsource-variable/inter`)를 먼저 선언해 영문·숫자는 Inter, 한글은 Pretendard(`pretendard`)로 그려지고 폴백은 `-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif`다. ID·코드·배지는 `--font-mono`(JetBrains Mono 400·500·600, `@fontsource-variable/jetbrains-mono`)이고 `.mono`, `.badge-mono`로 쓴다. 모노 스택에 Pretendard를 끼워 배지 안 한글이 시스템 고정폭 글꼴로 떨어지지 않게 한다. 확률·단계·표 수치와 `.num`에는 `font-variant-numeric: tabular-nums`를 적용한다.
-- 레이아웃은 떠 있는 알약형 상단 바와 접이식 사이드바 카드(`Layout`)다. 상단 바에 사이드바 토글·로고·현재 위치·새 분석 버튼이 있고, 사이드바의 펼침 여부는 `localStorage`(`um.sidebar.open`)에 저장한다. 사이드바 메뉴는 주소 인자 없이 열 수 있는 화면(새 UX 분석, 시나리오 테스트, 저장된 결과 재생)만 두고, 진행·결과·비교 화면은 화면 안의 링크로 들어간다. 767px 이하에서는 사이드바가 본문 위에 겹쳐 열리고 메뉴를 고르면 닫힌다.
+- 레이아웃은 떠 있는 알약형 상단 바와 접이식 사이드바 카드(`Layout`)다. 상단 바에 사이드바 토글·로고·현재 위치·새 분석 버튼이 있고, 사이드바의 펼침 여부는 `localStorage`(`um.sidebar.open`)에 저장한다. 사이드바 메뉴는 주소 인자 없이 열 수 있는 화면(새 UX 분석, 시나리오 테스트, UX Optimizer, 저장된 결과 재생)만 두고, 진행·결과·비교 화면은 화면 안의 링크로 들어간다. 767px 이하에서는 사이드바가 본문 위에 겹쳐 열리고 메뉴를 고르면 닫힌다.
 - 정보 위계는 `index.css` 끝의 "정보 위계" 블록이 정한다. 글자는 `--um-text`(제목·값), `--um-text-secondary`(본문), `--um-text-muted`(라벨·보조 문구) 세 단계로 밝기를 나누고, 면은 따뜻한 회색 바닥(`canvas`) 위에 흰 카드(`surface`)가 그림자로 떠 있고, 카드 안 칸은 `surface-subtle`, 눌림·강조 칸은 `surface-raised`다. 모서리는 카드 24px·컨트롤 12px·버튼 알약형이다. 주 버튼은 잉크색(`--um-brand`), 링크·선택은 파랑(`--um-accent`), 한 화면의 핵심(현재 메뉴, 첫 결과 카드, 증감 칩, 단계 번호, 구역 제목 막대)은 노랑(`--um-highlight`)이다. 핵심 수치는 Before(`--um-before`)·After(`--um-after`) 색으로, 구역 제목은 왼쪽 accent 막대로 구분한다. 참고한 기준은 Material 3 color roles(surface container 단계, outline과 대비 기준 3:1·4.5:1)와 Linear의 "구조는 선이 아니라 명암으로" 원칙이다.
 - 사이드바 너비는 `Layout`의 분할자(`role="separator"`)로 조절한다. 끌기, 방향키(±16px, Shift ±48px), `Home`/`End`(최소 200px·최대 420px), 두 번 누르면 기본 256px이고 값은 `localStorage`(`um.sidebar.width`)에 저장한다. 767px 이하에서는 조절하지 않는다.
 - 기본 버튼은 보조 스타일이고, 화면의 주 행동(`분석 시작`, `비교하기`)에만 `primary`를 쓴다. `분석 결과 보기`는 링크이므로 `run-result-link` 클래스로 같은 모양을 내고, 종료 전 비활성 버튼은 기본 스타일이다.

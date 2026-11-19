@@ -3,7 +3,7 @@ import { Link, NavLink, Outlet, useLocation } from 'react-router'
 import { useMock } from '../config/env.ts'
 import { mockRuntime } from '../config/runtime.ts'
 import { EngineStatus } from './EngineStatus.tsx'
-import { GlobeIcon, HistoryIcon, MenuIcon, PlusCircleIcon } from './icons.tsx'
+import { CompareIcon, GlobeIcon, HistoryIcon, MenuIcon, PlusCircleIcon } from './icons.tsx'
 
 const SIDEBAR_KEY = 'um.sidebar.open'
 const WIDTH_KEY = 'um.sidebar.width'
@@ -30,6 +30,8 @@ function initialWidth(): number {
 function pageTitle(pathname: string): string {
   if (pathname === '/') return '새 UX 분석'
   if (pathname === '/scenario') return '시나리오 테스트'
+  if (pathname === '/optimizations') return 'UX Optimizer'
+  if (pathname.startsWith('/optimizations/')) return '후보 평가'
   if (pathname === '/replay') return '저장된 결과 재생'
   if (pathname.startsWith('/comparisons/')) return '버전 비교'
   if (/^\/runs\/[^/]+\/result\/?$/.test(pathname)) return 'UX 탐색 분석 결과'
@@ -149,6 +151,10 @@ export function Layout() {
             <NavLink to="/scenario" onClick={closeOnMobile} tabIndex={open ? 0 : -1}>
               <GlobeIcon />
               시나리오 테스트
+            </NavLink>
+            <NavLink to="/optimizations" onClick={closeOnMobile} tabIndex={open ? 0 : -1}>
+              <CompareIcon />
+              UX Optimizer
             </NavLink>
             <NavLink to="/replay" onClick={closeOnMobile} tabIndex={open ? 0 : -1}>
               <HistoryIcon />

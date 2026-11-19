@@ -50,7 +50,7 @@
 UX Optimizer(`GET /api/optimizations/{id}`)는 Run과 같은 폴링 엔진(`usePolling`)을 쓰는 `useOptimizationProgress`로 조회한다. 간격은 1초이고, 오류 backoff(1 → 2 → 4 → 8초, 연속 5회 실패 시 멈춤)와 `404`·`retryable = false` 중단 규칙은 위와 같다.
 
 - 종료 상태는 `COMPLETED`, `FAILED`뿐이고 종료 판정은 `isTerminalOptimizationStatus` 한 함수에서만 한다. `EVALUATING`·`VERIFYING`·`MODEL_CALL_PENDING`과 모르는 상태값은 진행 중으로 본다.
-- `EVALUATED`는 사용자의 검증 시작을 기다리는 상태라 종료가 아니다. 폴링은 이어지고, 멈추거나 검증을 시작하는 화면 동작은 후속 화면 이슈가 정한다.
+- `EVALUATED`는 사용자의 검증 시작을 기다리는 상태라 종료가 아니다. 폴링은 이어지고, 화면 7의 "검증 시작" 버튼(`startVerification()`)이 검증을 시작한다([프론트엔드 구조](../architecture/frontend-structure.md)).
 - `FAILED`는 정상 응답이므로 폴링은 멈추고 `error.code`는 `optimizationFailureMessage`로 문구를 만든다.
 
 ## 새로고침 뒤 복원

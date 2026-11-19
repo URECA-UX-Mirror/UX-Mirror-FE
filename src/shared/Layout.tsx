@@ -3,7 +3,7 @@ import { Link, NavLink, Outlet, useLocation } from 'react-router'
 import { useMock } from '../config/env.ts'
 import { mockRuntime } from '../config/runtime.ts'
 import { EngineStatus } from './EngineStatus.tsx'
-import { HistoryIcon, MenuIcon, PlusCircleIcon } from './icons.tsx'
+import { GlobeIcon, HistoryIcon, MenuIcon, PlusCircleIcon } from './icons.tsx'
 
 const SIDEBAR_KEY = 'um.sidebar.open'
 const WIDTH_KEY = 'um.sidebar.width'
@@ -29,6 +29,7 @@ function initialWidth(): number {
 /** 상단 바 브레드크럼에 보이는 화면 이름. 경로는 `App.tsx`의 라우트와 같다 */
 function pageTitle(pathname: string): string {
   if (pathname === '/') return '새 UX 분석'
+  if (pathname === '/scenario') return '시나리오 테스트'
   if (pathname === '/replay') return '저장된 결과 재생'
   if (pathname.startsWith('/comparisons/')) return '버전 비교'
   if (/^\/runs\/[^/]+\/result\/?$/.test(pathname)) return 'UX 탐색 분석 결과'
@@ -144,6 +145,10 @@ export function Layout() {
             <NavLink to="/" end onClick={closeOnMobile} tabIndex={open ? 0 : -1}>
               <PlusCircleIcon />
               새 UX 분석
+            </NavLink>
+            <NavLink to="/scenario" onClick={closeOnMobile} tabIndex={open ? 0 : -1}>
+              <GlobeIcon />
+              시나리오 테스트
             </NavLink>
             <NavLink to="/replay" onClick={closeOnMobile} tabIndex={open ? 0 : -1}>
               <HistoryIcon />

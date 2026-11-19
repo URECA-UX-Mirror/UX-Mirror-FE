@@ -26,7 +26,9 @@ async function load(id: string, signal: AbortSignal): Promise<ImprovementLoadSta
   let json: unknown
   try {
     json = await response.json()
-  } catch {
+  } catch (error) {
+    // 본문을 읽는 중 취소되면 파싱 오류가 아니다. 호출한 쪽이 취소를 판단하게 그대로 던진다.
+    if (signal.aborted) throw error
     return { phase: 'parseError' }
   }
   return { phase: 'success', view: toImprovementView(json) }
@@ -41,7 +43,9 @@ export function useImprovement(improvementId: string): ImprovementLoadState {
     if (!safe) return
     const controller = new AbortController()
     load(improvementId, controller.signal)
-      .then(setState)
+      .then((next) => {
+        if (!controller.signal.aborted) setState(next)
+      })
       .catch((error: unknown) => {
         if (controller.signal.aborted) return
         console.error(error)

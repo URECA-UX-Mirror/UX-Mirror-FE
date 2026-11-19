@@ -1,34 +1,34 @@
 .improvement-page {
   display: grid;
-  gap: 16px;
+  gap: var(--um-space-4);
 }
 
 .experiment-tag,
 .sample-badge {
-  padding: 2px 8px;
-  border-radius: 999px;
+  padding: 2px var(--um-space-2);
+  border-radius: var(--um-radius-pill);
   font-size: 12px;
   font-weight: 600;
   border: 1px solid currentColor;
 }
 
 .sample-badge {
-  color: #b45309;
+  color: var(--um-warning-text);
 }
 
 .experiment-tag {
-  color: #4338ca;
+  color: var(--um-info-text);
 }
 
 .improvement-status {
-  margin: 8px 0 0;
+  margin: var(--um-space-2) 0 0;
 }
 
 .area-placeholder {
-  color: #6b7280;
+  color: var(--um-text-muted);
 }
 
 .improvement-limitations {
-  color: #4b5563;
+  color: var(--um-text-secondary);
   font-size: 13px;
 }

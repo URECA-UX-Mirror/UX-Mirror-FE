@@ -375,5 +375,10 @@ export function toImprovementView(json: unknown): ImprovementView {
     stop: root ? toStop(root.stop) : null,
     plan: root ? toPlan(root.plan) : null,
     limitations: root ? stringOrNull(root.limitations) : null,
+    meta: {
+      sample: root?.sample === true,
+      status: root ? stringOrNull(root.status) : null,
+      createdAt: root ? stringOrNull(root.createdAt) : null,
+    },
   }
 }

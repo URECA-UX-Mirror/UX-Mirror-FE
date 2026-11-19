@@ -114,3 +114,36 @@ it('모르는 status는 원문으로 보인다', async () => {
   renderPage('imp_ODD')
   expect((await screen.findByText(/완료되지 않은 결과/)).textContent).toContain('WEIRD')
 })
+
+it('서버 오류(500)이면 불러오지 못함을 안내한다', async () => {
+  server.use(http.get('/improvements/imp_500.json', () => new HttpResponse(null, { status: 500 })))
+  renderPage('imp_500')
+  expect((await screen.findByRole('alert')).textContent).toContain('불러오지 못했습니다')
+})
+
+it('네트워크 오류이면 불러오지 못함을 안내한다', async () => {
+  server.use(http.get('/improvements/imp_NET.json', () => HttpResponse.error()))
+  renderPage('imp_NET')
+  expect((await screen.findByRole('alert')).textContent).toContain('불러오지 못했습니다')
+})
+
+it('rounds 영역이 오류여도 나머지는 정상이고 개선 회차에 데이터 오류를 보인다', async () => {
+  const broken = sample()
+  delete broken.rounds[0].round
+  serve('imp_RND', broken)
+  renderPage('imp_RND')
+  await screen.findByText('imp_RND')
+  expect(screen.getByRole('region', { name: '개선 회차' }).textContent).toContain('데이터 오류')
+  expect(screen.getAllByRole('alert')).toHaveLength(1)
+})
+
+it('report 영역이 오류여도 샘플 배지와 생성 시각은 보인다', async () => {
+  const broken = sample()
+  delete broken.summary.beforeLabel
+  serve('imp_REP', broken)
+  renderPage('imp_REP')
+  await screen.findByText('imp_REP')
+  expect(screen.getByRole('region', { name: '① 개선 효과' }).textContent).toContain('데이터 오류')
+  expect(screen.getByText('샘플 데이터')).toBeTruthy()
+  expect(screen.getByText(sample().createdAt)).toBeTruthy()
+})

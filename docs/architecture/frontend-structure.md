@@ -9,7 +9,7 @@
 
 ## 화면별 사용 API
 
-화면은 일곱 개다(번호 없는 저장된 결과 재생 제외). 화면 배치와 시각 규칙은 아래 "스타일" 절을 따른다.
+화면은 여덟 개다(번호 없는 저장된 결과 재생 제외). 화면 배치와 시각 규칙은 아래 "스타일" 절을 따른다.
 
 | # | 화면 | 사용 API | 화면 상태(서버 데이터 아님) |
 | --- | --- | --- | --- |
@@ -168,7 +168,7 @@ src/
   domain/                  # types.ts(도메인 모델), runStatus.ts(isTerminalStatus), site.ts(isScenarioRun, pageLabel), optimizationStatus.ts(isTerminalOptimizationStatus), optimizationErrors.ts(Optimizer 오류 문구), improvement.ts(자동 개선 결과 타입), improvementScore.ts(점수 %·%p 표시)
   mocks/                   # MSW. browser.ts, store.ts, errors.ts, fixtures/(run, scenario, runResult, comparison, sites, optimization), handlers/(endpoint별)
   features/
-    new-analysis/, scenario/, run-progress/, run-result/, comparison/, replay/, optimization/   # 화면별. 라우트는 App.tsx
+    new-analysis/, scenario/, run-progress/, run-result/, comparison/, replay/, optimization/, improvement/   # 화면별. 라우트는 App.tsx
   shared/                  # Layout(상단 바·접이식 사이드바), SectionTitle(카드 제목 줄), RunGauge(탐색 진행 게이지), icons, ProbabilityGauge, SelectedAction, stepLabel, EngineStatus, optimizationStatus, ErrorNotice, ResultOriginBadge, optimizerRun(Optimizer Run 표시 문구), OptimizerRunTag, useHealth, useOptimizationProgress(Optimization 폴링)
     screenshot/            # boxStyle.ts(좌표 변환), ScreenshotViewer, CandidateProbabilityList
     polling/               # poller.ts(간격·backoff 규칙), usePolling(범용 폴링 훅)

@@ -1,158 +1,58 @@
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
-import { render, screen, within } from '@testing-library/react'
-import { http, HttpResponse } from 'msw'
-import { MemoryRouter, Route, Routes } from 'react-router'
+import { render, screen } from '@testing-library/react'
 import { expect, it } from 'vitest'
 import { toImprovementView } from '../src/adapters/improvement.ts'
-import { apiUrl } from '../src/api/client.ts'
-import { ImprovementPage } from '../src/features/improvement/ImprovementPage.tsx'
-import { server } from './setup.ts'
+import { ChoiceSummary } from '../src/features/improvement/ChoiceSummary.tsx'
+import { shortReason } from '../src/features/improvement/reasons.ts'
 
-// 마지막 확인(BE 공식 평가 B, `apply_official`)의 실제 형식: 확정(CONFIRMED), 탈락(REJECTED), 점수 수집 실패
+// "어떻게 골랐는지 보기"의 짧은 요약 (#103): 몇 개 시험해 무엇을 골랐는지 → 나머지를 왜 뺐는지 → 이름별 가능성과 결과
 
-type Json = Record<string, any> // eslint-disable-line @typescript-eslint/no-explicit-any
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const read = (id: string): any => JSON.parse(readFileSync(resolve(process.cwd(), `tests/fixtures/improvements/${id}.json`), 'utf-8'))
+const GOALS = { S1: '환불', S2: '배송', S3: '쿠폰', S4: '문의' }
 
-const improved = (): Json =>
-  JSON.parse(readFileSync(resolve(process.cwd(), 'tests/fixtures/improvement.improved.json'), 'utf-8'))
-
-/** BE `apply_official`이 B 탈락 때 만드는 모양: official은 REJECTED, 최종 요약은 NO_IMPROVEMENT로 바뀐다 */
-function rejectedByB(reason: string, guardGoals: string[] | null, scores: Json): Json {
-  const body = improved()
-  const label = body.summary.afterLabel
-  body.summary.loopResult = { afterLabel: label, main: body.summary.main, guards: body.summary.guards }
-  body.summary.officialRejected = { label, reason: guardGoals ? `${reason}:${guardGoals.join(',')}` : reason }
-  Object.assign(body.summary, { result: 'NO_IMPROVEMENT', afterLabel: null, afterSource: null, scoreSource: null })
-  body.summary.main = { ...body.summary.main, after: null, delta: null }
-  body.summary.guards = body.summary.guards.map((g: Json) => ({ ...g, after: null, delta: null }))
-  body.official = {
-    ...body.official,
-    decision: 'REJECTED',
-    scores,
-    choose: {
-      adopted: null,
-      ranking: [],
-      rejected: [{ candidateId: 'OFFICIAL-B', reason, ...(guardGoals ? { guardGoals } : {}) }],
-    },
-  }
-  return body
+function show(id: string) {
+  const view = toImprovementView(read(id))
+  return render(<ChoiceSummary view={view} goalNames={GOALS} />)
 }
 
-/** "어떻게 골랐는지 보기" 안의 점수 계산 영역을 돌려준다 */
-async function renderBody(body: Json) {
-  server.use(
-    http.get(apiUrl('/api/improvements/imp_B'), () =>
-      HttpResponse.json({
-        improvementId: 'imp_B', kind: 'OFFICIAL', status: 'COMPLETED', phase: 'DONE',
-        createdAt: null, startedAt: null, finishedAt: null, error: null, input: null, improvement: body,
-      })),
-  )
-  render(
-    <MemoryRouter initialEntries={['/improvements/imp_B']}>
-      <Routes>
-        <Route path="/improvements/:improvementId" element={<ImprovementPage />} />
-      </Routes>
-    </MemoryRouter>,
-  )
-  return screen.findByRole('region', { name: '점수 계산' })
-}
-
-const scoreOf = (area: HTMLElement, name: string) => within(area).getByText(name).nextElementSibling?.textContent
-
-it('마지막 확인이 확정이면 이름·확정·점수·이름 외 변화 없음·미리 계산한 점수와 차이를 보인다', async () => {
-  const body = improved()
-  body.official.decision = 'CONFIRMED'
-  const area = await renderBody(body)
-  expect(area.textContent).toContain("'주문내역' · 확정")
-  expect(scoreOf(area, '이번 목표')).toBe('70.1%')
-  expect(scoreOf(area, '배송')).toBe('81.2%')
-  expect(within(area).getByText('메뉴 이름 말고는 바뀐 게 없어요.')).toBeTruthy()
-  expect(within(area).getByText('미리 계산한 점수와 차이: 최대 0.6%p')).toBeTruthy()
-  expect(area.textContent).not.toMatch(/떨어졌어요|방식|B\)|S2/)
+it('고른 이름이 있으면 몇 개를 시험해 무엇을 골랐는지 한 줄로 보이고, 목록 맨 위에 둔다', () => {
+  const { container } = show('imp-1119b')
+  const head = screen.getByText(/이름 \d+개를 시험해서/)
+  expect(head.textContent).toMatch(/^이름 \d+개를 시험해서 '주문 환불'을 골랐어요\.$/)
+  const rows = [...container.querySelectorAll('.imp-choice-list li')]
+  // 첫 줄은 지금 이름, 그다음이 고른 이름
+  expect(rows[0].textContent).toMatch(/^'이용정보' \(지금\)/)
+  expect(rows[1].textContent).toMatch(/^'주문 환불'.*✓ 골랐어요$/)
+  expect(rows[1].getAttribute('data-adopted')).toBe('true')
 })
 
-it('모르는 판정 값은 원문 대신 확인이 필요하다고 보인다', async () => {
-  const body = improved()
-  body.official.decision = 'PENDING'
-  const area = await renderBody(body)
-  expect(area.textContent).toContain("'주문내역' · 확정인지 확인이 필요해요")
-  expect(area.textContent).not.toContain('PENDING')
+it('뺀 이름은 가장 많은 이유를 한 문장으로 말하고, 줄마다 짧은 이유를 붙인다', () => {
+  show('imp-1119b')
+  expect(screen.getByText(/^나머지는 (모두|대부분) 문의 목표가 떨어져서 뺐어요\.$/)).toBeTruthy()
+  expect(screen.getAllByText('문의 목표가 떨어져요').length).toBeGreaterThan(0)
 })
 
-it('모르는 buildCheck는 확인이 필요하다고 보인다', async () => {
-  const body = improved()
-  body.official.site.buildCheck = 'EXTRA_DIFF'
-  const area = await renderBody(body)
-  expect(within(area).getByText('이름 말고 바뀐 게 있는지 확인이 필요해요.')).toBeTruthy()
+it('같은 이름은 한 번만 보이고, 코드·회차 번호는 보이지 않는다', () => {
+  const { container } = show('imp-1119b')
+  const names = [...container.querySelectorAll('.imp-choice-list li > span:first-child')].map((el) => el.textContent)
+  expect(new Set(names).size).toBe(names.length)
+  const text = container.textContent ?? ''
+  for (const code of ['GUARD_LOSS', 'S4', 'R1-', '회차', '번째 시도', 'B 평가']) expect(text).not.toContain(code)
 })
 
-it('마지막 확인에서 떨어지면 떨어진 이름과 이유를 보이고 결론도 나아지지 않았다고 한다', async () => {
-  const body = rejectedByB('GUARD_LOSS_EXCEEDED', ['S4'], {
-    mainScore: 0.9,
-    guardScores: { S2: 0.81, S3: 0.9, S4: 0.67 },
-  })
-  const view = toImprovementView(body)
-  expect(view.official).toMatchObject({
-    ok: true,
-    data: { decision: 'REJECTED', rejectedReason: 'GUARD_LOSS_EXCEEDED:S4' },
-  })
-  const area = await renderBody(body)
-  expect(area.textContent).toContain("'주문내역' · 떨어졌어요 (문의 쪽이 많이 떨어졌어요)")
-  const conclusion = screen.getByRole('region', { name: '어떻게 바꾸면 좋을까요?' })
-  expect(conclusion.querySelector('.tl-answer')?.textContent).toBe('이름만 바꿔서는 나아지지 않았어요')
-  expect(conclusion.textContent).toContain("마지막 후보 '주문내역'도 다시 재 보니 기준에 못 미쳤어요 (문의 쪽이 많이 떨어졌어요).")
-  expect(document.body.textContent).not.toContain('GUARD_LOSS_EXCEEDED')
-  expect(document.body.textContent).not.toMatch(/바꿔 보세요|반영해 보세요/)
+it('고른 이름이 없으면 찾지 못했다고 말한다', () => {
+  show('imp-1119')
+  expect(screen.getByText(/이름 \d+개를 시험해서/).textContent).toMatch(/고를 이름을 찾지 못했어요\.$/)
+  expect(screen.queryByText('✓ 골랐어요')).toBeNull()
 })
 
-it('점수를 모으지 못했으면 0이나 영역 안내가 아니라 값 없음으로 보인다', async () => {
-  const body = rejectedByB('EVALUATION_FAILED', null, {
-    mainScore: null,
-    guardScores: { S2: null, S3: 0.9, S4: null },
-  })
-  const view = toImprovementView(body)
-  expect(view.official.ok).toBe(true)
-  if (!view.official.ok || view.official.data === null) throw new Error('official')
-  expect(view.official.data.scores).toEqual({ mainScore: null, guardScores: { S2: null, S3: 0.9, S4: null } })
-  const area = await renderBody(body)
-  expect(within(area).queryByRole('alert')).toBeNull()
-  expect(area.textContent).toContain('떨어졌어요 (점수를 내지 못했어요)')
-  expect(scoreOf(area, '이번 목표')).toBe('값 없음')
-  expect(scoreOf(area, '쿠폰')).toBe('90.0%')
-  expect(within(area).queryByText('0.0%')).toBeNull()
-})
-
-it('결론을 못 읽어도 점수 계산은 계획의 목표 이름으로 보인다', async () => {
-  const body = improved()
-  delete body.summary.main.before
-  const area = await renderBody(body)
-  expect(within(screen.getByRole('region', { name: '어떻게 바꾸면 좋을까요?' })).getByRole('alert')).toBeTruthy()
-  expect(scoreOf(area, '배송')).toBe('81.2%')
-})
-
-it('점수 키가 없거나 숫자·null이 아니면 공식 평가 영역만 오류이고 화면에서는 점수 계산만 숨긴다', async () => {
-  const missing = improved()
-  delete missing.official.scores.mainScore
-  expect(toImprovementView(missing).official.ok).toBe(false)
-  expect(toImprovementView(missing).report.ok).toBe(true)
-  const text = improved()
-  text.official.scores.guardScores.S2 = '0.8'
-  expect(toImprovementView(text).official.ok).toBe(false)
-
-  server.use(
-    http.get(apiUrl('/api/improvements/imp_B'), () =>
-      HttpResponse.json({
-        improvementId: 'imp_B', status: 'COMPLETED', phase: 'DONE', createdAt: null, startedAt: null,
-        finishedAt: null, error: null, improvement: missing,
-      })),
-  )
-  render(
-    <MemoryRouter initialEntries={['/improvements/imp_B']}>
-      <Routes>
-        <Route path="/improvements/:improvementId" element={<ImprovementPage />} />
-      </Routes>
-    </MemoryRouter>,
-  )
-  expect(await screen.findByRole('region', { name: '시험한 이름' })).toBeTruthy()
-  expect(screen.queryByRole('region', { name: '점수 계산' })).toBeNull()
+it('짧은 이유: 다른 목표가 떨어지면 누가 헷갈리는지, 그 밖에는 짧은 말로 바꾼다', () => {
+  expect(shortReason('GUARD_LOSS_EXCEEDED:S4', GOALS)).toBe('문의 목표가 떨어져요')
+  expect(shortReason('GUARD_LOSS_EXCEEDED:S2,S4', GOALS)).toBe('배송·문의 목표가 떨어져요')
+  expect(shortReason('GUARD_LOSS_EXCEEDED:X9', GOALS)).toBe('다른 목표가 떨어져요')
+  expect(shortReason('MAIN_GAIN_INSUFFICIENT')).toBe('별로 안 나아져요')
+  expect(shortReason('TIE_LOST')).toBe('더 나은 이름이 있어요')
+  expect(shortReason('SOMETHING_NEW')).toBe('다른 이유가 있었어요')
 })

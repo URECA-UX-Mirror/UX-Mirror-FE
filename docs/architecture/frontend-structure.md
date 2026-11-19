@@ -13,7 +13,7 @@
 
 | # | 화면 | 사용 API | 화면 상태(서버 데이터 아님) |
 | --- | --- | --- | --- |
-| 1 | 첫 화면 (`/`) | `GET /api/health`, `GET /api/sites`, `POST /api/runs` | 사이트 주소, 적은 할 일, 직접 고른 화면 |
+| 1 | 첫 화면 (`/`) | `GET /api/health`, `POST /api/runs` | 적은 할 일, 직접 고른 화면, 미리 보기 크게 보기 |
 | 2 | 결과 (`/runs/:runId`) | `GET /api/runs/{runId}`(진행 중 폴링), `/steps`, `/screenshots/{stepId}`, `/screenshots/goal`, `/issues`, `GET /api/improvements`, `POST /api/improvements`, `GET /api/improvements/{improvementId}`(진행 중이면 3초 폴링) | 접힌 상세의 펼침 여부 |
 | 3 | 지금 화면 vs 개선안 | `GET /api/comparisons/{experimentKey}`, `GET /api/runs/{runId}`, `/steps`, `/screenshots/{stepId}` | 접힌 상세의 펼침 여부 |
 | 4 | 개선안·받은 개선안 (`/improvements/:id`, `/improvements`) | `GET /api/improvements/{improvementId}`, `GET /api/improvements` | 없음 |
@@ -28,8 +28,8 @@
 
 구현은 `features/new-analysis/NewAnalysisPage.tsx`다. 예전 `/scenario`(다른 사이트 진단)는 이 화면으로 보낸다.
 
-- 진단할 사이트([OI-8](../operations/open_issue.md#oi-8), [OI-11](../operations/open_issue.md#oi-11)): 주소 칸과 칩이 있다. 칩은 "예시 쇼핑몰로 해 보기 (MORO MARKET)"(기본)과 `GET /api/sites` 중 `siteUrl`이 있는 등록 사이트다. 주소 칸이 비어 있으면 예시 쇼핑몰이고(`siteId` 없이 실행), 주소를 넣으면 도메인이 `allowedHosts`에 있는 등록 사이트를 찾는다(`features/scenario/siteLink.ts`, `https://`가 없어도 읽는다). 등록되지 않은 주소·주소가 아닌 글은 안내하고 시작을 막는다. 사이트 목록을 못 불러와도 예시 쇼핑몰은 진단할 수 있다.
-- 무엇을 하려고 하나요?: 문장 한 칸과, 누르면 칸을 채우는 예시 두세 개(예시 쇼핑몰은 정해 둔 문장, 등록 사이트는 화면 이름으로 만든 문장).
+- 진단할 사이트: 시연용 예시 쇼핑몰 MORO MARKET 하나로 고정이다(`siteId` 없이 실행, #103). 처음 보는 사람도 어떤 사이트인지 알 수 있게, 배포 서버 진단에서 찍은 첫 화면 스크린샷(`public/moro-market-home.jpg`, 정적 파일)을 작게 보이고 누르면 크게 보인다. 주소 입력과 등록 사이트 칩은 없앴다([OI-8](../operations/open_issue.md#oi-8), [OI-11](../operations/open_issue.md#oi-11)).
+- 무엇을 하려고 하나요?: 문장 한 칸과, 누르면 칸을 채우는 예시 세 개. 셋 다 환불 상황(운동화·셔츠·원피스)이고, 11/20 배포 서버에서 '이용정보' → '주문 환불'이 채택된 문장이다. AI가 바꿀 수 있는 메뉴('이용정보')가 환불로 가는 길목이라, 배송(처음부터 찾음)이나 쿠폰·문의(바꿀 메뉴가 아님) 문장으로는 개선안이 나오지 않는다.
 - 찾아야 할 화면은 먼저 묻지 않는다. 문장의 낱말로 화면 하나를 고른다(`matchScreen.ts`의 `matchScreen`: 화면마다 문장에 들어 있는 낱말 수를 세어 1등 하나. 예시 쇼핑몰은 `MORO_KEYWORDS`, 등록 사이트는 화면 이름·확인 글자의 두 글자 이상 낱말). 고르면 "찾아야 할 화면: OO · 바꾸기" 한 줄로 보이고, 맞는 낱말이 없거나 1등이 둘 이상이면 짐작하지 않고 "어느 화면을 찾아야 하나요?" 선택 칸을 보이며 고르기 전에는 시작하지 않는다. 직접 고른 화면은 문장을 고쳐도 바뀌지 않고, 사이트를 바꾸면 지운다. 등록 사이트의 화면은 서버가 정한 `goalSelectable`만 따른다.
 - 누가(고객 유형)는 묻지 않는다. API는 `persona`가 필수라 `shared/customerInput.ts`의 `DEFAULT_PERSONA` 한 값을 숨겨서 보낸다(`임시`, [OI-9](../operations/open_issue.md#oi-9)). 확인 글자(`verification.text`)·최대 클릭 수(`STEPS.default`)도 정해진 값으로 채우고 보이지 않는다. 실험 키는 시작할 때마다 `createExperimentKey()`로 새로 만든다.
 - 요청: 예시 쇼핑몰은 `variant: before`, `verification: {path, text, scope: 'page'}`(`GOAL_SCREENS`), 등록 사이트는 `variant: before`, `siteId`, `verification: {path, text: goalText}`다. 성공하면 `/runs/:runId`로 간다.
@@ -41,13 +41,13 @@
 경로 `/runs/:runId`(예전 `/runs/:runId/result`도 같은 화면), 구현은 `features/run-result/RunPage.tsx`다. 번호가 붙은 단계(`shared/Timeline.tsx`)가 위에서 아래로 채워진다. 서비스는 사용자의 사이트를 바꾸지 않는다. 바꿀 이름을 제안하고 AI가 보는 화면에서만 그 이름으로 다시 해 본 결과를 보이며, 반영은 사용자가 한다. 화면 문구에는 "고치다"를 쓰지 않고 "바꾸다"·"개선안"을 쓴다. 아직 오지 않은 단계는 질문만 흐리게 보인다.
 
 - 머리: 어디서 무엇을 찾는지 한 줄(MORO MARKET / 등록 사이트 이름 / 메뉴 이름을 바꿔 본 화면, 기준 실행은 "MORO MARKET (지금 화면)" · 찾을 화면)과 제목(하려는 일). 고객 유형은 보이지 않는다.
-- ① 잘 찾아가나요?: 진행 중에는 "N번째 클릭 중 · 최대 M번", 마지막 화면 스크린샷(후보 박스), 지금까지 누른 곳(폴링은 `run-progress/useRunProgress.ts`). 끝나면 "N번 만에 찾았어요" / "못 찾았어요" / "진단을 끝내지 못했어요"(무효·오류·도달 여부 없음)와 지나간 길, 접힌 "클릭별로 자세히 보기"(펼칠 때만 스크린샷을 읽는다).
-- ② 왜 그랬을까요?: 끝낸 진단에만 있다. 답은 `features/run-result/why.ts`의 `explainRun`이 서버 값에서 만든다(아래 "이유 문장"). 그 아래 누를 가능성 막대 상위 4개(AI가 이름을 바꿀 수 있는 메뉴에는 "바꿀 수 있어요" 표시, 4개 안에 없으면 한 줄 더)와 접힌 "살펴볼 점 N개".
+- ① 잘 찾아가나요?: 진행 중에는 "N번째 클릭 중", 마지막 화면 스크린샷(후보 박스), 지금까지 누른 곳(폴링은 `run-progress/useRunProgress.ts`). 끝나면 "N번 만에 찾았어요" / "못 찾았어요" / "진단을 끝내지 못했어요"(무효·오류·도달 여부 없음)와 지나간 길, 접힌 "클릭별로 자세히 보기"(펼칠 때만 스크린샷을 읽는다).
+- ② 왜 그랬을까요?: 끝낸 진단에만 있다. 답은 `features/run-result/why.ts`의 `explainRun`이 서버 값에서 만든다(아래 "이유 문장"). 그 아래 누를 가능성 막대 상위 4개(AI가 이름을 바꿀 수 있는 메뉴가 4개 안에 없으면 한 줄 더, 따로 표시하지 않는다)와 접힌 "살펴볼 점 N개".
 - ③ 어떻게 바꾸면 좋을까요? · ④ 바꾸면 얼마나 좋아질까요?: 직접 한 예시 쇼핑몰(MORO MARKET) 지금 화면 진단이 유효하게 끝났을 때만 있다(`features/improvement/ImprovementSteps.tsx`). 후보 비교·AI 개선이 만든 확인용 진단에는 없고, 등록 사이트 진단에는 ② 아래에 "개선안 받아 보기는 지금 예시 쇼핑몰에서만 돼요." 한 줄만 있다.
   - 서버는 종료 상태를 먼저 쓰고 `validity`를 조금 뒤에 채우므로, 종료 상태인데 `validity`가 `null`이면 최대 10번 더 조회한다(`useRunProgress`의 `MAX_VALIDITY_WAITS`). 그동안 ③④는 열지 않는다.
   - 이 진단에서 전에 시작한 AI 개선은 `GET /api/improvements`에서 `input.sourceRunId`가 같은 것 중 가장 최근 것을 찾는다(`useRunImprovement`). 가장 최근 것이 끝내지 못한 것(`FAILED`·`INTERRUPTED`)이고 전에 끝난 결과가 있으면 그 결과를 보이고 "개선안 다시 받아 보기"를 둔다. 시작 요청이 실패하면(다른 탭에서 이미 시작했거나 응답을 못 받은 경우) 목록을 다시 읽어 이미 만들어진 것을 이어서 보인다. 그래서 다시 열어도 같은 자리에 보인다. 없으면 ③에 "AI에게 개선안 받아 보기"(`POST /api/improvements {sourceRunId}`)를 둔다.
   - 시작하면 ③ 안에 세 단계 체크(이름 후보 찾기 → 개선안 만들기 → 다시 확인)와 "5분쯤 걸려요"를 보이고 3초마다 다시 읽는다(`useImprovement`. 조회가 실패해도 받은 내용을 두고 5초마다 다시 시도한다).
-  - 끝나면 ③은 "상단 메뉴 'A' → 'B'" 또는 "이름만 바꿔서는 나아지지 않았어요"(+ 마지막 확인에서 떨어진 이유). ④는 찾아올 가능성 전 → 후와 변화량, "실제 사이트는 바뀌지 않아요. 이 이름으로 바꿔서 반영해 보세요.", "다른 목표도 괜찮아요"(목표별 숫자는 접힘), "개선안에서 다시 해 봤어요"(지금 화면 / 개선안 두 줄과 "화면별로 비교하기"), 접힌 "어떻게 골랐는지 보기"(시험한 이름·점수 계산), 한계 한 줄과 출처(`kind`) 표시.
+  - 끝나면 ③은 "상단 메뉴 'A' → 'B'" 또는 "이름만 바꿔서는 나아지지 않았어요"(+ 마지막 확인에서 떨어진 이유). ④는 찾아올 가능성 전 → 후와 변화량, "실제 사이트는 바뀌지 않아요. 이 이름으로 바꿔서 반영해 보세요.", "다른 목표도 괜찮아요"(목표별 숫자는 접힘), "개선안에서 다시 해 봤어요"(지금 화면 / 개선안 두 줄과 "화면별로 비교하기"), 접힌 "어떻게 골랐는지 보기"(`ChoiceSummary`: "이름 N개를 시험해서 'B'를 골랐어요" → "나머지는 대부분 문의 목표가 떨어져서 뺐어요" → 이름 · 찾아올 가능성 · 결과 목록. 회차·점수 계산 표는 없앴다, #103), 한계 한 줄과 출처(`kind`) 표시.
   - 권하는 것은 마지막 확인까지 통과한 이름뿐이다(`summary.scoreSource`가 `OFFICIAL_B`). 후보 찾기만 끝난 결과는 "아직 확정된 개선안이 없어요"로 보이고, 다시 해 보지 않은 까닭은 `verification.reason`으로 구분한다(`NOT_FINALIZED`·`SKIPPED_BY_OPTION`은 "아직 다시 해 보지 않았어요"). 확정된 이름인데 다시 해 보다 멈췄으면(`verification.status` `FAILED`) 반영하라는 말 대신 확인을 끝내지 못했다고 쓴다. 끝났는데 리포트가 없으면 "다시 불러오기"를 둔다.
   - 시작 실패 안내는 `shared/serverMessage.ts`가 정한다. 알려진 코드는 정해 둔 문장, 그 밖에는 서버 문장이 경로·영문 식별자 없는 한글일 때만 그대로 보인다(첫 화면의 진단 시작도 같다).
   - 확정 전(진행 중)·끝내지 못한 후보는 "아직 확정 아니에요"·"이 이름은 권하지 않아요"로만 보이고, 끝내지 못했으면 "개선안 다시 받아 보기"를 둔다.
@@ -169,7 +169,7 @@ public/
 - 글꼴 변수는 `--font-sans`와 `--font-mono`다. `--font-sans`는 Inter(400·500·600·700, `@fontsource-variable/inter`)를 먼저 선언해 영문·숫자는 Inter, 한글은 Pretendard(`pretendard`)로 그려지고 폴백은 `-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif`다. ID·코드·배지는 `--font-mono`(JetBrains Mono 400·500·600, `@fontsource-variable/jetbrains-mono`)이고 `.mono`, `.badge-mono`로 쓴다. 모노 스택에 Pretendard를 끼워 배지 안 한글이 시스템 고정폭 글꼴로 떨어지지 않게 한다. 확률·단계·표 수치와 `.num`에는 `font-variant-numeric: tabular-nums`를 적용한다.
 - 레이아웃(`Layout`)은 얇은 상단 줄 하나다. 로고·"새 진단"·엔진 상태(작은 점 + 짧은 말)·테마 버튼만 둔다. 메뉴 이름 후보 비교·지난 결과 다시 보기는 주소로만 연다(#100). 본문 폭은 최대 1080px이다.
 - 핵심 흐름(첫 화면, 결과, 개선안)은 가운데 좁은 한 단이다(결과 760px, 첫 화면 560px). 카드를 쓰지 않고 크기·굵기로 위계를 만든다. 결과 화면은 세로 단계(`shared/Timeline.tsx`, `shared/timeline.css`)다. 왼쪽 선 위의 번호 점(끝난 단계는 채운 점, 지금 단계는 강조색 테두리와 은은한 번짐, 아직 오지 않은 단계는 빈 점), 작은 질문, 큰 답 한 줄(34px, 좁은 화면 28px), 그 아래 본문 15px 순이다. 좁은 화면에서는 선을 접고 번호를 질문 줄에 붙인다.
-- 핵심 흐름의 색: 강조색(`--um-accent`)은 누를 수 있는 것과 지금 단계에만, 노랑(`--um-highlight`)은 ④의 바뀐 뒤 가능성 숫자 하나에만 쓴다. 성공·실패는 작은 점이나 글자 색으로만 보이고 색 면을 쓰지 않는다(알림도 글자만). 주 버튼은 화면에 하나(잉크색 알약, 높이 44px)이고 나머지는 글자 링크다. 접힘은 글자만 있는 "…보기 ▾"(`Disclosure`)다. 누를 가능성은 6px 막대(이름 왼쪽, % 오른쪽)이고 AI가 이름을 바꿀 수 있는 메뉴는 "바꿀 수 있어요" 표시로 구분한다. 움직임은 단계가 나타날 때(200ms)와 지금 단계 점의 번짐뿐이고 `prefers-reduced-motion`에서는 꺼진다.
+- 핵심 흐름의 색: 강조색(`--um-accent`)은 누를 수 있는 것과 지금 단계에만, 노랑(`--um-highlight`)은 ④의 바뀐 뒤 가능성 숫자 하나에만 쓴다. 성공·실패는 작은 점이나 글자 색으로만 보이고 색 면을 쓰지 않는다(알림도 글자만). 주 버튼은 화면에 하나(잉크색 알약, 높이 44px)이고 나머지는 글자 링크다. 접힘은 글자만 있는 "…보기 ▾"(`Disclosure`)다. 누를 가능성은 6px 막대(이름 왼쪽, % 오른쪽)이다. 움직임은 단계가 나타날 때(200ms)와 지금 단계 점의 번짐뿐이고 `prefers-reduced-motion`에서는 꺼진다.
 - 정보 위계는 `index.css` 끝의 "정보 위계" 블록이 정한다. 글자는 `--um-text`(제목·값), `--um-text-secondary`(본문), `--um-text-muted`(라벨·보조 문구) 세 단계로 밝기를 나누고, 면은 따뜻한 회색 바닥(`canvas`) 위에 흰 카드(`surface`)가 그림자로 떠 있고, 카드 안 칸은 `surface-subtle`, 눌림·강조 칸은 `surface-raised`다. 모서리는 카드 24px·컨트롤 12px·버튼 알약형이다. 주 버튼은 잉크색(`--um-brand`), 링크·선택은 파랑(`--um-accent`), 구역 제목 막대는 노랑(`--um-highlight`)이다. 핵심 수치는 Before(`--um-before`)·After(`--um-after`) 색으로, 구역 제목은 왼쪽 accent 막대로 구분한다. 참고한 기준은 Material 3 color roles(surface container 단계, outline과 대비 기준 3:1·4.5:1)와 Linear의 "구조는 선이 아니라 명암으로" 원칙이다.
 - 기본 버튼은 보조 스타일이고, 화면의 주 행동에만 `primary`를 쓴다.
 - `[role='alert']`와 `.error-notice`는 오류 스타일이고 `.error-notice[role='status']`(예: 비교 준비 중)는 정보 스타일이다. `data-origin`(`LIVE`, `MOCK`, `SAVED_MEASURED`)과 `data-status`는 배지 색을 정한다. 색만으로 뜻을 전하지 않도록 배지에는 항상 글자를 함께 둔다.

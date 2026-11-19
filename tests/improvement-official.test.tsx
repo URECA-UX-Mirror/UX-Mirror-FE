@@ -59,7 +59,7 @@ it('2차 결과 화면은 공식 결과 표시·바꿀 이름·화면별 비교 
   expect(await screen.findByText('사전 등록 공식 결과')).toBeTruthy()
   expect(screen.getByRole('region', { name: '어떻게 바꾸면 좋을까요?' }).querySelector('.tl-answer')?.textContent).toBe("상단 메뉴 '이용정보' → '주문 환불'")
   expect(screen.getAllByRole('link', { name: '화면별로 비교하기' }).map((a) => a.getAttribute('href'))).toEqual(['/comparisons/imp-1119b-S1', '/comparisons/imp-1119b-S4'])
-  expect(screen.getByRole('region', { name: '점수 계산' })).toBeTruthy()
+  expect(screen.getByText(/이름 \d+개를 시험해서/).textContent).toMatch(/'주문 환불'을 골랐어요\.$/)
   expect(screen.queryByText('이 부분을 보여 드릴 수 없어요.')).toBeNull()
 })
 
@@ -77,7 +77,6 @@ it('1차 결과 화면은 이름만 바꿔서는 나아지지 않았다고 보�
   renderOfficial('imp-1119')
   expect(await screen.findByText('이름만 바꿔서는 나아지지 않았어요')).toBeTruthy()
   expect(screen.queryByRole('region', { name: '개선안에서 다시 해 봤어요' })).toBeNull()
-  expect(screen.queryByRole('region', { name: '점수 계산' })).toBeNull()
-  expect(screen.getByRole('region', { name: '시험한 이름' })).toBeTruthy()
+  expect(screen.getByText(/이름 \d+개를 시험해서/).textContent).toMatch(/고를 이름을 찾지 못했어요\.$/)
   expect(screen.queryByText('이 부분을 보여 드릴 수 없어요.')).toBeNull()
 })

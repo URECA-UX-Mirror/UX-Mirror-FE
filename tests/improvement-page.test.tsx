@@ -105,8 +105,8 @@ it('진단 없이 만든 결과는 바꿀 이름 → 가능성 전후·다른 �
   expect(within(recheck).getAllByRole('link', { name: '화면별로 비교하기' })[0].getAttribute('href')).toBe('/comparisons/imp-1119-s1')
   const details = howChosen()!
   expect(details.open).toBe(false)
-  expect(within(details).getByRole('region', { name: '시험한 이름' })).toBeTruthy()
-  expect(within(details).getByRole('region', { name: '점수 계산' })).toBeTruthy()
+  expect(within(details).getByText(/이름 \d+개를 시험해서/)).toBeTruthy()
+  expect(within(details).getByText('✓ 골랐어요')).toBeTruthy()
   expect(screen.getByText(LIMITATION)).toBeTruthy()
   expect(screen.queryByRole('list', { name: '진행 상황' })).toBeNull()
   expect(screen.queryByRole('alert')).toBeNull()
@@ -406,14 +406,13 @@ it('결론 데이터에 문제가 있으면 결론만 안내하고 어떻게 골
   expect(screen.getByText(LIMITATION)).toBeTruthy()
 })
 
-it('회차 데이터에 문제가 있으면 시험한 이름만 숨기고 나머지는 정상이다', async () => {
+it('회차 데이터에 문제가 있으면 "어떻게 골랐는지 보기"만 숨기고 나머지는 정상이다', async () => {
   const broken = improved()
   delete broken.rounds[0].round
   serve(job({ improvement: broken }))
   renderPage()
   await gain()
-  expect(screen.queryByRole('region', { name: '시험한 이름' })).toBeNull()
-  expect(screen.getByRole('region', { name: '점수 계산' })).toBeTruthy()
+  expect(howChosen()).toBeNull()
   expect(screen.queryByRole('alert')).toBeNull()
 })
 

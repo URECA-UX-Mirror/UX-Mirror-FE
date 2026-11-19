@@ -40,3 +40,15 @@ export function describeReason(code: string, goals: Record<string, string> = {})
   }
   return labels[code] ?? OTHER
 }
+
+/** 목록에 붙이는 짧은 이유. 다른 목표가 떨어진 경우는 "문의 목표가 떨어져요"처럼 어느 목표가 손해 보는지 말한다 */
+export function shortReason(code: string, goals: Record<string, string> = {}): string {
+  const [kind, ...parts] = code.split(':')
+  if (kind === 'GUARD_LOSS_EXCEEDED') {
+    const names = parts.join(':').split(',').map((key) => goals[key]).filter(Boolean)
+    return names.length ? `${names.join('·')} 목표가 떨어져요` : '다른 목표가 떨어져요'
+  }
+  if (kind === 'MAIN_GAIN_INSUFFICIENT') return '별로 안 나아져요'
+  if (kind === 'TIE_LOST' || kind === 'NOT_BEST') return '더 나은 이름이 있어요'
+  return describeReason(code, goals)
+}

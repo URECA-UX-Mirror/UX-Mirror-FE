@@ -415,7 +415,9 @@ export function buildReport(
     verification: dto.verification && {
       ...dto.verification,
       navigationCostDelta:
-        runs.baseline.navigationCost === null || runs.candidate.navigationCost === null
+        // 서버는 두 Run 모두 목표에 도달했을 때만(판단 이유 NAVIGATION_COST) 이동 비용 차이를 계산한다
+        !runs.baseline.goalReached || !runs.candidate.goalReached
+          || runs.baseline.navigationCost === null || runs.candidate.navigationCost === null
           ? null
           : runs.candidate.navigationCost - runs.baseline.navigationCost,
     },

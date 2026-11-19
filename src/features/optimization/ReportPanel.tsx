@@ -20,9 +20,16 @@ const NOT_COMPUTABLE = '계산 불가'
 
 const numberText = (value: number | null) => (value === null ? NOT_COMPUTABLE : String(value))
 
-/** 이동 비용 차이. 부호를 붙이고 `null`은 0이 아니라 계산 불가다 */
-function deltaText(value: number | null): string {
-  if (value === null) return NOT_COMPUTABLE
+/**
+ * 이동 비용 차이. 부호를 붙이고 `null`은 0이 아니다. 서버는 판단 이유가 `NAVIGATION_COST`(두 Run 모두 목표 도달)일 때만 값을 채우므로,
+ * 다른 이유로 판단했다면 `null`은 계산 실패가 아니라 이 판단에서 쓰지 않는 값이다.
+ */
+function deltaText(value: number | null, reasonCode: string | null): string {
+  if (value === null) {
+    return reasonCode !== null && reasonCode !== 'NAVIGATION_COST'
+      ? '해당 없음 (이 판단 이유에서는 이동 비용 변화를 쓰지 않음)'
+      : NOT_COMPUTABLE
+  }
   return value > 0 ? `+${value}` : String(value)
 }
 
@@ -101,7 +108,7 @@ function Decision({ report }: { report: OptimizationReport }) {
       </div>
       <div>
         <dt>이동 비용 변화</dt>
-        <dd className="num">{deltaText(report.verification?.navigationCostDelta ?? null)}</dd>
+        <dd className="num">{deltaText(report.verification?.navigationCostDelta ?? null, reason)}</dd>
       </div>
     </dl>
   )

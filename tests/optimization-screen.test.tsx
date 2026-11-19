@@ -308,6 +308,7 @@ it('VERIFYING: 검증 단계를 한글로 보이고 선택 확률 안내 문구�
   const dto = seeded('opt_mock_evaluated')
   dto.status = 'VERIFYING'
   dto.verificationPhase = 'BASELINE'
+  dto.baselineRunId = 'run_base'
   serve(dto)
   renderOptimization('opt_mock_evaluated')
   expect(await screen.findByText('후보 검증 중 · 기준 실행')).toBeTruthy()

@@ -116,8 +116,28 @@ it('VERIFYING: Run이 만들어지기 전에는 아직이라 하고 만들어진
   expect(within(panel).getByText('아직 만들어지지 않음')).toBeTruthy()
 })
 
+it('VERIFYING: 기준 Run을 만들기 전에는 phase가 BASELINE이어도 사이트 확인 중으로 보인다', async () => {
+  serve(verifying('BASELINE', null, null))
+  renderOptimization('opt_mock_evaluated')
+  const panel = await screen.findByRole('region', { name: '검증 진행' })
+  expect(within(panel).getByText('지금 사이트 확인 중입니다.')).toBeTruthy()
+  expect(screen.getByText('후보 검증 중 · 사이트 확인 중', { selector: '[role="status"]' })).toBeTruthy()
+  expect(within(panel).getByText('기준 실행 (C0)')).toBeTruthy()
+})
+
+it('VERIFYING: 기준 실행 이름은 후보 풀의 BASELINE role에서 읽는다', async () => {
+  const dto = verifying('BASELINE', 'run_base', null)
+  dto.candidateLabels = dto.candidateLabels.map((c) =>
+    c.role === 'BASELINE' ? { ...c, candidateId: 'B9' } : c,
+  )
+  serve(dto)
+  renderOptimization('opt_mock_evaluated')
+  const panel = await screen.findByRole('region', { name: '검증 진행' })
+  expect(within(panel).getByText('기준 실행 (B9)')).toBeTruthy()
+})
+
 it('VERIFYING: 모르는 verificationPhase도 오류 없이 원문으로 보인다', async () => {
-  serve(verifying('SITE_RECHECK', null, null))
+  serve(verifying('SITE_RECHECK', 'run_base', null))
   renderOptimization('opt_mock_evaluated')
   const panel = await screen.findByRole('region', { name: '검증 진행' })
   expect(within(panel).getByText('지금 SITE_RECHECK을 진행 중입니다.')).toBeTruthy()
@@ -226,13 +246,43 @@ it('보고서: null 값은 0이 아니라 계산 불가이고 모르는 판단·
   expect(await panel.findByText('SOMETHING_NEW')).toBeTruthy()
   expect(panel.getByText('NEW_REASON')).toBeTruthy()
   const delta = panel.getByText('이동 비용 변화').nextElementSibling!
-  expect(delta.textContent).toBe('계산 불가')
+  // NAVIGATION_COST가 아닌 이유로 판단했으면 null은 계산 실패가 아니라 쓰지 않는 값이다
+  expect(delta.textContent).toBe('해당 없음 (이 판단 이유에서는 이동 비용 변화를 쓰지 않음)')
   for (const row of ['이동 비용', '단계 수', '실행 시간', '목표 화면', '되돌아간 횟수']) {
     const cells = panel.getByRole('rowheader', { name: row }).parentElement!.querySelectorAll('td')
     expect(cells[1].textContent).toBe('계산 불가')
   }
   expect(panel.getByText(/기준과 검증 후보를 각각 1회만/)).toBeTruthy()
 })
+
+it('보고서: 판단 이유가 NAVIGATION_COST인데 delta가 null이면 계산 불가이고 0이 아니다', async () => {
+  const report = seededReport('opt_mock_completed')
+  report.verification = { ...report.verification!, reasonCode: 'NAVIGATION_COST', navigationCostDelta: null }
+  const panel = within(await renderReport(report))
+  expect((await panel.findByText('이동 비용 변화')).nextElementSibling!.textContent).toBe('계산 불가')
+})
+
+const KNOWN_DECISIONS: [string, string, string, string][] = [
+  ['HOLD', '보류', 'GOAL_REACHED_LOST', '후보에서 목표 화면에 도달하지 못함'],
+  ['NEEDS_MORE_EVIDENCE', '근거가 더 필요함', 'BOTH_GOALS_NOT_REACHED', '두 실행 모두 목표 화면에 도달하지 못함'],
+  ['INCONCLUSIVE', '판단할 수 없음', 'INVALID_OR_MISSING_RUN_DATA', '실행 데이터가 무효이거나 없음'],
+  ['INCONCLUSIVE', '판단할 수 없음', 'RUN_CONDITIONS_MISMATCH_OR_MISSING', '두 실행의 조건이 다르거나 확인할 수 없음'],
+  ['IMPROVEMENT_OBSERVED', '사전 정의한 개선 조건이 관찰됨', 'GOAL_REACHED_GAINED', '후보에서만 목표 화면에 도달'],
+]
+
+for (const [decision, decisionText, reason, reasonText] of KNOWN_DECISIONS) {
+  it(`보고서: ${decision}·${reason}는 풀이와 원문을 함께 보이고 이동 비용 변화는 해당 없음이다`, async () => {
+    const report = seededReport('opt_mock_completed')
+    report.finalDecision = decision
+    report.verification = { ...report.verification!, finalDecision: decision, reasonCode: reason, navigationCostDelta: null }
+    const panel = within(await renderReport(report))
+    expect(await panel.findByText(decision)).toBeTruthy()
+    expect(panel.getByText(new RegExp(decisionText))).toBeTruthy()
+    expect(panel.getByText(reason)).toBeTruthy()
+    expect(panel.getByText(new RegExp(reasonText))).toBeTruthy()
+    expect(panel.getByText('이동 비용 변화').nextElementSibling!.textContent).toMatch(/^해당 없음/)
+  })
+}
 
 it('보고서: 정책 버전·모델 메타데이터는 접혀 있고 펼치면 보인다', async () => {
   const panel = within(await renderReport(seededReport('opt_mock_completed')))

@@ -85,8 +85,12 @@ export const reasonLabel = (code: string): string | null =>
   Object.hasOwn(REASON_LABELS, code) ? REASON_LABELS[code] : null
 
 // 최종 판단·판단 이유 코드(임시, OI-12). 실서버에서 확인한 값만 풀이를 붙이고 나머지는 원문을 그대로 보인다.
+// 값 목록은 BE `uxm/optimizer_policy.py`의 `judge_verification`에 고정돼 있다.
 const FINAL_DECISION_LABELS: Readonly<Record<string, string>> = {
   IMPROVEMENT_OBSERVED: '사전 정의한 개선 조건이 관찰됨',
+  HOLD: '보류',
+  NEEDS_MORE_EVIDENCE: '근거가 더 필요함',
+  INCONCLUSIVE: '판단할 수 없음',
 }
 
 export const finalDecisionLabel = (decision: string): string | null =>
@@ -94,6 +98,11 @@ export const finalDecisionLabel = (decision: string): string | null =>
 
 const VERIFICATION_REASON_LABELS: Readonly<Record<string, string>> = {
   NAVIGATION_COST: '이동 비용 기준',
+  GOAL_REACHED_GAINED: '후보에서만 목표 화면에 도달',
+  GOAL_REACHED_LOST: '후보에서 목표 화면에 도달하지 못함',
+  BOTH_GOALS_NOT_REACHED: '두 실행 모두 목표 화면에 도달하지 못함',
+  INVALID_OR_MISSING_RUN_DATA: '실행 데이터가 무효이거나 없음',
+  RUN_CONDITIONS_MISMATCH_OR_MISSING: '두 실행의 조건이 다르거나 확인할 수 없음',
 }
 
 export const verificationReasonLabel = (code: string): string | null =>

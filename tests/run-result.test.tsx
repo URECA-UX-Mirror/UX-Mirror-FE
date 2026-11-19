@@ -69,7 +69,7 @@ it('목표에 도착하지 못한 Run은 도착 화면 이미지를 요청하지
   const nodes = within(path).getAllByRole('button')
   fireEvent.click(nodes[nodes.length - 1])
   const detail = screen.getByRole('region', { name: '단계별 탐색 상세' })
-  expect(await within(detail).findByText('도착 화면 이미지 없음')).toBeTruthy()
+  expect(await within(detail).findByText('마지막 화면 이미지 없음')).toBeTruthy()
   expect(detail.querySelector('img')).toBeNull()
 })
 

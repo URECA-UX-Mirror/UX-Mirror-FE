@@ -67,6 +67,6 @@ height  = bbox.height * scale
 
 모델 판단 없이 도착만 한 화면은 Step이 없고(`계약 §15.3`) 스크린샷 API가 `stepId` 기준이라, 별도 endpoint `GET /api/runs/{runId}/screenshots/goal`로 가져온다(임시, [OI-3](../operations/open_issue.md#oi-3)).
 
-- 경로의 마지막 노드이고 `Run.terminationReason`이 `GOAL_VERIFIED`일 때만 이미지를 요청한다. 다른 종료 사유의 Run은 호출하지 않고 "도착 화면 이미지 없음"을 표시한다.
+- 경로의 마지막 노드이고 `Run.terminationReason`이 `GOAL_VERIFIED`일 때만 이미지를 요청한다. 다른 종료 사유의 Run은 호출하지 않고 "마지막 화면 이미지 없음"을 표시한다.
 - 요청한 이미지가 `404`이거나 불러오지 못하면 같은 문구를 표시한다.
 - Step의 후보 좌표가 없으므로 bbox 오버레이는 그리지 않는다.

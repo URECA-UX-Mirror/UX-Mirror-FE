@@ -138,6 +138,17 @@ describe('필수 필드를 하나씩 빼면 해당 영역만 오류', () => {
     expect(okAreas(view)).toEqual(AREAS.filter((name) => name !== broken))
   })
 
+  it('`_required`에 없는 goalKey가 빠져도 영역은 ok이고 null로 읽는다', () => {
+    const sample = loadSample()
+    delete sample.summary.main.goalKey
+    delete sample.summary.guards[0].goalKey
+    delete sample.verification.pairs[0].goalKey
+    const view = toImprovementView(sample)
+    expect(okAreas(view)).toEqual([...AREAS])
+    expect(view.report.ok && view.report.data.main.goalKey).toBeNull()
+    expect(view.verification.ok && view.verification.data.pairs[0].goalKey).toBeNull()
+  })
+
   it('summary.main.before 제거 시 official·rounds·verification은 ok다', () => {
     const view = toImprovementView(without('summary.main.before'))
     expect(view.report.ok).toBe(false)

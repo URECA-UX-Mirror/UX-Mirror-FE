@@ -65,7 +65,7 @@ const stringList = (value: unknown): string[] =>
     ? value.filter((item): item is string => typeof item === 'string')
     : []
 
-/** 점수 표(`{S2: 0.8}`). `null`이면 `null`, 숫자가 아닌 값이 섞이면 필수 규칙 위반이다 */
+/** 필수 점수 표(`{S2: 0.8}`). 객체가 아니거나 숫자가 아닌 값(`null` 포함)이 섞이면 필수 규칙 위반(`DataError`)이다 */
 function reqScoreMap(value: unknown, path: string): Record<string, number> {
   const source = reqObject(value, path)
   const result: Record<string, number> = {}
@@ -104,7 +104,8 @@ function toScoreLine(
   const line = reqObject(value, path)
   const before = reqNumber(line.before, `${path}.before`)
   return {
-    goalKey: reqString(line.goalKey, `${path}.goalKey`),
+    // `_required`에 없는 필드라 없어도 영역 오류로 만들지 않는다
+    goalKey: stringOrNull(line.goalKey),
     name: stringOrNull(line.name),
     before,
     // 개선했으면 필수, 아니면 요구하지 않고 값이 없으면 `null`로 둔다
@@ -291,7 +292,8 @@ function toVerificationRun(value: unknown, path: string): VerificationRun | null
 function toPair(value: unknown, path: string): VerificationPair {
   const pair = reqObject(value, path)
   return {
-    goalKey: reqString(pair.goalKey, `${path}.goalKey`),
+    // `_required`에 없는 필드라 없어도 영역 오류로 만들지 않는다
+    goalKey: stringOrNull(pair.goalKey),
     name: stringOrNull(pair.name),
     experimentKey: stringOrNull(pair.experimentKey),
     comparisonPath: stringOrNull(pair.comparisonPath),

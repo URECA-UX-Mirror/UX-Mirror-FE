@@ -32,7 +32,7 @@ export type Score = number | null
 export type GuardScores = Record<string, number>
 
 export interface ImprovementScoreLine {
-  goalKey: string
+  goalKey: string | null
   name: string | null
   before: number
   /** `NO_IMPROVEMENT`이면 `null` */
@@ -144,7 +144,7 @@ export interface VerificationRun {
 }
 
 export interface VerificationPair {
-  goalKey: string
+  goalKey: string | null
   name: string | null
   experimentKey: string | null
   comparisonPath: string | null

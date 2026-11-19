@@ -126,6 +126,7 @@
 
 - 범위: 자동 개선 에이전트가 만드는 `improvement.json`(`schemaVersion: improvement-v1`). 1단계(해커톤)에서는 백엔드 API 없이 정적 JSON을 읽는다. 계약서에 없는 형식이다.
 - 임시 결정: 팀이 확정한 샘플(`public/improvements/imp_SAMPLE_0001.json`, `sample: true`)을 정본으로 삼는다. 샘플의 `_required`·`_displayRules`를 따라 `src/adapters/improvement.ts`가 report·official·rounds·verification 네 영역을 각각 `{ ok, data | reason }`로 검증하고, 한 영역이 오류여도 다른 영역은 정상 변환한다. `null`은 "값 없음"이라 0으로 바꾸지 않고, 모르는 enum 값은 원문 문자열로 둔다. 점수 표시 변환(`%`·`%p`)은 `src/domain/improvementScore.ts` 한 곳에 둔다.
+- 샘플이 정본이다. BE 자동 개선 PR(UX-Mirror-BE #102 `run_verification`, #105 `improve_policy.py`)은 샘플의 이유 코드(`rejectedReason`·후보 `reason`)와 검증 쌍 키(`goalKey` `S1`, experimentKey `imp-1119-s1` 형식)가 샘플과 다르다. FE는 샘플대로 읽고 이유 코드는 원문으로 보이며, BE가 샘플 형식에 맞추도록 정자비가 확인한다. 샘플의 `path`·`stepCount`·`issues`·`goalReached`는 `improvement.json`을 만드는 쪽이 Run을 읽어 채운다.
 - 형식을 바꿔야 하면 정자비(생성 담당)와 먼저 합의한다. 계약서 갱신은 통합 후 정자비가 한 번에 한다.
 - 담당: 정자비(생성·계약서), 권혁준(프론트). 관련 FE 이슈: #77.
 - 확정되면 `docs/contracts/`를 고친 뒤 이 항목을 지운다.

@@ -144,9 +144,7 @@ function ResultBody({ run }: { run: Run }) {
         </dl>
       </section>
 
-      <RunSummaryPanel run={run} issues={issues.data} />
-      {scenario && site?.siteMapAvailable === false ? <p>이 사이트는 사이트 지도가 없어 경로 지표를 계산하지 않습니다</p> : null}
-      {scenario ? <p>확률은 모델 예측이며 실제 사용자 클릭률이 아닙니다</p> : null}
+      <RunSummaryPanel run={run} issues={issues.data} siteMapUnavailable={scenario && site?.siteMapAvailable === false} />
 
       {run.summary ? (
         <PathPanel

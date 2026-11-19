@@ -27,7 +27,7 @@
 | --- | --- | --- | --- |
 | GET | `/api/presets` | - (화면에서 호출 안 함) | `계약 §17.9` |
 | GET | `/api/health` | 전체 | `계약 §17.8` |
-| GET | `/api/sites` | - (화면에서 아직 호출 안 함) | `임시` ([OI-11](../operations/open_issue.md#oi-11)) |
+| GET | `/api/sites` | 시나리오 Run 진행·결과 화면 | `임시` ([OI-11](../operations/open_issue.md#oi-11)) |
 | GET | `/api/runs` | 1, 3 | `계약 §17.10` |
 | POST | `/api/runs` | 1 | `계약 §17.2`, `§5.1` |
 | GET | `/api/runs/{runId}` | 2, 3, 4 | `계약 §17.3` |
@@ -126,7 +126,7 @@
 | --- | --- |
 | `PENDING` | "분석 대기 중"을 보인다. 종료 후에도 `PENDING`이면 [실행 상태와 폴링](run-lifecycle.md)의 규칙대로 몇 번 더 조회하고 멈춘다. 분석 전에 만들어진 Run은 계속 `PENDING`일 수 있다 |
 | `COMPLETED` + `items` 있음 | 서버 순서대로 표시한다 |
-| `COMPLETED` + `items` 비어 있음 | "검토 후보 0건"으로 표시한다. `validity = INVALID` Run도 같다 (`계약 §14.2`) |
+| `COMPLETED` + `items` 비어 있음 | 유효 Run은 "검토 후보 없음", 무효 Run은 "무효 처리된 실행의 검토 후보가 없습니다"로 구분한다 (`계약 §14.2`). 분석 수행 여부는 추정하지 않는다 |
 | `FAILED` | "분석에 실패했습니다" 안내를 보이고 나머지 결과는 계속 표시한다 |
 
 ### GET /api/runs/{runId}/screenshots/{stepId}

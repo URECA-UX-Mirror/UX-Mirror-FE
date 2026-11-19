@@ -104,7 +104,8 @@ it('완료된 빈 후보는 유효성과 무효성을 구분한다', () => {
   const view = render(<IssuePanel {...props} validity="VALID" />)
   expect(screen.getByText('검토 후보 없음')).toBeTruthy()
   view.rerender(<IssuePanel {...props} validity="INVALID" />)
-  expect(screen.getByText('무효 처리된 실행은 검토 후보를 분석하지 않았습니다')).toBeTruthy()
+  expect(screen.getByText('무효 처리된 실행의 검토 후보가 없습니다')).toBeTruthy()
+  expect(screen.queryByText('0건 탐지됨')).toBeNull()
 })
 
 it('화면 이름을 변환하고 목표 미도달을 실행 전체 결과로 표시한다', () => {
@@ -114,4 +115,15 @@ it('화면 이름을 변환하고 목표 미도달을 실행 전체 결과로 �
     labelPage={() => '마이페이지'} validity="VALID" />)
   fireEvent.click(screen.getByRole('button', { name: /메뉴 선택 확률 분산/ }))
   expect(screen.getByText(/실행 전체 결과.*화면: 마이페이지/)).toBeTruthy()
+})
+
+it('대기 조회가 끝나도 대기를 유지하고 실패는 별도로 표시한다', () => {
+  const props = { runId: 'run_test', steps: [], stepsFailed: false, onRetrySteps: () => {},
+    error: null, retrying: false, onRetry: () => {} }
+  const view = render(<IssuePanel {...props} issues={{ ...issueList, analysisStatus: 'PENDING', items: [] }} pollingStatus="exhausted" />)
+  expect(screen.getByText('분석 대기 중')).toBeTruthy()
+  expect(screen.getByRole('button', { name: '다시 조회' })).toBeTruthy()
+  view.rerender(<IssuePanel {...props} issues={{ ...issueList, analysisStatus: 'FAILED', items: [] }} pollingStatus="done" />)
+  expect(screen.getByText('분석에 실패했습니다')).toBeTruthy()
+  expect(screen.queryByText('검토 후보 없음')).toBeNull()
 })

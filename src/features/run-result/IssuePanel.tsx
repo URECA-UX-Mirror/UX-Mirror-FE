@@ -77,7 +77,7 @@ export function IssuePanel({
   } else if (issues.analysisStatus === 'FAILED') {
     body = <p role="alert">분석에 실패했습니다</p>
   } else if (issues.items.length === 0) {
-    body = <p>{validity === 'INVALID' ? '무효 처리된 실행은 검토 후보를 분석하지 않았습니다' : '검토 후보 없음'}</p>
+    body = <p>{validity === 'INVALID' ? '무효 처리된 실행의 검토 후보가 없습니다' : '검토 후보 없음'}</p>
   } else {
     body = (
       <ul className="issue-list">
@@ -144,7 +144,7 @@ export function IssuePanel({
         icon={<ListChecksIcon />}
         title="UX 검토 후보"
         aside={
-          issues && issues.analysisStatus === 'COMPLETED'
+          issues && issues.analysisStatus === 'COMPLETED' && !(validity === 'INVALID' && issues.items.length === 0)
             ? `${issues.items.length}건 탐지됨`
             : undefined
         }

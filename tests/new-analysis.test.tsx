@@ -9,7 +9,7 @@ import { errorResponse } from '../src/mocks/errors.ts'
 import { GOAL_SCREENS, PERSONA_CHOICES } from '../src/shared/customerInput.ts'
 import { server } from './setup.ts'
 
-const BUSY = '지금 다른 진단이 진행 중이에요. 끝나면 시작할 수 있어요.'
+const BUSY = '다른 진단이 돌고 있어요. 끝나면 시작할 수 있어요.'
 const GOAL = '지난주에 산 운동화를 돌려보내고 싶어요'
 
 const health = (extra: Partial<HealthDto> = {}): HealthDto => ({
@@ -47,8 +47,8 @@ function captureRuns() {
 
 const startButton = () => screen.getByRole('button', { name: '진단 시작' }) as HTMLButtonElement
 // 안내 문구가 label 안에 붙으므로 앞부분으로 찾는다
-const goalInput = () => screen.getByLabelText(/^고객이 하려는 일/) as HTMLInputElement
-const pageSelect = () => screen.getByLabelText(/^도착하면 성공인 화면/) as HTMLSelectElement
+const goalInput = () => screen.getByLabelText(/^무엇을 하려고/) as HTMLInputElement
+const pageSelect = () => screen.getByLabelText(/^어느 화면을 찾아야 하나요/) as HTMLSelectElement
 const chip = (name: string) => screen.getByRole('button', { name })
 const typeGoal = (value: string) => fireEvent.change(goalInput(), { target: { value } })
 
@@ -58,15 +58,15 @@ const settle = () => waitFor(() => expect(startButton().disabled).toBe(false))
 it('세 칸(고객·하려는 일·도착 화면)만 받고 개발자용 입력은 없다', async () => {
   renderPage()
   expect(screen.getByRole('region', { name: '진단하기' })).toBeTruthy()
-  expect(screen.getByRole('group', { name: '어떤 고객인가요?' })).toBeTruthy()
+  expect(screen.getByRole('group', { name: '누가' })).toBeTruthy()
   expect(goalInput().value).toBe('')
   expect(Array.from(pageSelect().options).map((o) => o.textContent)).toEqual(GOAL_SCREENS.map((s) => s.label))
   expect(pageSelect().value).toBe('refund')
   expect(screen.queryByLabelText(/실험 키|최대 탐색 횟수|성공 조건|분석 사이트/)).toBeNull()
   expect(screen.queryByRole('table')).toBeNull()
-  expect(screen.getByText('MORO MARKET')).toBeTruthy()
-  expect(screen.getByRole('link', { name: '다른 사이트 진단하기' }).getAttribute('href')).toBe('/scenario')
-  expect(screen.getByRole('link', { name: '지난 결과 다시 보기' }).getAttribute('href')).toBe('/replay')
+  expect(screen.getByText('MORO MARKET(시연용 쇼핑몰)에서 진단해요.')).toBeTruthy()
+  // 메뉴에서 뺀 화면으로 가는 링크는 두지 않는다
+  expect(screen.queryByRole('link')).toBeNull()
   await settle()
 })
 
@@ -81,7 +81,7 @@ it('고객 유형 칩은 하나만 눌리고, 질문 문장에 고른 값이 들
   typeGoal(GOAL)
   fireEvent.change(pageSelect(), { target: { value: 'orders' } })
   const question = document.querySelector('.customer-question')!
-  expect(question.textContent).toBe(`${second} 고객이 ${GOAL} 때, 주문·배송 조회 화면까지 잘 찾아올까요?`)
+  expect(question.textContent).toBe('이 고객이 주문·배송 조회 화면을 잘 찾을까요?')
   await settle()
 })
 
@@ -112,19 +112,18 @@ it('비운 채로 시작을 누르면 칸 아래에 안내하고 요청하지 �
   // 시작을 누르기 전에는 안내하지 않는다
   expect(screen.queryByRole('alert')).toBeNull()
   fireEvent.click(startButton())
-  expect(screen.getByText('고객 유형을(를) 적어 주세요.')).toBeTruthy()
-  expect(screen.getByText('고객이 하려는 일을(를) 적어 주세요.')).toBeTruthy()
+  expect(screen.getAllByText('내용을 적어 주세요.')).toHaveLength(2)
   typeGoal(GOAL)
-  expect(screen.queryByText('고객이 하려는 일을(를) 적어 주세요.')).toBeNull()
+  expect(screen.getAllByText('내용을 적어 주세요.')).toHaveLength(1)
   expect(bodies).toHaveLength(0)
 })
 
 it.each([
-  ['찾기', '고객이 하려는 일을(를) 조금 더 구체적으로 적어 주세요 (4자 이상).'],
-  ['?!?! 1234 ...', '고객이 하려는 일은(는) 글자로 적어 주세요 (기호·숫자만으로는 안 돼요).'],
-  ['아아아아아아아아', '고객이 하려는 일을(를) 뜻이 있는 문장으로 적어 주세요.'],
-  ['가'.repeat(201), '고객이 하려는 일은(는) 200자 이하로 적어 주세요.'],
-  ['after 화면에서 환불 신청하기', '고객이 하려는 일에 쓸 수 없는 단어가 있어요: after'],
+  ['찾기', '조금 더 자세히 적어 주세요. (4자 이상)'],
+  ['?!?! 1234 ...', '기호나 숫자 말고 글로 적어 주세요.'],
+  ['아아아아아아아아', '알아볼 수 있는 문장으로 적어 주세요.'],
+  ['가'.repeat(201), '200자까지 쓸 수 있어요.'],
+  ['after 화면에서 환불 신청하기', '쓸 수 없는 단어가 있어요: after'],
 ])('하려는 일 "%s"는 안내 후 요청하지 않는다', async (value, message) => {
   const bodies = captureRuns()
   renderPage()
@@ -175,7 +174,7 @@ it('다른 진단이 진행 중이면 안내와 진행 화면 링크를 보이�
   serveHealth({ activeRun: 'run_busy' })
   renderPage()
   const notice = await screen.findByText(new RegExp(BUSY))
-  expect(within(notice).getByRole('link', { name: '진행 중인 것 보기' }).getAttribute('href')).toBe('/runs/run_busy')
+  expect(within(notice).getByRole('link', { name: '보러 가기' }).getAttribute('href')).toBe('/runs/run_busy')
   expect(startButton().disabled).toBe(true)
 })
 
@@ -183,14 +182,14 @@ it('AI 개선이 진행 중이면 그 개선 화면으로 연결한다', async (
   serveHealth({ activeRun: 'run_v', activeRunOwner: { kind: 'IMPROVEMENT_VERIFICATION', runId: 'run_v', improvementId: 'imp_1' } })
   renderPage()
   const notice = await screen.findByText(new RegExp(BUSY))
-  expect(within(notice).getByRole('link', { name: '진행 중인 것 보기' }).getAttribute('href')).toBe('/improvements/imp_1')
+  expect(within(notice).getByRole('link', { name: '보러 가기' }).getAttribute('href')).toBe('/improvements/imp_1')
   expect(startButton().disabled).toBe(true)
 })
 
 it('AI 고객이 준비되지 않았으면 안내하고 시작할 수 없다', async () => {
   serveHealth({ status: 'NOT_READY' })
   renderPage()
-  expect(await screen.findByText(/AI 고객이 아직 준비되지 않았어요/)).toBeTruthy()
+  expect(await screen.findByText(/AI 고객이 아직 준비 중이에요/)).toBeTruthy()
   expect(startButton().disabled).toBe(true)
 })
 

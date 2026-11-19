@@ -1,3 +1,5 @@
+/* AI 개선 (/improvements, /improvements/:id) */
+
 .improvement-page {
   display: grid;
   gap: var(--um-space-4);
@@ -5,117 +7,325 @@
 
 .experiment-tag {
   padding: 2px var(--um-space-2);
+  border: 1px solid currentColor;
   border-radius: var(--um-radius-pill);
+  color: var(--um-info-text);
   font-size: 12px;
   font-weight: 600;
-  border: 1px solid currentColor;
 }
 
-.experiment-tag {
-  color: var(--um-info-text);
+.imp-question {
+  margin: 0;
+  color: var(--um-text-secondary);
+  font-size: 15px;
+  line-height: 24px;
 }
 
-.improvement-status {
-  margin: var(--um-space-2) 0 0;
+.imp-question strong {
+  color: var(--um-text);
 }
 
-.area-placeholder {
+/* 카드: 제목 띠가 없어도 위 여백을 둔다 */
+.card.imp-card {
+  display: grid;
+  gap: var(--um-space-3);
+  padding-top: var(--um-card-pad);
+}
+
+.card.imp-card > h2 {
+  margin-top: calc(var(--um-card-pad) * -1);
+  margin-bottom: 0;
+}
+
+.imp-card p {
+  margin: 0;
+}
+
+.imp-num {
+  font-variant-numeric: tabular-nums;
+}
+
+.imp-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* 진행 단계 */
+.imp-steps {
+  display: grid;
+  gap: var(--um-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.imp-steps li {
+  display: flex;
+  align-items: center;
+  gap: var(--um-space-2);
   color: var(--um-text-muted);
 }
 
-.improvement-limitations {
-  color: var(--um-text-secondary);
-  font-size: 13px;
+.imp-step-mark {
+  display: inline-grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border: 1px solid var(--um-border-strong);
+  border-radius: 50%;
+  font-size: 12px;
 }
 
-.improvement-area summary { cursor: pointer; }
-.improvement-round, .round-stop { border-top: 1px solid var(--um-border); margin-top: var(--um-space-4); padding-top: var(--um-space-2); }
-.improvement-round p { margin: var(--um-space-2) 0; }
-.round-candidates { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: var(--um-space-2); }
-.round-candidate { min-width: 0; overflow-wrap: anywhere; border: 1px solid var(--um-border); border-radius: var(--um-radius-control); padding: var(--um-space-3); }
-.round-candidate.is-adopted { border: 2px solid var(--um-info-text); }
-.round-candidate h5 { margin: 0 0 var(--um-space-2); }
-.round-source { color: var(--um-info-text); }
-.round-details { display: grid; gap: var(--um-space-1); margin: 0; }
-.round-details div { display: grid; grid-template-columns: 5em minmax(0, 1fr); gap: var(--um-space-2); }
-.round-details dt { color: var(--um-text-secondary); }
-.round-details dd { margin: 0; }
-
-.verification-section { display: grid; gap: var(--um-space-3); }
-.verification-pair { border: 1px solid var(--um-border); border-radius: var(--um-radius-control); padding: var(--um-space-3); }
-.verification-pair h3, .verification-run h4 { margin: 0 0 var(--um-space-2); }
-.verification-summary { font-weight: 600; }
-.verification-runs { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: var(--um-space-3); margin-top: var(--um-space-3); }
-.verification-run { background: var(--um-surface-subtle); border-radius: var(--um-radius-control); padding: var(--um-space-3); }
-.verification-run p { margin: 0 0 var(--um-space-2); overflow-wrap: anywhere; }
-.verification-links { display: flex; gap: var(--um-space-3); }
-.improvement-area .area-tag {
-  margin-left: var(--um-space-2);
-  padding: 2px var(--um-space-2);
-  border-radius: var(--um-radius-pill);
-  border: 1px dashed currentColor;
-  color: var(--um-info-text);
-  font-size: 12px;
+.imp-steps li[data-state='doing'] {
+  color: var(--um-accent-strong);
   font-weight: 600;
 }
 
-.summary-section {
+.imp-steps li[data-state='doing'] .imp-step-mark {
+  border-color: var(--um-brand);
+  color: var(--um-on-brand);
+  background: var(--um-brand);
+}
+
+.imp-steps li[data-state='done'] {
+  color: var(--um-success-text);
+}
+
+.imp-steps li[data-state='done'] .imp-step-mark {
+  border-color: var(--um-success-border);
+  background: var(--um-success-bg);
+}
+
+.imp-candidate {
+  display: grid;
+  gap: var(--um-space-1);
+  padding: var(--um-space-3);
+  border: 1px dashed var(--um-info-border);
+  border-radius: var(--um-radius-control);
+  background: var(--um-info-bg);
+}
+
+/* 결론 */
+.imp-conclusion {
   display: grid;
   gap: var(--um-space-3);
 }
 
-.summary-headline {
-  margin: 0;
-  font-weight: 600;
+.imp-headline {
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 32px;
 }
 
-.summary-block h3 {
-  margin: 0 0 var(--um-space-1);
-  font-size: 14px;
+.imp-headline strong {
+  color: var(--um-accent-strong);
+}
+
+.imp-region {
+  color: var(--um-text-secondary);
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.imp-numbers {
+  display: grid;
+  gap: var(--um-space-2);
+  margin: 0;
+  padding-top: var(--um-space-3);
+  border-top: 1px solid var(--um-border);
+}
+
+.imp-numbers > div {
+  display: grid;
+  grid-template-columns: minmax(9em, max-content) minmax(0, 1fr);
+  gap: var(--um-space-3);
+  align-items: baseline;
+}
+
+.imp-numbers dt {
   color: var(--um-text-secondary);
 }
 
-.summary-block p {
+.imp-numbers dd {
   margin: 0;
+  font-size: 17px;
 }
 
-.summary-lines {
-  list-style: none;
-  margin: 0;
+.imp-delta {
+  margin-left: var(--um-space-2);
+  color: var(--um-success-text);
+  font-size: 13px;
+}
+
+.imp-delta[data-negative='true'],
+.imp-bad,
+.imp-guards summary[data-bad='true'] {
+  color: var(--um-warning-text);
+}
+
+.imp-guards summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.imp-guards ul {
+  display: grid;
+  gap: var(--um-space-1);
+  margin: var(--um-space-2) 0;
   padding: 0;
+  list-style: none;
+  font-size: 15px;
+}
+
+/* 개선안에서 다시 해 본 결과 */
+.imp-verification {
+  display: grid;
+  gap: var(--um-space-3);
+}
+
+.imp-verification .primary-link {
+  justify-self: start;
+}
+
+.imp-sides {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
+  gap: var(--um-space-3);
+}
+
+.imp-side {
+  display: grid;
+  gap: var(--um-space-1);
+  padding: var(--um-space-3);
+  border-radius: var(--um-radius-control);
+  background: var(--um-surface-subtle);
+}
+
+.imp-side-title {
+  color: var(--um-text-secondary);
+  font-size: 13px;
+}
+
+.imp-side strong {
+  font-size: 18px;
+}
+
+.imp-side[data-reached='true'] strong {
+  color: var(--um-success-text);
+}
+
+.imp-side[data-reached='false'] strong {
+  color: var(--um-warning-text);
+}
+
+.imp-fold summary,
+.imp-how > summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.imp-other-pair {
+  display: grid;
+  gap: var(--um-space-2);
+  margin-top: var(--um-space-3);
+}
+
+.imp-other-pair h3 {
+  margin: 0;
+  font-size: 14px;
+}
+
+/* 어떻게 골랐는지 */
+.imp-rounds,
+.imp-official {
+  display: grid;
+  gap: var(--um-space-2);
+  padding-top: var(--um-space-3);
+  border-top: 1px solid var(--um-border);
+}
+
+.imp-rounds h3,
+.imp-official h3 {
+  margin: 0;
+  font-size: 15px;
+}
+
+.imp-round {
   display: grid;
   gap: var(--um-space-1);
 }
 
-.summary-score-line {
-  display: flex;
-  flex-wrap: wrap;
+.imp-round h4 {
+  margin: var(--um-space-2) 0 0;
+  font-size: 14px;
+}
+
+.imp-candidates,
+.imp-score-list {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.imp-candidates li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 4.5em minmax(0, 1.2fr);
   gap: var(--um-space-2);
-  align-items: baseline;
+  padding: var(--um-space-1) var(--um-space-2);
+  border-radius: var(--um-radius-control);
+  overflow-wrap: anywhere;
 }
 
-.summary-score-name {
-  min-width: 6em;
+.imp-candidates li[data-adopted='true'] {
+  background: var(--um-success-bg);
+  font-weight: 600;
 }
 
-.summary-delta,
-.summary-source {
-  margin-left: var(--um-space-2);
+.imp-verdict {
+  color: var(--um-text-secondary);
   font-size: 13px;
 }
 
-.summary-delta[data-negative='true'],
-.summary-range-out {
-  color: var(--um-warning-text);
+.imp-score-list li {
+  display: flex;
+  justify-content: space-between;
+  max-width: 320px;
 }
 
-.summary-range-ok,
-.summary-muted,
-.summary-source {
+.imp-limitation {
+  margin: 0;
   color: var(--um-text-muted);
+  font-size: 13px;
 }
 
-.summary-range-out,
-.summary-range-ok {
-  font-size: 12px;
+/* 지난 결과 */
+.imp-history {
+  display: grid;
+  gap: var(--um-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+@media (max-width: 767px) {
+  .imp-headline {
+    font-size: 19px;
+    line-height: 28px;
+  }
+
+  .imp-numbers > div {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
+}
+
+.imp-empty {
+  display: grid;
+  gap: var(--um-space-3);
 }

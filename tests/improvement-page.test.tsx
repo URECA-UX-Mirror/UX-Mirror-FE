@@ -18,7 +18,7 @@ type Json = Record<string, any> // eslint-disable-line @typescript-eslint/no-exp
 const improved = (): Json =>
   JSON.parse(readFileSync(resolve(process.cwd(), 'tests/fixtures/improvement.improved.json'), 'utf-8'))
 
-const LIMITATION = /AI 고객 기준 결과예요\. 실제 사람의 클릭률은 아니니/
+const LIMITATION = 'AI 고객 기준이에요. 실제 사람 테스트로 확인해 보세요.'
 
 function job(over: Partial<ImprovementJobDto> = {}): ImprovementJobDto {
   return {
@@ -54,24 +54,31 @@ function renderPage(id = 'imp_T') {
   )
 }
 
+const result = () => screen.findByRole('region', { name: '결론' })
+const howChosen = () => screen.queryByText('어떻게 골랐는지 보기')?.closest('details') ?? null
+
 afterEach(() => { vi.useRealTimers() })
 
-it('불러오는 동안 안내하고, 끝난 결과는 개선 효과·다시 확인·회차·접힌 점수 계산·한계 안내를 보인다', async () => {
+it('끝난 결과는 결론·다시 해 본 결과·접힌 "어떻게 골랐는지"·한 줄 안내 순서로 보인다', async () => {
   serve(job())
   renderPage()
-  expect(screen.getByRole('status').textContent).toContain('불러오는 중이에요')
-  expect(await screen.findByRole('region', { name: '개선 효과' })).toBeTruthy()
-  expect(screen.getByRole('heading', { level: 1, name: 'AI 개선 결과' })).toBeTruthy()
-  expect(screen.getByRole('region', { name: '개선안에서 다시 확인한 결과' })).toBeTruthy()
-  expect(screen.getByRole('region', { name: '개선 회차' })).toBeTruthy()
-  const details = screen.getByText('점수 계산 자세히 보기').closest('details')!
+  expect(screen.getByRole('status').textContent).toBe('불러오는 중이에요')
+  const conclusion = await result()
+  expect(screen.getByRole('heading', { level: 1, name: 'AI 개선' })).toBeTruthy()
+  expect(conclusion.textContent).toContain("'이용정보' → '주문내역'으로 바꿔 보세요")
+  const retried = screen.getByRole('region', { name: '개선안에서 다시 해 봤어요' })
+  expect(conclusion.compareDocumentPosition(retried) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  const details = howChosen()!
   expect(details.open).toBe(false)
+  expect(within(details).getByRole('region', { name: '시험한 이름' })).toBeTruthy()
+  expect(within(details).getByRole('region', { name: '점수 계산' })).toBeTruthy()
   expect(screen.getByText(LIMITATION)).toBeTruthy()
   expect(screen.queryByRole('region', { name: '진행 상황' })).toBeNull()
   expect(screen.queryByRole('alert')).toBeNull()
-  // 개발용 id나 상태 코드는 보이지 않는다
-  expect(document.body.textContent).not.toContain('imp_T')
-  expect(document.body.textContent).not.toContain('COMPLETED')
+  // 개발용 id·코드·영어는 보이지 않는다
+  const text = document.body.textContent ?? ''
+  for (const code of ['imp_T', 'COMPLETED', 'OFFICIAL_B', 'R1-H1', 'S1', 'S4', 'GUARD_LOSS', 'MAX_ROUNDS']) expect(text).not.toContain(code)
+  for (const wordy of ['해당', '되었습니다', '주 목표', '지킬 목표', '공식 평가(B)', '가장 짧은 길로']) expect(text).not.toContain(wordy)
 })
 
 it.each([
@@ -89,35 +96,35 @@ it.each([
 it('kind가 없으면 표시를 붙이지 않는다', async () => {
   serve(job({ kind: undefined }))
   renderPage()
-  await screen.findByRole('region', { name: '개선 효과' })
+  await result()
   expect(document.querySelector('.experiment-tag')).toBeNull()
 })
 
-it('입력 줄에 고객·할 일·도착 화면 이름을 보이고, 진단에서 왔으면 처음 진단 링크를 둔다', async () => {
+it('입력 줄에 고객·할 일·도착 화면을 보이고, 진단에서 왔으면 처음 진단 링크를 둔다', async () => {
   serve(job({ input: { goal: '환불하고 싶을', persona: '바쁜', goalPage: 'refund', sourceRunId: 'run_1' } }))
   renderPage()
-  const line = (await screen.findByText(/고객이/, { selector: 'p' }))
-  expect(line.textContent).toContain('바쁜 고객이 환불하고 싶을 때, 환불 신청 화면까지 잘 찾아오도록')
+  const line = await screen.findByText(/고객이/, { selector: '.imp-question' })
+  expect(line.textContent).toBe('바쁜 고객이 환불하고 싶을 때 · 도착 화면 환불 신청 · 처음 진단 보기')
   expect(within(line).getByRole('link', { name: '처음 진단 보기' }).getAttribute('href')).toBe('/runs/run_1/result')
 })
 
 it('모르는 도착 화면은 키 그대로, 입력이 없으면 입력 줄을 보이지 않는다', async () => {
   serve(job({ input: { goal: '쿠폰을 찾을', persona: '바쁜', goalPage: 'coupon' } }))
   const first = renderPage()
-  expect((await screen.findByText(/고객이/, { selector: 'p' })).textContent).toContain('coupon 화면까지')
+  expect((await screen.findByText(/고객이/, { selector: '.imp-question' })).textContent).toContain('도착 화면 coupon')
   expect(screen.queryByRole('link', { name: '처음 진단 보기' })).toBeNull()
   first.unmount()
 
   serve(job({ input: null }))
   renderPage()
-  await screen.findByRole('region', { name: '개선 효과' })
-  expect(document.querySelector('.improvement-question')).toBeNull()
+  await result()
+  expect(document.querySelector('.imp-question')).toBeNull()
 })
 
 it('없는 결과(404)면 찾을 수 없음과 목록 링크를 보인다', async () => {
   renderPage('imp_NONE') // 기본 핸들러: 404 IMPROVEMENT_NOT_FOUND
-  expect((await screen.findByRole('alert')).textContent).toBe('AI 개선 결과를 찾을 수 없어요.')
-  expect(screen.getByRole('link', { name: 'AI 개선 결과 목록 보기' }).getAttribute('href')).toBe('/improvements')
+  expect((await screen.findByRole('alert')).textContent).toBe('결과를 찾을 수 없어요.')
+  expect(screen.getByRole('link', { name: 'AI 개선 목록으로' }).getAttribute('href')).toBe('/improvements')
 })
 
 it('허용되지 않는 id 문자는 요청하지 않고 찾을 수 없음으로 안내한다', async () => {
@@ -137,22 +144,20 @@ it.each([
 ])('%s면 불러오지 못함을 안내한다', async (_name, respond) => {
   server.use(http.get(apiUrl('/api/improvements/:improvementId'), respond))
   renderPage()
-  expect((await screen.findByRole('alert')).textContent).toContain('AI 개선 결과를 불러오지 못했어요')
+  expect((await screen.findByRole('alert')).textContent).toContain('결과를 불러오지 못했어요')
   expect(document.body.textContent).not.toContain('INTERNAL')
 })
 
-it('진행 중이면 단계별 진행 상황을 보이고 리포트·한계 안내는 아직 없다', async () => {
+it('진행 중이면 3단계 체크리스트와 "5분쯤 걸려요"만 보이고 결과·안내 줄은 아직 없다', async () => {
   serve(job({ status: 'RUNNING', phase: 'BUILD_FINAL_SITE', finishedAt: null, improvement: null }))
   renderPage()
   const progress = await screen.findByRole('region', { name: '진행 상황' })
   const steps = within(progress).getAllByRole('listitem')
   expect(steps.map((li) => li.dataset.state)).toEqual(['done', 'doing', 'todo'])
-  expect(steps[0].textContent).toContain('문제 버튼을 찾고 새 이름 후보를 시험했어요')
-  expect(steps[1].textContent).toContain('개선안 화면을 만드는 중이에요')
-  expect(steps[2].textContent).toContain('개선안에서 AI 고객으로 다시 확인하기')
-  expect(within(progress).getByRole('status').textContent).toContain('모두 약 5분 걸려요')
-  expect(within(progress).getByRole('link', { name: '지난 결과' }).getAttribute('href')).toBe('/improvements')
-  expect(screen.queryByRole('region', { name: '개선 효과' })).toBeNull()
+  expect(steps.map((li) => li.textContent)).toEqual(['✓이름 후보 찾기 (끝)', '2개선안 만들기 (하는 중)', '3다시 확인'])
+  expect(within(progress).getByRole('status').textContent).toContain('5분쯤 걸려요')
+  expect(screen.queryByRole('region', { name: '결론' })).toBeNull()
+  expect(howChosen()).toBeNull()
   expect(screen.queryByText(LIMITATION)).toBeNull()
 })
 
@@ -163,26 +168,19 @@ it('대기 중(QUEUED)이면 모든 단계가 아직 할 일이다', async () =>
   expect(within(progress).getAllByRole('listitem').map((li) => li.dataset.state)).toEqual(['todo', 'todo', 'todo'])
 })
 
-it('루프가 끝나 리포트가 생긴 뒤에도 진행 중이면 다시 확인한 결과는 아직 보이지 않는다', async () => {
+it('진행 중에 찾은 후보는 "아직 확정 아니에요"로만 보이고 바꾸라고 권하지 않는다', async () => {
   serve(job({ status: 'RUNNING', phase: 'OFFICIAL_AND_VERIFY' }))
   renderPage()
   const progress = await screen.findByRole('region', { name: '진행 상황' })
   expect(within(progress).getAllByRole('listitem').map((li) => li.dataset.state)).toEqual(['done', 'done', 'doing'])
-  expect(screen.getByRole('region', { name: '개선 효과 (확정 전)' })).toBeTruthy()
-  expect(screen.queryByRole('region', { name: '개선안에서 다시 확인한 결과' })).toBeNull()
+  expect(progress.textContent).toContain("지금까지 찾은 이름: '이용정보' → '주문내역'")
+  expect(progress.textContent).toContain('아직 확정 아니에요')
+  expect(document.body.textContent).not.toContain('바꿔 보세요')
+  expect(screen.queryByRole('region', { name: '결론' })).toBeNull()
+  expect(screen.queryByRole('region', { name: '개선안에서 다시 해 봤어요' })).toBeNull()
 })
 
-it('공식 평가 중인 후보는 확정 전으로 보이고 "바꿔 보세요"라고 권하지 않는다', async () => {
-  serve(job({ status: 'RUNNING', phase: 'OFFICIAL_AND_VERIFY' }))
-  renderPage()
-  const area = await screen.findByRole('region', { name: '개선 효과 (확정 전)' })
-  expect(within(area).getByRole('heading', { name: '지금까지 찾은 후보' })).toBeTruthy()
-  expect(area.textContent).toContain('"주문내역" 후보')
-  expect(area.textContent).toContain('아직 확정이 아니에요')
-  expect(area.textContent).not.toContain('바꿔 보세요')
-})
-
-it('진행 중 후보가 공식 평가에서 탈락하면 끝난 결과에 탈락을 보이고 바꾸라고 권하지 않는다', async () => {
+it('진행 중 후보가 마지막 확인에서 떨어지면 끝난 결과에 나아지지 않았다고 보이고 권하지 않는다', async () => {
   vi.useFakeTimers({ shouldAdvanceTime: true })
   let calls = 0
   serve(() => {
@@ -194,23 +192,38 @@ it('진행 중 후보가 공식 평가에서 탈락하면 끝난 결과에 탈�
     return job({ improvement: report })
   })
   renderPage()
-  expect((await screen.findByRole('region', { name: '개선 효과 (확정 전)' })).textContent).toContain('"주문내역" 후보')
+  expect((await screen.findByRole('region', { name: '진행 상황' })).textContent).toContain("'주문내역'")
   await act(async () => { await vi.advanceTimersByTimeAsync(IMPROVEMENT_POLL_MS) })
-  const area = await screen.findByRole('region', { name: '개선 효과' })
-  expect(area.textContent).toContain('좋아지지 않았어요')
-  expect(area.textContent).toContain('"주문내역"도 기준을 넘지 못했어요')
+  const area = await result()
+  expect(area.textContent).toContain('이름만 바꿔서는 나아지지 않았어요')
+  expect(area.textContent).toContain("마지막 후보 '주문내역'도 다시 재 보니 기준에 못 미쳤어요 (나아진 폭이 작았어요).")
   expect(area.textContent).not.toContain('바꿔 보세요')
 })
 
-it.each(['FAILED', 'INTERRUPTED'])('%s인데 루프 후보가 있으면 확정되지 않은 후보로만 보인다', async (status) => {
-  serve(job({ status, phase: 'OFFICIAL_AND_VERIFY', error: { code: 'X', message: '공식 평가 중 오류가 났어요.' } }))
+it.each(['FAILED', 'INTERRUPTED'])('%s인데 후보가 있으면 확정 아닌 후보로만 보이고 권하지 않는다', async (status) => {
+  serve(job({ status, phase: 'OFFICIAL_AND_VERIFY', error: { code: 'X', message: '마지막 확인 중 오류가 났어요.' } }))
   renderPage()
-  const area = await screen.findByRole('region', { name: '개선 효과 (확정 전)' })
-  expect(area.textContent).toContain('확정되지 않은 후보예요')
-  expect(area.textContent).not.toContain('바꿔 보세요')
+  const card = await screen.findByRole('region', { name: '끝내지 못함' })
+  expect(card.textContent).toContain('확인을 끝내지 못해 확정 아니에요. 이 이름은 권하지 않아요.')
+  expect(document.body.textContent).not.toContain('바꿔 보세요')
+  expect(screen.queryByRole('region', { name: '결론' })).toBeNull()
 })
 
-it('조회가 한 번 실패해도 자동으로 다시 시도해 이어서 완료 결과를 보인다', async () => {
+it.each([
+  ['FAILED', '끝내지 못했어요'],
+  ['INTERRUPTED', '중간에 멈췄어요'],
+])('%s면 "%s"와 서버 안내를 보이고 진행 상황은 없다', async (status, title) => {
+  serve(job({ status, phase: 'LOOP', improvement: null, error: { code: 'LOOP_FAILED', message: '후보 평가 중 오류가 났어요.' } }))
+  renderPage()
+  const card = await screen.findByRole('region', { name: '끝내지 못함' })
+  expect(within(card).getByRole('heading', { name: title })).toBeTruthy()
+  expect(within(card).getByRole('alert').textContent).toBe('잠시 뒤 다시 해 주세요. 후보 평가 중 오류가 났어요.')
+  expect(card.textContent).not.toContain('LOOP_FAILED')
+  expect(screen.queryByRole('region', { name: '진행 상황' })).toBeNull()
+  expect(screen.queryByRole('region', { name: '결론' })).toBeNull()
+})
+
+it('조회가 한 번 실패해도 받은 내용을 두고 자동으로 다시 시도해 완료 결과를 보인다', async () => {
   vi.useFakeTimers({ shouldAdvanceTime: true })
   let calls = 0
   server.use(http.get(apiUrl('/api/improvements/:improvementId'), () => {
@@ -222,11 +235,11 @@ it('조회가 한 번 실패해도 자동으로 다시 시도해 이어서 완�
   renderPage()
   await screen.findByRole('region', { name: '진행 상황' })
   await act(async () => { await vi.advanceTimersByTimeAsync(IMPROVEMENT_POLL_MS) })
-  expect((await screen.findByText(/서버에 잠시 연결하지 못해/)).textContent).toContain('자동으로 다시 시도')
-  expect(screen.getByRole('region', { name: '진행 상황' })).toBeTruthy()   // 받은 내용은 그대로
+  expect((await screen.findByText(/연결이 잠깐 끊겼어요/)).textContent).toContain('다시 연결하는 중이에요')
+  expect(screen.getByRole('region', { name: '진행 상황' })).toBeTruthy()
   await act(async () => { await vi.advanceTimersByTimeAsync(IMPROVEMENT_RETRY_MS) })
-  expect(await screen.findByRole('region', { name: '개선 효과' })).toBeTruthy()
-  expect(screen.queryByText(/서버에 잠시 연결하지 못해/)).toBeNull()
+  expect(await result()).toBeTruthy()
+  expect(screen.queryByText(/연결이 잠깐 끊겼어요/)).toBeNull()
   expect(calls).toBe(3)
 })
 
@@ -241,7 +254,7 @@ it('처음 조회부터 실패하면 다시 불러오기 버튼과 자동 재시
   const alert = await screen.findByRole('alert')
   expect(within(alert).getByRole('button', { name: '지금 다시 불러오기' })).toBeTruthy()
   await act(async () => { await vi.advanceTimersByTimeAsync(IMPROVEMENT_RETRY_MS) })
-  expect(await screen.findByRole('region', { name: '개선 효과' })).toBeTruthy()
+  expect(await result()).toBeTruthy()
 })
 
 it('진행 중이면 3초마다 다시 읽고, 끝나면 결과를 보이고 멈춘다', async () => {
@@ -255,63 +268,52 @@ it('진행 중이면 3초마다 다시 읽고, 끝나면 결과를 보이고 멈
   await screen.findByRole('region', { name: '진행 상황' })
   expect(calls).toBe(1)
   await act(async () => { await vi.advanceTimersByTimeAsync(IMPROVEMENT_POLL_MS) })
-  expect(await screen.findByRole('region', { name: '개선 효과' })).toBeTruthy()
+  expect(await result()).toBeTruthy()
   expect(screen.queryByRole('region', { name: '진행 상황' })).toBeNull()
   expect(calls).toBe(2)
   await act(async () => { await vi.advanceTimersByTimeAsync(IMPROVEMENT_POLL_MS * 3) })
   expect(calls).toBe(2)
 })
 
-it.each([
-  ['FAILED', 'AI 개선을 끝내지 못했어요. 잠시 뒤 다시 시도해 주세요.'],
-  ['INTERRUPTED', 'AI 개선이 중간에 멈췄어요. 잠시 뒤 다시 시도해 주세요.'],
-])('%s면 사람 말 안내와 서버 안내 문구를 보이고 진행 상황은 없다', async (status, text) => {
-  serve(job({ status, phase: 'LOOP', improvement: null, error: { code: 'LOOP_FAILED', message: '후보 평가 중 오류가 났어요.' } }))
-  renderPage()
-  const alert = await screen.findByRole('alert')
-  expect(alert.textContent).toContain(text)
-  expect(alert.textContent).toContain('후보 평가 중 오류가 났어요.')
-  expect(alert.textContent).not.toContain('LOOP_FAILED')
-  expect(screen.queryByRole('region', { name: '진행 상황' })).toBeNull()
-  expect(screen.queryByRole('region', { name: '개선 효과' })).toBeNull()
-})
-
-it('한 영역의 데이터에 문제가 있어도 그 영역만 안내하고 나머지와 한계 안내는 보인다', async () => {
+it('다시 해 본 결과 데이터에 문제가 있으면 그 카드만 안내하고 나머지는 보인다', async () => {
   const broken = improved()
   delete broken.verification.status
   serve(job({ improvement: broken }))
   renderPage()
-  const verification = await screen.findByRole('region', { name: '개선안에서 다시 확인한 결과' })
+  const verification = await screen.findByRole('region', { name: '개선안에서 다시 해 봤어요' })
   await waitFor(() => expect(screen.getAllByRole('alert')).toHaveLength(1))
-  expect(within(verification).getByRole('alert').textContent).toBe('이 부분을 보여줄 수 없어요.')
-  expect(within(screen.getByRole('region', { name: '개선 효과' })).queryByRole('alert')).toBeNull()
+  expect(within(verification).getByRole('alert').textContent).toBe('이 부분을 보여 드릴 수 없어요.')
+  expect(within(screen.getByRole('region', { name: '결론' })).queryByRole('alert')).toBeNull()
   expect(screen.getByText(LIMITATION)).toBeTruthy()
 })
 
-it('개선 효과 데이터에 문제가 있으면 그 영역만 안내하고 회차는 보인다', async () => {
+it('결론 데이터에 문제가 있으면 결론만 안내하고 어떻게 골랐는지는 보인다', async () => {
   const broken = improved()
   delete broken.summary.beforeLabel
   serve(job({ improvement: broken }))
   renderPage()
-  const report = await screen.findByRole('region', { name: '개선 효과' })
-  expect(within(report).getByRole('alert').textContent).toBe('이 부분을 보여줄 수 없어요.')
-  expect(screen.getByRole('region', { name: '개선 회차' })).toBeTruthy()
+  expect(within(await result()).getByRole('alert').textContent).toBe('이 부분을 보여 드릴 수 없어요.')
+  expect(howChosen()).toBeTruthy()
   expect(screen.getByText(LIMITATION)).toBeTruthy()
 })
 
-it('회차 데이터에 문제가 있으면 회차 영역은 숨기고 나머지는 정상이다', async () => {
+it('회차 데이터에 문제가 있으면 시험한 이름만 숨기고 나머지는 정상이다', async () => {
   const broken = improved()
   delete broken.rounds[0].round
   serve(job({ improvement: broken }))
   renderPage()
-  await screen.findByRole('region', { name: '개선 효과' })
-  expect(screen.queryByRole('region', { name: '개선 회차' })).toBeNull()
+  await result()
+  expect(screen.queryByRole('region', { name: '시험한 이름' })).toBeNull()
+  expect(screen.getByRole('region', { name: '점수 계산' })).toBeTruthy()
   expect(screen.queryByRole('alert')).toBeNull()
 })
 
-it('공식 평가가 없으면(null) 점수 계산 접힌 영역을 보이지 않는다', async () => {
-  serve(job({ improvement: { ...improved(), official: null } }))
+it('점수 계산도 회차도 없으면 "어떻게 골랐는지 보기"를 두지 않는다', async () => {
+  const body = improved()
+  body.official = null
+  body.rounds = []
+  serve(job({ improvement: body }))
   renderPage()
-  await screen.findByRole('region', { name: '개선 효과' })
-  expect(screen.queryByText('점수 계산 자세히 보기')).toBeNull()
+  await result()
+  expect(howChosen()).toBeNull()
 })

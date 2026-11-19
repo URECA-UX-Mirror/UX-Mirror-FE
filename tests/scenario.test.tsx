@@ -12,7 +12,7 @@ import { server } from './setup.ts'
 const CAFE24_LINK = 'https://ecudemo360127.cafe24.com'
 const UNREGISTERED = '아직 등록되지 않은 사이트예요. 등록된 사이트의 링크를 넣어 주세요.'
 const BAD_LINK = '사이트 링크를 확인해 주세요. 예: https://www.example.com'
-const BUSY = '지금 다른 진단이 진행 중이에요. 끝나면 시작할 수 있어요.'
+const BUSY = '다른 진단이 돌고 있어요. 끝나면 시작할 수 있어요.'
 
 const health = (extra: Partial<HealthDto> = {}): HealthDto => ({
   status: 'READY', backend: { ready: true }, model: { ready: true, modelVersion: 'm', endpointId: 'e' },
@@ -176,11 +176,11 @@ it('사이트 목록이 비면 안내한다', async () => {
 })
 
 it.each([
-  ['고객이 하려는 일', '가'.repeat(201), '고객이 하려는 일은(는) 200자 이하로 적어 주세요.'],
-  ['고객이 하려는 일', '찾기', '고객이 하려는 일을(를) 조금 더 구체적으로 적어 주세요 (4자 이상).'],
-  ['고객 유형', '!!!! 1234', '고객 유형은(는) 글자로 적어 주세요 (기호·숫자만으로는 안 돼요).'],
-  ['고객 유형', 'ㅋㅋㅋㅋㅋㅋ', '고객 유형을(를) 뜻이 있는 문장으로 적어 주세요.'],
-  ['고객이 하려는 일', 'before 화면에서 환불 찾기', '고객이 하려는 일에 쓸 수 없는 단어가 있어요: before'],
+  ['고객이 하려는 일', '가'.repeat(201), '200자까지 쓸 수 있어요.'],
+  ['고객이 하려는 일', '찾기', '조금 더 자세히 적어 주세요. (4자 이상)'],
+  ['고객 유형', '!!!! 1234', '기호나 숫자 말고 글로 적어 주세요.'],
+  ['고객 유형', 'ㅋㅋㅋㅋㅋㅋ', '알아볼 수 있는 문장으로 적어 주세요.'],
+  ['고객이 하려는 일', 'before 화면에서 환불 찾기', '쓸 수 없는 단어가 있어요: before'],
 ])('%s에 "%s"를 쓰면 안내하고 시작할 수 없다', async (label, value, message) => {
   renderPage()
   await fillAndPick()
@@ -210,7 +210,7 @@ it('AI 고객이 준비되지 않았으면 시작할 수 없다', async () => {
   server.use(http.get(apiUrl('/api/health'), () => HttpResponse.json(health({ status: 'NOT_READY', model: { ready: false, modelVersion: null, endpointId: null } }))))
   renderPage()
   await fillAndPick()
-  expect(await screen.findByText(/AI 고객이 아직 준비되지 않았어요/)).toBeTruthy()
+  expect(await screen.findByText(/AI 고객이 아직 준비 중이에요/)).toBeTruthy()
   expect(startButton().disabled).toBe(true)
 })
 
@@ -219,7 +219,7 @@ it('다른 진단이 진행 중이면 안내와 진행 화면 링크를 보이�
   renderPage()
   await fillAndPick()
   const notice = await screen.findByText(new RegExp(BUSY))
-  expect(within(notice).getByRole('link', { name: '진행 중인 것 보기' }).getAttribute('href')).toBe('/runs/run_busy')
+  expect(within(notice).getByRole('link', { name: '보러 가기' }).getAttribute('href')).toBe('/runs/run_busy')
   expect(startButton().disabled).toBe(true)
 })
 

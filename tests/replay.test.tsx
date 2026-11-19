@@ -7,7 +7,7 @@ import { server } from './setup.ts'
 import { ComparisonPage } from '../src/features/comparison/ComparisonPage.tsx'
 import { isReplayKey, REPLAY_EXPERIMENTS } from '../src/features/replay/constants.ts'
 import { ReplayPage } from '../src/features/replay/ReplayPage.tsx'
-import { RunResultPage } from '../src/features/run-result/RunResultPage.tsx'
+import { RunPage } from '../src/features/run-result/RunPage.tsx'
 
 const REPLAY_EXPERIMENT_KEY = REPLAY_EXPERIMENTS[0].key
 
@@ -18,7 +18,7 @@ function renderAt(path: string) {
     <MemoryRouter initialEntries={[path]}>
       <Routes>
         <Route path="/replay" element={<ReplayPage />} />
-        <Route path="/runs/:runId/result" element={<RunResultPage />} />
+        <Route path="/runs/:runId/result" element={<RunPage />} />
         <Route path="/comparisons/:experimentKey" element={<ComparisonPage />} />
       </Routes>
     </MemoryRouter>,
@@ -84,10 +84,10 @@ it('고정 키의 저장된 Run 목록을 보이고 Run을 만드는 요청은 �
   expect(urls.some((request) => request.url.includes(`experimentKey=${REPLAY_EXPERIMENT_KEY}`))).toBe(true)
 })
 
-it('결과 화면에서 예시 데이터의 재생 표시는 실측이 아니라 예시 데이터 재생이다 (원본 배지는 결과 화면에 없다)', async () => {
+it('진단 화면은 재생 키의 Run이어도 재생 표시나 결과 출처 배지를 보이지 않는다', async () => {
   renderAt('/runs/run_mock_replay_before/result')
-  expect((await screen.findByRole('note')).textContent).toBe(MOCK_NOTE)
-  // 결과 화면은 사용자용이라 resultOrigin 배지를 보이지 않는다 (경로 기준 배지만 남는다)
+  expect(await screen.findByRole('heading', { name: '지나간 길' })).toBeTruthy()
+  expect(screen.queryByRole('note')).toBeNull()
   expect(document.querySelector('.origin-badge[data-origin]')).toBeNull()
 })
 
@@ -106,13 +106,13 @@ it('LIVE와 MOCK이 섞이면 실측이라고 표시하지 않는다', async () 
 
 it('고정 키가 아닌 실험의 비교 화면에는 재생 표시가 없다', async () => {
   renderAt('/comparisons/mock-partial')
-  expect(await screen.findByText(/비교할 수 있는 부분만 표시합니다/)).toBeTruthy()
+  expect(await screen.findByRole('region', { name: '결과 요약' })).toBeTruthy()
   expect(screen.queryByRole('note')).toBeNull()
 })
 
 it('고정 키의 비교 화면에는 재생 표시가 있다', async () => {
   renderAt(`/comparisons/${REPLAY_EXPERIMENT_KEY}`)
-  expect(await screen.findByText(/모든 화면을 비교했습니다/)).toBeTruthy()
+  expect(await screen.findByRole('region', { name: '결과 요약' })).toBeTruthy()
   expect(screen.getByRole('note').textContent).toBe(MOCK_NOTE)
 })
 

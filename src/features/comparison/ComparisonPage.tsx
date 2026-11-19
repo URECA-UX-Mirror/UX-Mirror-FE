@@ -1,113 +1,37 @@
-import { useState } from 'react'
 import { useParams } from 'react-router'
 import './comparison.css'
 import type { Comparison } from '../../domain/types.ts'
-import { ComparisonError } from './ComparisonError.tsx'
-import { ReplayNotice } from '../replay/ReplayNotice.tsx'
-import { ConditionChecks } from './ConditionChecks.tsx'
-import {
-  ComparisonSetup,
-  ConditionBar,
-  IssueComparison,
-  KpiCards,
-  PathComparison,
-} from './ComparisonSections.tsx'
-import { OriginBadges } from './OriginBadges.tsx'
-import { RunComparison } from './RunComparison.tsx'
-import { ScreenComparisonCard } from './ScreenComparisonCard.tsx'
-import { SingleScreenView } from './SingleScreenView.tsx'
 import { PAGE_NAMES } from '../../shared/pageNames.ts'
-import { useComparison, useRunMeta, useRunSteps } from './useComparisonData.ts'
+import { isReplayKey } from '../replay/constants.ts'
+import { ReplayNotice } from '../replay/ReplayNotice.tsx'
+import { ComparisonError } from './ComparisonError.tsx'
+import { ComparisonSummary, PathComparison } from './ComparisonSummary.tsx'
+import { ScreenDetails } from './ScreenDetails.tsx'
+import { useComparison, useRunMeta } from './useComparisonData.ts'
 
 function ComparisonBody({ comparison }: { comparison: Comparison }) {
-  // 후보 박스는 비교 응답에 없으므로 각 Run의 Step에서 가져온다. Run마다 따로 조회한다.
-  const beforeSteps = useRunSteps(comparison.beforeRunId)
-  const afterSteps = useRunSteps(comparison.afterRunId)
-  const { basis: beforeBasis, optimizationContext: beforeContext, improvementContext: beforeImprovement } = useRunMeta(comparison.beforeRunId)
-  const { basis: afterBasis, optimizationContext: afterContext, improvementContext: afterImprovement } = useRunMeta(comparison.afterRunId)
-  // 보기 방식은 화면 상태다. 기본은 한눈에 보기
-  const [view, setView] = useState<'overview' | 'single'>('overview')
+  // 고객·할 일·메뉴 이름은 비교 응답에 없어 각 Run에서 읽는다
+  const before = useRunMeta(comparison.beforeRunId)
+  const after = useRunMeta(comparison.afterRunId)
+  const persona = before.persona ?? after.persona
+  const goal = before.goal ?? after.goal
+  const task = [persona, goal].filter(Boolean).join(' · ')
+  const mock =
+    !isReplayKey(comparison.experimentKey) &&
+    [comparison.beforeResultOrigin, comparison.afterResultOrigin].includes('MOCK')
 
   return (
     <>
-      <ComparisonSetup
-        comparison={comparison}
-        beforeContext={beforeContext}
-        afterContext={afterContext}
-        beforeImprovement={beforeImprovement}
-        afterImprovement={afterImprovement}
-      />
-
-      {comparison.conditionsMatched ? (
-        <ConditionBar />
-      ) : (
-        <ConditionChecks checks={comparison.conditionChecks} />
-      )}
-
-      <KpiCards comparison={comparison} />
-
-      <section className="comparison-screens">
-        <div className="comparison-screens-head">
-          <h2>화면별 비교</h2>
-          {comparison.screenComparisons.length === 0 ? null : (
-            <div className="segmented" role="group" aria-label="보기 방식">
-              <button
-                type="button"
-                aria-pressed={view === 'overview'}
-                onClick={() => setView('overview')}
-              >
-                한눈에 보기
-              </button>
-              <button
-                type="button"
-                aria-pressed={view === 'single'}
-                onClick={() => setView('single')}
-              >
-                하나씩 보기
-              </button>
-            </div>
-          )}
-        </div>
-        {comparison.screenComparisons.length === 0 ? (
-          <p className="muted">비교할 화면이 없습니다</p>
-        ) : view === 'single' ? (
-          <SingleScreenView
-            screens={comparison.screenComparisons}
-            beforeRunId={comparison.beforeRunId}
-            afterRunId={comparison.afterRunId}
-            beforeSteps={beforeSteps}
-            afterSteps={afterSteps}
-          />
-        ) : (
-          comparison.screenComparisons.map((screen) => (
-            <ScreenComparisonCard
-              key={screen.pageKey}
-              screen={screen}
-              beforeRunId={comparison.beforeRunId}
-              afterRunId={comparison.afterRunId}
-              beforeSteps={beforeSteps}
-              afterSteps={afterSteps}
-              beforeBasis={beforeBasis}
-              afterBasis={afterBasis}
-            />
-          ))
-        )}
-      </section>
-
+      {task ? <p className="comparison-task">{task}</p> : null}
+      {mock ? <p className="muted">예시 데이터로 만든 결과예요</p> : null}
+      <ComparisonSummary comparison={comparison} meta={{ before, after }} />
       <PathComparison comparison={comparison} />
-      <IssueComparison comparison={comparison} />
-
-      <RunComparison
-        before={comparison.runComparison.before}
-        after={comparison.runComparison.after}
-        beforeBasis={beforeBasis}
-        afterBasis={afterBasis}
-      />
+      {comparison.conditionsMatched ? <ScreenDetails comparison={comparison} /> : null}
     </>
   )
 }
 
-/** ④ 버전 비교. 서버가 준 before/after 값과 증감만 표시하고 비교 계산이나 판정은 하지 않는다. */
+/** 지금 화면 vs 개선안. 서버가 준 결과만 보이고 값을 새로 계산하지 않는다 */
 export function ComparisonPage() {
   const { experimentKey = '' } = useParams()
   const { comparison, error, loading, reload } = useComparison(experimentKey)
@@ -115,32 +39,17 @@ export function ComparisonPage() {
   return (
     <section className="comparison-page">
       <header className="page-header">
-        <div className="page-title-row">
-          <h1>{PAGE_NAMES.comparison}</h1>
-          {comparison ? (
-            <OriginBadges
-              before={comparison.beforeResultOrigin}
-              after={comparison.afterResultOrigin}
-            />
-          ) : null}
-          {comparison ? (
-            <ReplayNotice
-              experimentKey={experimentKey}
-              origins={[comparison.beforeResultOrigin, comparison.afterResultOrigin]}
-            />
-          ) : null}
-        </div>
-        <p className="page-lead">두 버전의 AI 탐색 결과와 검토 항목을 비교합니다.</p>
+        <h1>{PAGE_NAMES.comparison}</h1>
+        {comparison ? (
+          <ReplayNotice
+            experimentKey={experimentKey}
+            origins={[comparison.beforeResultOrigin, comparison.afterResultOrigin]}
+          />
+        ) : null}
       </header>
 
-      {loading ? <p role="status">비교 결과를 불러오는 중</p> : null}
-      {error ? (
-        <ComparisonError
-          experimentKey={experimentKey}
-          error={error}
-          onRetry={reload}
-        />
-      ) : null}
+      {loading ? <p role="status">불러오는 중이에요</p> : null}
+      {error ? <ComparisonError experimentKey={experimentKey} error={error} onRetry={reload} /> : null}
       {comparison ? <ComparisonBody comparison={comparison} /> : null}
     </section>
   )

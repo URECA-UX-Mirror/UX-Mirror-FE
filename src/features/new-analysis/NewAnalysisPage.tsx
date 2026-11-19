@@ -52,23 +52,21 @@ export function NewAnalysisPage() {
   return (
     <section className="new-analysis">
       <header className="page-header">
-        <h1>고객이 원하는 화면을 잘 찾아오는지, AI 고객으로 확인해요</h1>
-        <p className="page-lead">AI 고객이 직접 화면을 눌러 보며 어디서 헤매는지 알려줘요. 고치는 방법은 다음 화면에서 AI에게 맡길 수 있어요.</p>
+        <h1>고객이 원하는 화면을 잘 찾을까요?</h1>
+        <p className="page-lead">AI 고객이 쇼핑몰을 직접 눌러 보고, 어디서 헤매는지 알려 줘요.</p>
       </header>
 
       <section className="card" aria-label={PAGE_NAMES.diagnose}>
         <CustomerInputs value={input} onChange={setInput} showErrors={showErrors} disabled={submitting} />
-        <p className="muted target-line">
-          진단할 사이트: <strong>{SITE.name}</strong> (시연용 쇼핑몰) · <Link to="/scenario">{PAGE_NAMES.otherSite}하기</Link>
-        </p>
+        <p className="muted target-line">{SITE.name}(시연용 쇼핑몰)에서 진단해요.</p>
         {busy ? (
           <p role="status" className="busy-notice">
-            지금 다른 진단이 진행 중이에요. 끝나면 시작할 수 있어요.
-            {busyLink ? <> <Link to={busyLink}>진행 중인 것 보기</Link></> : null}
+            다른 진단이 돌고 있어요. 끝나면 시작할 수 있어요.
+            {busyLink ? <> <Link to={busyLink}>보러 가기</Link></> : null}
           </p>
         ) : null}
         {notReady && !busy ? (
-          <p role="alert">AI 고객이 아직 준비되지 않았어요. <button type="button" onClick={health.reload}>다시 확인</button></p>
+          <p role="alert">AI 고객이 아직 준비 중이에요. <button type="button" onClick={health.reload}>다시 확인</button></p>
         ) : null}
         {health.error ? <p role="status">서버에 연결할 수 없어요. <button type="button" onClick={health.reload}>다시 확인</button></p> : null}
         {startError ? <p role="alert" className="error-notice">{startError}</p> : null}
@@ -77,16 +75,13 @@ export function NewAnalysisPage() {
         </button>
       </section>
 
-      <p className="muted">
-        지난 진단은 <Link to="/replay">{PAGE_NAMES.replay}</Link>에서 볼 수 있어요.
-      </p>
     </section>
   )
 }
 
 function runStartError(error: unknown): string {
   if (isApiError(error)) {
-    if (error.code === 'RUN_ALREADY_ACTIVE') return '지금 다른 진단이 진행 중이에요. 끝나면 시작할 수 있어요.'
+    if (error.code === 'RUN_ALREADY_ACTIVE') return '다른 진단이 돌고 있어요. 끝나면 시작할 수 있어요.'
     if (error.message.trim()) return error.message
   }
   return '진단을 시작하지 못했어요. 잠시 뒤 다시 시도해 주세요.'

@@ -1,15 +1,9 @@
-import { pageName } from '../src/features/comparison/labels.ts'
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { describe, expect, it } from 'vitest'
-import { RunComparison } from '../src/features/comparison/RunComparison.tsx'
-import { toComparison } from '../src/adapters/comparison.ts'
-import { buildComparison } from '../src/mocks/fixtures/comparison.ts'
-import { findRun } from '../src/mocks/store.ts'
 import { ComparisonPage } from '../src/features/comparison/ComparisonPage.tsx'
-import { KpiCards } from '../src/features/comparison/ComparisonSections.tsx'
-import type { Comparison } from '../src/domain/types.ts'
-import { formatDelta, formatMetric } from '../src/features/comparison/format.ts'
+import { outcomeText, verdictText } from '../src/features/comparison/verdict.ts'
+import type { Comparison, RunOutcome } from '../src/domain/types.ts'
 
 // mock 키는 src/mocks/handlers/comparisons.ts 상단 주석을 따른다.
 function renderPage(experimentKey: string) {
@@ -22,91 +16,125 @@ function renderPage(experimentKey: string) {
   )
 }
 
-const screenCard = (pageKey: string) =>
-  screen.getByRole('heading', { name: new RegExp(`화면:\\s*${pageName(pageKey)}`) }).closest('article') as HTMLElement
+const summary = () => screen.findByRole('region', { name: '결과 요약' })
 
-/** 화면 글자에 서버 코드값·ID·영어 버전 이름이 보이지 않는다 */
-function expectNoCodes(...codes: (string | RegExp)[]) {
+/** 화면 글자에 서버 코드값·ID·영어·어려운 용어가 보이지 않는다 */
+function expectPlainText() {
   const text = document.body.textContent ?? ''
-  for (const code of codes) expect(text).not.toMatch(code)
+  for (const code of [
+    /\bBefore\b/, /\bAfter\b/, /run_mock/, 'experimentKey', 'SUCCESS', /Step \d/, 'GO_BACK', 'CHOICE_AMBIGUITY',
+    'NOT_VISITED_IN', 'MATCHED', '엔트로피', 'margin', '기준 경로', '비교 조건', '증감', '해당', '되었습니다', '%p',
+  ]) {
+    expect(text).not.toMatch(code)
+  }
 }
 
-it('null 값은 0이나 빈 값이 아니라 계산 불가로 표시한다', () => {
-  expect(formatMetric(null, 'ratio')).toBe('계산 불가')
-  expect(formatDelta(null, 'margin')).toBe('계산 불가')
-  expect(formatDelta(0, 'ratio')).toBe('0.00')
-  expect(formatDelta(0.12, 'probability')).toBe('+12.0%p')
+const openDetails = () => fireEvent.click(screen.getByText('화면별로 자세히 보기'))
+
+describe('결론 문장', () => {
+  const outcome = (over: Partial<RunOutcome>) => ({ goalReached: true, status: 'SUCCESS', stepCount: 3, ...over }) as RunOutcome
+  const make = (before: Partial<RunOutcome>, after: Partial<RunOutcome>, conditionsMatched = true) =>
+    ({ conditionsMatched, runComparison: { before: outcome(before), after: outcome(after) } }) as Comparison
+
+  it('도착 여부와 단계 수로 한 문장을 만든다', () => {
+    expect(verdictText(make({ stepCount: 4 }, { stepCount: 2 }))).toBe('개선안에서 더 빨리 찾았어요')
+    expect(verdictText(make({ stepCount: 2 }, { stepCount: 4 }))).toBe('지금 화면에서 더 빨리 찾았어요')
+    expect(verdictText(make({}, {}))).toBe('차이가 없어요')
+    const lost = { goalReached: false, status: 'MAX_STEPS' }
+    expect(verdictText(make(lost, lost))).toBe('둘 다 못 찾았어요')
+    expect(verdictText(make(lost, {}))).toBe('개선안에서만 찾았어요')
+    expect(verdictText(make({}, lost))).toBe('지금 화면에서만 찾았어요')
+  })
+
+  it('설정이 다르거나 오류로 멈췄으면 말하지 않는다', () => {
+    expect(verdictText(make({ stepCount: 4 }, { stepCount: 2 }, false))).toBeNull()
+    expect(verdictText(make({ goalReached: false, status: 'ERROR' }, {}))).toBeNull()
+  })
+
+  it('한쪽 결과는 짧게 쓴다', () => {
+    expect(outcomeText(outcome({ stepCount: 3 }))).toBe('3번 만에 도착')
+    expect(outcomeText(outcome({ goalReached: false, status: 'BLOCKED' }))).toBe('못 찾음')
+    expect(outcomeText(outcome({ goalReached: false, status: 'ERROR' }))).toBe('중간에 멈춤')
+  })
 })
 
-it('COMPLETED는 모든 화면 비교를 보이고 조건 불일치 안내는 없다', async () => {
+it('제목·고객과 할 일·두 쪽 결과·진단 링크를 보인다', async () => {
   renderPage('mock-done')
-  expect(await screen.findByText(/모든 화면을 비교했습니다/)).toBeTruthy()
-  expect(screen.queryByText('비교 조건이 일치하지 않습니다')).toBeNull()
-  expect(screen.queryByText(/비교할 수 없는 화면입니다/)).toBeNull()
-  expect(screen.getByText('진단 전체 비교')).toBeTruthy()
+  const region = await summary()
   expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('지금 화면 vs 개선안')
-  // 두 쪽은 버전 이름으로, 각 진단은 결과 보기 링크로 보인다 (Run ID·상태 코드·Before/After·Step은 없다)
-  const setup = screen.getByRole('region', { name: '비교 대상' })
-  expect(within(setup).getByText('지금 화면')).toBeTruthy()
-  expect(within(setup).getByText('개선안')).toBeTruthy()
-  expect(within(setup).getAllByRole('link', { name: '결과 보기' })).toHaveLength(2)
-  expect(within(setup).getAllByText(/^도착함 · \d+단계$/)).toHaveLength(2)
-  await waitFor(() => expect(document.querySelectorAll('.comparison-pane img').length).toBeGreaterThan(0))
-  for (const img of document.querySelectorAll('.comparison-pane img')) {
-    expect(img.getAttribute('alt')).toMatch(/^(지금 화면|개선안) 화면 \(\d+번째 클릭\)$/)
-  }
-  expectNoCodes(/\bBefore\b/, /\bAfter\b/, 'Run ID', /run_mock/, 'experimentKey', 'SUCCESS', /Step \d/, 'GO_BACK', 'CHOICE_AMBIGUITY', 'GOAL_VERIFIED')
+  expect(within(region).getByRole('heading', { name: '지금 화면' })).toBeTruthy()
+  expect(within(region).getByRole('heading', { name: '개선안' })).toBeTruthy()
+  expect(within(region).getAllByText(/^\d+번 만에 도착$/)).toHaveLength(2)
+  expect(within(region).getByRole('link', { name: '지금 화면 진단 보기' }).getAttribute('href')).toBe('/runs/run_mock_done_before')
+  expect(within(region).getByRole('link', { name: '개선안 진단 보기' }).getAttribute('href')).toBe('/runs/run_mock_done_after')
+  expect(within(region).getByText(/더 빨리 찾았어요|차이가 없어요|에서만 찾았어요|둘 다 못 찾았어요/)).toBeTruthy()
+  // 고객·할 일은 Run에서 읽어 한 줄로 보인다
+  await waitFor(() => expect(document.querySelector('.comparison-task')?.textContent).toMatch(/^.+ · .+$/))
+  expectPlainText()
 })
 
-it('PARTIAL은 한쪽만 방문한 화면에 사유와 지표 없음 안내를 보인다', async () => {
+it('지나간 길은 두 쪽 화면 이름을 순서대로 보인다', async () => {
+  renderPage('mock-done')
+  await summary()
+  for (const name of ['지금 화면 길', '개선안 길']) {
+    const path = screen.getByLabelText(name)
+    const items = within(path).getAllByRole('listitem')
+    expect(items.length).toBeGreaterThan(0)
+    expect(items[0].textContent).toBe('홈')
+  }
+})
+
+it('화면별 비교는 접혀 있다가 펼치면 스크린샷과 누를 가능성을 보인다', async () => {
+  renderPage('mock-done')
+  await summary()
+  expect(document.querySelector('.comparison-screen')).toBeNull()
+  openDetails()
+  const home = screen.getByRole('article', { name: '홈' })
+  await waitFor(() => expect(home.querySelectorAll('img').length).toBe(2))
+  for (const img of home.querySelectorAll('img')) {
+    expect(img.getAttribute('alt')).toMatch(/^(지금 화면|개선안)의 홈 화면$/)
+  }
+  const rows = home.querySelectorAll('.comparison-candidates li')
+  expect(rows.length).toBeGreaterThan(0)
+  for (const row of rows) expect(row.querySelectorAll('.pair-row .gauge')).toHaveLength(2)
+  expectPlainText()
+  // 다시 누르면 접힌다
+  openDetails()
+  expect(document.querySelector('.comparison-screen')).toBeNull()
+})
+
+it('한쪽만 들른 화면은 이유를 짧게 쓰고 스크린샷은 있는 쪽만 보인다', async () => {
   renderPage('mock-partial')
-  expect(await screen.findByText(/비교할 수 있는 부분만 표시합니다/)).toBeTruthy()
-  const card = screenCard('mypage')
-  expect(within(card).getByText(/개선안에서는 들르지 않은 화면입니다/)).toBeTruthy()
-  expectNoCodes('NOT_VISITED_IN', /\bAfter\b/)
-  expect(within(card).getByText(/방문하지 않아 화면이 없습니다/)).toBeTruthy()
-  expect(within(card).getByText(/지표 비교가 없습니다/)).toBeTruthy()
-  expect(within(card).queryByRole('button', { name: /지표 표/ })).toBeNull()
-})
-
-it('conditionsMatched=false는 실패 항목과 Run 단위 결과를 보이고 증감을 만들지 않는다', async () => {
-  renderPage('mock-mismatch')
-  expect(await screen.findByText('비교 조건이 일치하지 않습니다')).toBeTruthy()
-  const conditions = screen.getByRole('alert')
-  expect(conditions.textContent).toContain('최대 클릭 수')
-  expect(conditions.textContent).not.toContain('AI 모델 버전')
-  expectNoCodes('MAX_STEPS_MATCHED', 'MODEL_VERSION_MATCHED')
-  expect(screen.getByText('진단 전체 비교')).toBeTruthy()
-
-  const card = screenCard('home')
-  expect(within(card).getAllByText(/비교 조건이 일치하지 않아 비교할 수 없습니다/).length).toBeGreaterThan(0)
-  // 후보 대응 표의 증감 칸은 모두 계산 불가이고 %p 값이 없다
-  const candidates = card.querySelector('.comparison-candidates') as HTMLElement
-  const deltaCells = [...candidates.querySelectorAll('tbody tr')].map((row) => row.lastElementChild?.textContent ?? '')
-  expect(deltaCells.length).toBeGreaterThan(0)
-  for (const text of deltaCells) {
-    expect(text).toContain('계산 불가')
-    expect(text).not.toContain('%p')
-  }
-  // 지표 표도 증감 칸이 계산 불가이고 before/after 값은 남는다
-  fireEvent.click(within(card).getByRole('button', { name: '지표 표 펼치기' }))
-  const metrics = card.querySelector('.comparison-metrics') as HTMLElement
-  for (const row of metrics.querySelectorAll('tbody tr')) {
-    expect(row.lastElementChild?.textContent).toBe('계산 불가')
-  }
-})
-
-it('afterStepId가 null인 화면은 스크린샷 없이 안내를 보인다', async () => {
-  renderPage('mock-partial')
-  await screen.findByText(/비교할 수 있는 부분만 표시합니다/)
-  const card = screenCard('mypage')
-  // 지금 화면 스크린샷만 있고 개선안(stepId=null)은 이미지 없이 안내만 보인다
+  await summary()
+  openDetails()
+  const card = screen.getByRole('article', { name: '마이페이지' })
+  expect(within(card).getByText('개선안에서는 들르지 않았어요')).toBeTruthy()
+  expect(within(card).getByText('이 화면에 들르지 않았어요')).toBeTruthy()
   await waitFor(() => expect(card.querySelectorAll('img').length).toBe(1))
-  expect(within(card).getByText(/방문하지 않아 화면이 없습니다/)).toBeTruthy()
+  expectPlainText()
+})
+
+it('설정이 다르면 결론과 화면별 비교 없이 이유 한 문장과 다시 진단 링크를 보인다', async () => {
+  renderPage('mock-mismatch')
+  const region = await summary()
+  expect(within(region).getByText(/두 진단의 설정이 달라서/)).toBeTruthy()
+  expect(within(region).getByRole('link', { name: '다시 진단하기' }).getAttribute('href')).toBe('/?experimentKey=mock-mismatch')
+  expect(within(region).queryByText(/찾았어요|차이가 없어요/)).toBeNull()
+  expect(screen.queryByText('화면별로 자세히 보기')).toBeNull()
+  // 두 쪽 결과와 지나간 길은 그대로 보인다
+  expect(within(region).getAllByText(/번 만에 도착|못 찾음/)).toHaveLength(2)
+  expect(screen.getByRole('heading', { name: '지나간 길' })).toBeTruthy()
+  expectPlainText()
+})
+
+it('메뉴 이름 후보 검증 Run이면 각 쪽의 메뉴 이름을 보인다', async () => {
+  renderPage('opt_mock_completed')
+  const region = await summary()
+  expect(await within(region).findByText('메뉴 이름 ‘이용정보’')).toBeTruthy()
+  expect(within(region).getByText('메뉴 이름 ‘주문·환불’')).toBeTruthy()
 })
 
 it('COMPARISON_NOT_READY는 기다리라는 안내와 다시 확인 버튼을 보인다', async () => {
-  // 시작 직후의 Run은 아직 끝나지 않았다. 없는 키와 문구가 구분되는지 함께 본다.
   const { server } = await import('./setup.ts')
   const { http, HttpResponse } = await import('msw')
   const { apiUrl } = await import('../src/api/client.ts')
@@ -119,167 +147,25 @@ it('COMPARISON_NOT_READY는 기다리라는 안내와 다시 확인 버튼을 �
     ),
   )
   renderPage('exp_running')
-  expect(await screen.findByText('두 버전의 분석이 모두 끝나면 비교할 수 있습니다')).toBeTruthy()
+  expect(await screen.findByText('두 진단이 다 끝나면 볼 수 있어요')).toBeTruthy()
   expect(screen.getByRole('button', { name: '다시 확인' })).toBeTruthy()
-  expect(screen.queryByText('비교 대상을 찾을 수 없습니다')).toBeNull()
+  expect(screen.queryByText('비교할 진단을 찾지 못했어요')).toBeNull()
 })
 
-it('RUN_NOT_FOUND는 잘못된 주소 안내를 보인다', async () => {
+it('RUN_NOT_FOUND는 진단하러 가기 링크를 보인다', async () => {
   renderPage('no-such-key')
-  expect(await screen.findByText('비교 대상을 찾을 수 없습니다')).toBeTruthy()
-  expect(screen.queryByText(/분석이 모두 끝나면/)).toBeNull()
+  expect(await screen.findByText('비교할 진단을 찾지 못했어요')).toBeTruthy()
+  expect(screen.getByRole('link', { name: '진단하러 가기' }).getAttribute('href')).toBe('/')
 })
 
-it('COMPARISON_RUN_INVALID는 실험 키를 담은 재분석 링크를 보인다', async () => {
+it('COMPARISON_RUN_INVALID는 실험 키를 담은 다시 진단 링크를 보인다', async () => {
   renderPage('mock-invalid-run')
-  const link = await screen.findByRole('link', { name: '해당 버전 다시 분석' })
+  const link = await screen.findByRole('link', { name: '다시 진단하기' })
   expect(link.getAttribute('href')).toBe('/?experimentKey=mock-invalid-run')
 })
 
 it('ANALYSIS_ERROR는 다시 시도 버튼을 보인다', async () => {
   renderPage('mock-error')
-  expect(await screen.findByText('비교 분석 중 오류가 발생했습니다')).toBeTruthy()
+  expect(await screen.findByText('결과를 견주다가 문제가 생겼어요')).toBeTruthy()
   expect(screen.getByRole('button', { name: '다시 시도' })).toBeTruthy()
-})
-
-it('하나씩 보기는 화면과 버전을 골라 한 장씩 보이고 한눈에 보기로 돌아온다', async () => {
-  renderPage('mock-done')
-  await screen.findByText(/모든 화면을 비교했습니다/)
-  fireEvent.click(screen.getByRole('button', { name: '하나씩 보기' }))
-  expect(screen.queryByRole('heading', { name: /화면:/ })).toBeNull()
-  const side = screen.getByRole('group', { name: '버전 선택' })
-  expect(within(side).getByRole('button', { name: '지금 화면' }).getAttribute('aria-pressed')).toBe('true')
-  fireEvent.click(within(side).getByRole('button', { name: '개선안' }))
-  expect(within(side).getByRole('button', { name: '개선안' }).getAttribute('aria-pressed')).toBe('true')
-  const pages = screen.getByRole('group', { name: '화면 선택' })
-  expect(within(pages).getAllByRole('button').length).toBeGreaterThan(0)
-  // 화면 선택 버튼은 화면 이름이다
-  expect(within(pages).getByRole('button', { name: '홈' })).toBeTruthy()
-  fireEvent.click(screen.getByRole('button', { name: '한눈에 보기' }))
-  expect(screen.getAllByRole('heading', { name: /화면:/ }).length).toBeGreaterThan(0)
-})
-
-it('후보별 확률 비교는 지금 화면·개선안 게이지를 같은 눈금으로 보인다', async () => {
-  renderPage('mock-done')
-  await screen.findByText(/모든 화면을 비교했습니다/)
-  const card = screenCard('home')
-  const rows = card.querySelectorAll('.comparison-candidates tbody tr')
-  expect(rows.length).toBeGreaterThan(0)
-  for (const row of rows) expect(row.querySelectorAll('.pair-row .gauge')).toHaveLength(2)
-})
-
-it('시작 화면 KPI는 home의 지표만 쓰고 없으면 다른 화면 값 대신 계산 불가로 둔다', () => {
-  const run = { navigationCost: 1, goalReached: true, stepCount: 2, successfulNavigationClickCount: 2, backCount: 0 }
-  const metrics = { goalPathProbability: { before: 0.31, after: 0.72, delta: 0.41 } }
-  const make = (screens: unknown[]) =>
-    ({ runComparison: { before: run, after: run }, screenComparisons: screens }) as unknown as Comparison
-
-  const { unmount } = render(<KpiCards comparison={make([{ pageKey: 'mypage', metrics }, { pageKey: 'home', metrics: null }])} />)
-  const card = screen.getByText('시작 화면 후보 확률').closest('.kpi-card') as HTMLElement
-  expect(within(card).getAllByText('계산 불가')).toHaveLength(2)
-  expect(card.textContent).not.toContain('72')
-  unmount()
-
-  render(<KpiCards comparison={make([{ pageKey: 'mypage', metrics }, { pageKey: 'home', metrics }])} />)
-  const homeCard = screen.getByText('시작 화면 후보 확률').closest('.kpi-card') as HTMLElement
-  expect(homeCard.textContent).toContain('31.0%')
-  expect(homeCard.textContent).toContain('72.0%')
-})
-
-const runRow = (label: string) => {
-  const th = screen.getByRole('rowheader', { name: label })
-  return th.closest('tr') as HTMLElement
-}
-
-it('SITE_MAP 비교는 기준·우회 이동·최단 경로 대비 이름을 보이고 이탈 횟수는 사용 안 함이다', async () => {
-  renderPage('mock-sitemap')
-  await screen.findByText('진단 전체 비교')
-  await waitFor(() => expect(runRow('경로 지표 기준').textContent).toContain('사이트 지도'))
-  const cells = (label: string) =>
-    [...runRow(label).querySelectorAll('td')].map((td) => td.textContent)
-  expect(cells('경로 지표 기준')).toEqual(['사이트 지도', '사이트 지도'])
-  expect(cells('우회 이동').every((text) => /^\d+$/.test(text ?? ''))).toBe(true)
-  // 값까지 확인한다: 서버 값은 숫자이거나 계산 불가다
-  expect(cells('최단 경로 대비 추가 단계').every((text) => /^(\d+|계산 불가)$/.test(text ?? ''))).toBe(true)
-  expect(cells('기준 경로 이탈 횟수')).toEqual(['사용 안 함', '사용 안 함'])
-  expect(screen.queryByRole('rowheader', { name: '추가 단계' })).toBeNull()
-  // 판정 문구·화살표를 만들지 않는다
-  const table = runRow('우회 이동').closest('table') as HTMLElement
-  expect(table.textContent).not.toMatch(/개선(?!안)|악화|[↑↓▲▼]/)
-})
-
-it('SITE_MAP 비교의 지표 표는 목표 경로 확률에 기준 설명을 붙인다', async () => {
-  renderPage('mock-sitemap')
-  await screen.findByText('진단 전체 비교')
-  await waitFor(() => expect(runRow('경로 지표 기준').textContent).toContain('사이트 지도'))
-  const card = screenCard('home')
-  fireEvent.click(within(card).getByRole('button', { name: '지표 표 펼치기' }))
-  expect(within(card).getByText(/사이트 지도에서 목표에 더 가까워지는 클릭 후보들의 확률 합/)).toBeTruthy()
-})
-
-it('basis 불일치는 항목 이름과 한국어 서버 message가 실패 항목에 나온다', async () => {
-  renderPage('mock-basis-mismatch')
-  expect(await screen.findByText('비교 조건이 일치하지 않습니다')).toBeTruthy()
-  expect(screen.getByRole('alert').textContent).toContain('경로 지표 기준 — 경로 지표 기준이 다릅니다')
-  expectNoCodes('REFERENCE_PATH_CONFIG_MATCHED')
-  expect(screen.getByText(/경로 지표 기준이 다릅니다/)).toBeTruthy()
-  await waitFor(() =>
-    expect([...runRow('경로 지표 기준').querySelectorAll('td')].map((td) => td.textContent)).toEqual([
-      '사이트 지도',
-      '허용 경로',
-    ]),
-  )
-  // 기준이 다르면 "최단 경로 대비" 이름으로 바꾸지 않는다
-  expect(screen.getByRole('rowheader', { name: '추가 단계' })).toBeTruthy()
-})
-
-it('과거 Run 비교(허용 경로)는 결과 화면과 같은 허용 경로 이름을 쓰고 우회 이동 행이 없다', async () => {
-  renderPage('mock-done')
-  await screen.findByText('진단 전체 비교')
-  await waitFor(() => expect(runRow('경로 지표 기준').textContent).toContain('허용 경로'))
-  expect(screen.getByRole('rowheader', { name: '추가 이동' })).toBeTruthy()
-  expect(screen.getByRole('rowheader', { name: '추가 이동 비용' })).toBeTruthy()
-  expect(screen.queryByRole('rowheader', { name: '추가 단계' })).toBeNull()
-  expect(screen.getByRole('rowheader', { name: '기준 경로 이탈 횟수' })).toBeTruthy()
-  expect(runRow('기준 경로 이탈 횟수').textContent).not.toContain('사용 안 함')
-  // 허용 경로끼리의 비교에는 우회 이동 행이 없다
-  expect(screen.queryByRole('rowheader', { name: '우회 이동' })).toBeNull()
-})
-
-it('기준이 다른 비교는 지표 표의 목표 경로 확률 설명을 버전별로 보인다', async () => {
-  renderPage('mock-basis-mismatch')
-  await screen.findByText('진단 전체 비교')
-  await waitFor(() => expect(runRow('경로 지표 기준').textContent).toContain('허용 경로'))
-  const card = screenCard('home')
-  fireEvent.click(within(card).getByRole('button', { name: '지표 표 펼치기' }))
-  expect(within(card).getByText(/지금 화면\(사이트 지도\): .*개선안\(허용 경로\): /)).toBeTruthy()
-})
-
-describe('RunComparison의 기준 경계값', () => {
-  const outcomes = () => {
-    const dto = buildComparison(findRun('run_mock_sitemap')!, findRun('run_mock_sitemap_after')!, true)
-    return toComparison(dto).runComparison
-  }
-  const cells = (label: string) =>
-    [...(screen.getByRole('rowheader', { name: label }).closest('tr') as HTMLElement).querySelectorAll('td')].map(
-      (td) => td.textContent,
-    )
-
-  it('기준 없음(null)이면 기준 없음으로 표시하고 우회 이동 행은 없으며 이탈 횟수는 계산 불가다', () => {
-    const { before, after } = outcomes()
-    render(<RunComparison before={before} after={after} beforeBasis={null} afterBasis={null} />)
-    expect(cells('경로 지표 기준')).toEqual(['기준 없음', '기준 없음'])
-    expect(screen.queryByRole('rowheader', { name: '우회 이동' })).toBeNull()
-    expect(cells('기준 경로 이탈 횟수')).toEqual(['계산 불가', '계산 불가'])
-    expect(screen.getByRole('rowheader', { name: '추가 단계' })).toBeTruthy()
-  })
-
-  it('기준을 모르면(조회 실패) 기존 표시를 유지하고 기준은 -로 둔다', () => {
-    const { before, after } = outcomes()
-    render(<RunComparison before={before} after={after} />)
-    expect(cells('경로 지표 기준')).toEqual(['-', '-'])
-    expect(screen.queryByRole('rowheader', { name: '우회 이동' })).toBeNull()
-    expect(screen.getByRole('rowheader', { name: '추가 단계' })).toBeTruthy()
-    expect(cells('기준 경로 이탈 횟수')).not.toContain('사용 안 함')
-  })
 })

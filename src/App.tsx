@@ -6,8 +6,7 @@ import { OptimizationPage } from './features/optimization/OptimizationPage.tsx'
 import { OptimizationStartPage } from './features/optimization/OptimizationStartPage.tsx'
 import { NewAnalysisPage } from './features/new-analysis/NewAnalysisPage.tsx'
 import { ReplayPage } from './features/replay/ReplayPage.tsx'
-import { RunProgressPage } from './features/run-progress/RunProgressPage.tsx'
-import { RunResultPage } from './features/run-result/RunResultPage.tsx'
+import { RunPage } from './features/run-result/RunPage.tsx'
 import { ScenarioPage } from './features/scenario/ScenarioPage.tsx'
 import { Layout } from './shared/Layout.tsx'
 
@@ -18,8 +17,8 @@ function App() {
       <Routes>
         <Route element={<Layout />}>
           <Route path="/" element={<NewAnalysisPage />} />
-          <Route path="/runs/:runId" element={<RunProgressPage />} />
-          <Route path="/runs/:runId/result" element={<RunResultPage />} />
+          <Route path="/runs/:runId" element={<RunPage />} />
+          <Route path="/runs/:runId/result" element={<RunPage />} />
           <Route path="/scenario" element={<ScenarioPage />} />
           <Route path="/optimizations" element={<OptimizationStartPage />} />
           <Route

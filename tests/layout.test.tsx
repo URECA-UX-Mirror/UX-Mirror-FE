@@ -1,14 +1,14 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, within } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router'
-import { beforeEach, expect, it } from 'vitest'
+import { beforeEach, expect, it, vi } from 'vitest'
 import { Layout } from '../src/shared/Layout.tsx'
 
-function renderLayout() {
+function renderLayout(path = '/') {
   return render(
-    <MemoryRouter initialEntries={['/']}>
+    <MemoryRouter initialEntries={[path]}>
       <Routes>
         <Route element={<Layout />}>
-          <Route index element={<p>본문</p>} />
+          <Route path="*" element={<p>본문</p>} />
         </Route>
       </Routes>
     </MemoryRouter>,
@@ -18,108 +18,60 @@ function renderLayout() {
 beforeEach(() => {
   localStorage.clear()
   delete document.documentElement.dataset.theme
-  localStorage.setItem('um.sidebar.open', '1')
 })
 
-it('사이드바 토글 버튼으로 접고 펼친다', () => {
-  renderLayout()
-  const toggle = screen.getByRole('button', { name: '사이드바 접기' })
-  fireEvent.click(toggle)
-  expect(screen.getByRole('button', { name: '사이드바 펼치기' }).getAttribute('aria-expanded')).toBe('false')
-  expect(localStorage.getItem('um.sidebar.open')).toBe('0')
-})
-
-it('방향키로 사이드바 너비를 조절하고 범위를 넘지 않으며 저장한다', () => {
-  renderLayout()
-  const handle = screen.getByRole('separator', { name: '사이드바 너비 조절' })
-  expect(handle.getAttribute('aria-valuenow')).toBe('256')
-  fireEvent.keyDown(handle, { key: 'ArrowRight' })
-  expect(handle.getAttribute('aria-valuenow')).toBe('272')
-  fireEvent.keyDown(handle, { key: 'ArrowLeft', shiftKey: true })
-  expect(handle.getAttribute('aria-valuenow')).toBe('224')
-  fireEvent.keyDown(handle, { key: 'End' })
-  expect(handle.getAttribute('aria-valuenow')).toBe('420')
-  fireEvent.keyDown(handle, { key: 'ArrowRight' })
-  expect(handle.getAttribute('aria-valuenow')).toBe('420')
-  fireEvent.keyDown(handle, { key: 'Home' })
-  expect(handle.getAttribute('aria-valuenow')).toBe('200')
-  expect(localStorage.getItem('um.sidebar.width')).toBe('200')
-})
-
-it('손잡이를 두 번 누르면 기본 너비로 돌아간다', () => {
-  localStorage.setItem('um.sidebar.width', '360')
-  renderLayout()
-  const handle = screen.getByRole('separator', { name: '사이드바 너비 조절' })
-  expect(handle.getAttribute('aria-valuenow')).toBe('360')
-  fireEvent.doubleClick(handle)
-  expect(handle.getAttribute('aria-valuenow')).toBe('256')
-})
-
-it('사이드바에 진단하기·AI 개선 결과·다른 사이트 진단·지난 결과 다시 보기·메뉴 이름 후보 비교 메뉴가 있다', () => {
+it('상단 메뉴는 진단하기와 AI 개선 두 개뿐이다', () => {
   renderLayout()
   const nav = screen.getByRole('navigation', { name: '주요 메뉴' })
-  expect(Array.from(nav.querySelectorAll('a')).map((a) => [a.textContent, a.getAttribute('href')])).toEqual([
+  const links = within(nav).getAllByRole('link')
+  expect(links.map((a) => [a.textContent, a.getAttribute('href')])).toEqual([
     ['진단하기', '/'],
-    ['AI 개선 결과', '/improvements'],
-    ['다른 사이트 진단', '/scenario'],
-    ['지난 결과 다시 보기', '/replay'],
-    ['메뉴 이름 후보 비교', '/optimizations'],
+    ['AI 개선', '/improvements'],
   ])
+  // 메뉴에서 뺀 화면은 링크가 없다
+  expect(screen.queryByRole('link', { name: /다른 사이트|후보 비교|지난 결과/ })).toBeNull()
+  expect(screen.queryByRole('separator')).toBeNull()
 })
 
 it.each([
-  ['/scenario', '다른 사이트 진단'],
-  ['/improvements', 'AI 개선 결과'],
-  ['/improvements/imp_1', 'AI 개선 결과'],
-  ['/runs/run_1/result', '진단 결과'],
-  ['/runs/run_1', '진단 중'],
-])('%s에서 상단 바에 화면 이름(%s)을 보인다', (path, name) => {
-  render(
-    <MemoryRouter initialEntries={[path]}>
-      <Routes>
-        <Route element={<Layout />}>
-          <Route path="*" element={<p>본문</p>} />
-        </Route>
-      </Routes>
-    </MemoryRouter>,
-  )
-  expect(screen.getByLabelText('현재 위치').textContent).toBe(`/${name}`)
+  ['/', '진단하기'],
+  ['/improvements', 'AI 개선'],
+  ['/improvements/imp_1', 'AI 개선'],
+])('%s에서는 %s 메뉴가 현재 화면으로 표시된다', (path, name) => {
+  renderLayout(path)
+  expect(screen.getByRole('link', { name }).getAttribute('aria-current')).toBe('page')
 })
 
-it('상단 바에 새 진단 링크가 있고 개발자용 문구는 없다', () => {
+it('로고를 누르면 첫 화면으로 간다', () => {
+  renderLayout('/runs/run_1')
+  expect(screen.getByRole('link', { name: /UX MIRROR/ }).getAttribute('href')).toBe('/')
+  expect(screen.getByText('본문')).toBeTruthy()
+})
+
+it('테마 버튼으로 어둡게·밝게 바꾸고 선택을 저장한다', () => {
   renderLayout()
-  expect(screen.getByRole('link', { name: '새 진단' }).getAttribute('href')).toBe('/')
-  expect(screen.queryByText(/mock|MSW/i)).toBeNull()
+  const toggle = screen.getByRole('button', { name: /어두운 화면으로|밝은 화면으로/ })
+  const start = document.documentElement.dataset.theme
+  fireEvent.click(toggle)
+  const next = document.documentElement.dataset.theme
+  expect(next === 'dark' || next === 'light').toBe(true)
+  expect(next).not.toBe(start)
+  expect(localStorage.getItem('um.theme')).toBe(next)
+  fireEvent.click(screen.getByRole('button', { name: /어두운 화면으로|밝은 화면으로/ }))
+  expect(document.documentElement.dataset.theme).toBe(next === 'dark' ? 'light' : 'dark')
 })
 
-it('테마 버튼으로 어두운 화면과 밝은 화면을 바꾸고 고른 값을 저장한다', () => {
-  renderLayout()
-  fireEvent.click(screen.getByRole('button', { name: '어두운 화면으로 바꾸기' }))
-  expect(document.documentElement.dataset.theme).toBe('dark')
-  expect(localStorage.getItem('um.theme')).toBe('dark')
-  const back = screen.getByRole('button', { name: '밝은 화면으로 바꾸기' })
-  expect(back.textContent).toBe('밝게')
-  fireEvent.click(back)
-  expect(document.documentElement.dataset.theme).toBe('light')
-  expect(localStorage.getItem('um.theme')).toBe('light')
-  expect(screen.getByRole('button', { name: '어두운 화면으로 바꾸기' }).textContent).toBe('어둡게')
-})
-
-it('저장된 테마가 있으면 그 테마로 시작한다', () => {
+it('저장한 테마가 있으면 그 테마로 시작한다', () => {
   localStorage.setItem('um.theme', 'dark')
   renderLayout()
-  expect(screen.getByRole('button', { name: '밝은 화면으로 바꾸기' })).toBeTruthy()
   expect(document.documentElement.dataset.theme).toBe('dark')
+  expect(screen.getByRole('button', { name: '밝은 화면으로 바꾸기' })).toBeTruthy()
 })
 
-it('저장된 테마가 없으면 기기 설정을 따르고 화면에 테마를 적지 않는다', () => {
-  const original = window.matchMedia
-  window.matchMedia = ((query: string) => ({ matches: query.includes('dark'), media: query, addEventListener() {}, removeEventListener() {} })) as unknown as typeof window.matchMedia
-  try {
-    renderLayout()
-    expect(screen.getByRole('button', { name: '밝은 화면으로 바꾸기' })).toBeTruthy()
-    expect(document.documentElement.dataset.theme).toBeUndefined()
-  } finally {
-    window.matchMedia = original
-  }
+it('저장한 테마가 없으면 기기 설정을 따르고 data-theme을 두지 않는다', () => {
+  vi.stubGlobal('matchMedia', () => ({ matches: true }))
+  renderLayout()
+  expect(document.documentElement.dataset.theme).toBeUndefined()
+  expect(screen.getByRole('button', { name: '밝은 화면으로 바꾸기' })).toBeTruthy()
+  vi.unstubAllGlobals()
 })

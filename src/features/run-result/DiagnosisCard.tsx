@@ -13,6 +13,12 @@ const TOP = 4
 
 const percent = (p: number) => `${Math.round(p * 100)}%`
 
+/** '을'/'를'. 받침이 있으면 '을' */
+function withObject(word: string): string {
+  const code = word.charCodeAt(word.length - 1) - 0xac00
+  return code >= 0 && code <= 11171 && code % 28 !== 0 ? '을' : '를'
+}
+
 /**
  * AI 개선을 시작할 수 있는 진단인지. 서버는 끝난·유효한 MORO MARKET 'before' 진단만 받는다(그 밖은 422).
  * 목표에 못 간(BLOCKED·MAX_STEPS) 진단도 유효하면 시작할 수 있다.
@@ -94,7 +100,7 @@ export function DiagnosisCard({ run, steps }: { run: Run; steps: Step[] | null }
             ))}
           </ul>
           {improvable && editable && !reached ? (
-            <p className="muted">"{editable.label}"을(를) 누를 가능성은 {percent(editable.probability)}예요. AI가 이 메뉴 이름을 바꿔 볼 수 있어요.</p>
+            <p className="muted">'{editable.label}'{withObject(editable.label)} 누를 가능성은 {percent(editable.probability)}예요. AI가 이 메뉴 이름을 바꿔 볼 수 있어요.</p>
           ) : null}
         </div>
       ) : null}
@@ -105,7 +111,7 @@ export function DiagnosisCard({ run, steps }: { run: Run; steps: Step[] | null }
             {pending ? '시작하는 중' : 'AI에게 고쳐 달라고 하기'}
           </button>
           <span className="muted">
-            같은 고객·같은 일로 메뉴 이름을 바꿔 보고, 다른 고객에게 손해가 없는지까지 확인해요 (약 5분). 끝나면 바뀐 이름으로 다시 확인한 결과와 나란히 비교할 수 있어요.
+            메뉴 이름을 바꿔 보고 같은 고객으로 다시 진단해요. 5분쯤 걸려요.
           </span>
         </div>
       ) : null}

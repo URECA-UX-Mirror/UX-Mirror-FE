@@ -54,13 +54,14 @@ it('2차 결과는 네 영역이 오류 없이 변환되고 채택·공식 확�
   expect(view.verification.data.pairs.map((pair) => pair.comparisonPath)).toEqual(['/comparisons/imp-1119b-S1', '/comparisons/imp-1119b-S4'])
 })
 
-it('2차 결과 화면은 공식 결과 표시·채택 이름·나란히 비교 링크를 보이고 영역 안내가 없다', async () => {
+it('2차 결과 화면은 공식 결과 표시·바꿀 이름·나란히 비교 링크를 보이고 영역 안내가 없다', async () => {
   renderOfficial('imp-1119b')
   expect(await screen.findByText('사전 등록 공식 결과')).toBeTruthy()
-  expect(screen.getByRole('region', { name: '개선 효과' }).querySelector('.summary-hero strong')?.textContent).toBe('주문 환불')
+  expect(screen.getByRole('region', { name: '결론' }).querySelector('.imp-headline strong')?.textContent).toBe("'주문 환불'")
+  expect(screen.getByRole('region', { name: '결론' }).textContent).toContain("'주문 환불'로 바꿔 보세요")
   expect(screen.getAllByRole('link', { name: '나란히 비교하기' }).map((a) => a.getAttribute('href'))).toEqual(['/comparisons/imp-1119b-S1', '/comparisons/imp-1119b-S4'])
-  expect(screen.getByText('점수 계산 자세히 보기')).toBeTruthy()
-  expect(screen.queryByText('이 부분을 보여줄 수 없어요.')).toBeNull()
+  expect(screen.getByRole('region', { name: '점수 계산' })).toBeTruthy()
+  expect(screen.queryByText('이 부분을 보여 드릴 수 없어요.')).toBeNull()
 })
 
 it('1차 결과는 네 영역이 오류 없이 변환되고 후보 11개를 읽는다', () => {
@@ -73,10 +74,11 @@ it('1차 결과는 네 영역이 오류 없이 변환되고 후보 11개를 읽�
   expect(view.rounds.data.reduce((n, r) => n + r.candidates.length, 0)).toBe(11)
 })
 
-it('1차 결과 화면은 이름만 바꿔서는 좋아지지 않았음과 다시 확인하지 않았음을 보이고 영역 안내가 없다', async () => {
+it('1차 결과 화면은 이름만 바꿔서는 나아지지 않았다고 보이고, 다시 해 본 카드·점수 계산은 없다', async () => {
   renderOfficial('imp-1119')
-  expect(await screen.findByText(/이름만 바꿔서는 좋아지지 않았어요/)).toBeTruthy()
-  expect(screen.getByText(/이번에는 개선안에서 다시 확인하지 않았어요/)).toBeTruthy()
-  expect(screen.queryByText('점수 계산 자세히 보기')).toBeNull()
-  expect(screen.queryByText('이 부분을 보여줄 수 없어요.')).toBeNull()
+  expect(await screen.findByText('이름만 바꿔서는 나아지지 않았어요')).toBeTruthy()
+  expect(screen.queryByRole('region', { name: '개선안에서 다시 해 봤어요' })).toBeNull()
+  expect(screen.queryByRole('region', { name: '점수 계산' })).toBeNull()
+  expect(screen.getByRole('region', { name: '시험한 이름' })).toBeTruthy()
+  expect(screen.queryByText('이 부분을 보여 드릴 수 없어요.')).toBeNull()
 })

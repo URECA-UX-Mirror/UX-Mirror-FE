@@ -146,15 +146,15 @@ export function ScenarioPage() {
         </section>
       )}
 
-      {engineNotReady && !busy && !health.loading && <p role="alert">AI 고객이 아직 준비되지 않았어요. <button type="button" onClick={health.reload}>다시 확인</button></p>}
-      {busy && <p role="status" className="busy-notice">지금 다른 진단이 진행 중이에요. 끝나면 시작할 수 있어요.{busyLink ? <> <Link to={busyLink}>진행 중인 것 보기</Link></> : null}</p>}
+      {engineNotReady && !busy && !health.loading && <p role="alert">AI 고객이 아직 준비 중이에요. <button type="button" onClick={health.reload}>다시 확인</button></p>}
+      {busy && <p role="status" className="busy-notice">다른 진단이 돌고 있어요. 끝나면 시작할 수 있어요.{busyLink ? <> <Link to={busyLink}>보러 가기</Link></> : null}</p>}
       {!!health.error && <p role="status">서버에 연결할 수 없어요. <button type="button" onClick={health.reload}>다시 확인</button></p>}
       {submitError ? (
         code === 'CONTRACT_VALIDATION_ERROR' && isApiError(submitError)
           ? <div role="alert"><p>{submitError.message || '입력한 내용을 확인해 주세요.'}</p><p>고친 뒤 다시 시작해 주세요.</p></div>
           : code === 'RUN_ALREADY_ACTIVE'
             // 진행 중인 Run 링크는 엔진 상태를 다시 읽은 뒤 위의 진행 중 안내가 맡는다
-            ? (busy ? null : <p role="alert">지금 다른 진단이 진행 중이에요. 끝나면 시작할 수 있어요.</p>)
+            ? (busy ? null : <p role="alert">다른 진단이 돌고 있어요. 끝나면 시작할 수 있어요.</p>)
             : isApiError(submitError) && submitError.status === 503
               ? <div role="alert"><p>{submitError.message.trim() || '진단을 준비하지 못했어요.'}</p>{code === 'BROWSER_ERROR' && <p>진단은 시작되지 않았어요.</p>}{submitError.retryable && <button type="button" disabled={!ready} onClick={() => void start()}>다시 시도</button>}</div>
               : <ErrorNotice error={submitError} onRetry={ready ? () => void start() : undefined} />

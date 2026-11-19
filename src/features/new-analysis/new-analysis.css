@@ -91,29 +91,6 @@
   display: none;
 }
 
-/* 분석 대상은 번호 없이 가볍게 보이는 안내 띠 */
-.new-analysis > section.card.target-card {
-  counter-increment: none;
-  padding: var(--um-space-3) var(--um-space-4);
-  border: 1px solid var(--um-border);
-  border-radius: var(--um-radius-card);
-  background: var(--um-surface);
-}
-
-.new-analysis > section.card.target-card::before,
-.new-analysis > section.card.target-card::after {
-  display: none;
-}
-
-.new-analysis > section.card.target-card .section-title {
-  margin-bottom: var(--um-space-2);
-  min-height: 0;
-}
-
-.new-analysis > section.card.target-card .section-title h2 {
-  font-size: 14px;
-}
-
 .new-analysis > * {
   margin-top: 0;
   margin-bottom: 0;

@@ -84,7 +84,7 @@ it('첫 화면 후보는 확률이 높은 4개만 높은 순으로 막대와 퍼
   expect(within(items[0]).getByText('가장 많이 골랐어요')).toBeTruthy()
   // AI가 바꿀 수 있는 메뉴(주문 화면으로 가는 버튼)를 표시하고 누를 가능성을 알려 준다
   expect(items[2].getAttribute('data-editable')).toBe('yes')
-  expect(screen.getByText(/"이용정보"을\(를\) 누를 가능성은 10%예요/)).toBeTruthy()
+  expect(screen.getByText(/'이용정보'를 누를 가능성은 10%예요/)).toBeTruthy()
 })
 
 it('"AI에게 고쳐 달라고 하기"는 진단 Run ID로 AI 개선을 시작하고 그 화면으로 이동한다', async () => {
@@ -108,7 +108,7 @@ it('AI 개선 시작이 409이면 다른 작업 진행 중, 503이면 서버 문
   server.use(http.post(apiUrl('/api/improvements'), () => errorResponse(409, 'RUN_ALREADY_ACTIVE', 'active')))
   const view = renderCard(runOf('run_mock_maxsteps'), null)
   fireEvent.click(screen.getByRole('button', { name: 'AI에게 고쳐 달라고 하기' }))
-  expect((await screen.findByRole('alert')).textContent).toBe('지금 다른 진단이나 AI 개선이 진행 중이에요. 끝나면 시작할 수 있어요.')
+  expect((await screen.findByRole('alert')).textContent).toMatch(/다른 진단이나 AI 개선이 진행 중이에요/)
   view.unmount()
 
   server.resetHandlers()   // 기본 MOCK 응답: 503 IMPROVEMENTS_DISABLED

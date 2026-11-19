@@ -1,14 +1,15 @@
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { fireEvent, render, screen, within } from '@testing-library/react'
 import { http, HttpResponse } from 'msw'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { expect, it } from 'vitest'
 import { apiUrl } from '../src/api/client.ts'
 import { ImprovementPage } from '../src/features/improvement/ImprovementPage.tsx'
+import { eulOf, roOf } from '../src/features/improvement/labels.ts'
 import { server } from './setup.ts'
 
-// AI 개선 결과의 개선 효과 영역 (SummarySection)과 접힌 점수 계산 (OfficialSection)
+// AI 개선 결과의 결론 카드 (SummarySection)
 
 type Json = Record<string, any> // eslint-disable-line @typescript-eslint/no-explicit-any
 
@@ -34,140 +35,96 @@ async function renderWith(report: Json) {
       </Routes>
     </MemoryRouter>,
   )
-  return screen.findByRole('region', { name: '개선 효과' })
+  return screen.findByRole('region', { name: '결론' })
 }
 
-const officialDetails = () => screen.getByText('점수 계산 자세히 보기').closest('details') as HTMLElement
-const lineOf = (area: HTMLElement, name: string) => within(area).getByText(name).parentElement as HTMLElement
+const numberOf = (area: HTMLElement, term: string) => within(area).getByText(term).nextElementSibling as HTMLElement
+const guards = (area: HTMLElement) => area.querySelector('.imp-guards') as HTMLDetailsElement
 
-it('IMPROVED: 바꿀 이름·전후 점수·변화량·다른 고객 판정을 보인다', async () => {
+it('IMPROVED: 바꿀 이름 한 줄, 찾아올 가능성 전→후, 다른 고객 "괜찮아요"(접힘)를 보인다', async () => {
   const area = await renderWith(improved())
-  const hero = area.querySelector('.summary-hero') as HTMLElement
-  expect(hero.textContent).toBe('상단 메뉴 "이용정보" → "주문내역"(으)로 바꿔 보세요AI 제안')
-  const main = lineOf(area, '환불하려는 고객')
-  expect(within(main).getByText('38.5%')).toBeTruthy()
-  expect(within(main).getByText('70.1%')).toBeTruthy()
-  expect(within(main).getByText('+31.6%p')).toBeTruthy()
-  expect(within(area).getByText('개선안 화면에서 다시 잰 값이에요')).toBeTruthy()
-  // 다른 고객 3명. 문의는 −0.8%p이며 허용 범위(−2.0%p) 이내
-  const s4 = lineOf(area, '문의 고객')
-  expect(within(s4).getByText('-0.8%p')).toBeTruthy()
-  expect(within(s4).getByText('괜찮음')).toBeTruthy()
-  expect(within(area).getAllByText('괜찮음')).toHaveLength(3)
-  expect(within(area).getByText('지금 화면보다 -2.0%p까지만 떨어져도 괜찮다고 봐요')).toBeTruthy()
+  expect(area.querySelector('.imp-headline')?.textContent).toBe("상단 메뉴 '이용정보' → '주문내역'으로 바꿔 보세요")
+  expect(numberOf(area, '이 고객이 찾아올 가능성').textContent).toBe('38.5% → 70.1%+31.6%p')
+  const fold = guards(area)
+  expect(fold.open).toBe(false)
+  expect(fold.querySelector('summary')?.textContent).toBe('괜찮아요')
+  fireEvent.click(fold.querySelector('summary')!)
+  expect(within(fold).getAllByRole('listitem').map((li) => li.textContent)).toEqual([
+    '배송 고객 68.0% → 81.2%+13.2%p',
+    '쿠폰 고객 77.1% → 90.3%+13.2%p',
+    '문의 고객 77.0% → 76.2%-0.8%p',
+  ])
+  expect(within(fold).getByText('-2.0%p까지는 괜찮다고 봐요.')).toBeTruthy()
 })
 
-it('허용 범위를 넘는 감소도 숨기지 않고 너무 많이 떨어짐으로 표시한다', async () => {
+it('허용 범위를 넘게 떨어진 고객이 있으면 "많이 떨어졌어요"로 보이고 그 고객을 표시한다', async () => {
   const body = improved()
   body.summary.guards[2] = { ...body.summary.guards[2], after: 0.7, delta: -0.07 }
   const area = await renderWith(body)
-  const s4 = lineOf(area, '문의 고객')
-  expect(within(s4).getByText('-7.0%p')).toBeTruthy()
-  expect(within(s4).getByText('너무 많이 떨어짐')).toBeTruthy()
+  expect(guards(area).querySelector('summary')?.textContent).toBe('많이 떨어졌어요')
+  const s4 = within(guards(area)).getByText('문의 고객').parentElement!
+  expect(s4.textContent).toContain('-7.0%p')
+  expect(s4.textContent).toContain('많이 떨어졌어요')
 })
 
-it('NO_IMPROVEMENT: 바꿔도 좋아지지 않았음을 보이고 후 점수·변화량·후 이름은 숨긴다', async () => {
-  const area = await renderWith(noImprovement())
-  expect(within(area).getByText(/이 목표는 "이용정보" 이름만 바꿔서는 좋아지지 않았어요\./)).toBeTruthy()
-  expect(within(area).getByText('40.2%')).toBeTruthy() // 지금 점수
-  expect(area.querySelector('.summary-delta')).toBeNull()
-  expect(within(area).queryByText(/^(괜찮음|너무 많이 떨어짐)$/)).toBeNull()
-  expect(area.textContent).not.toContain('→ ')
-  expect(area.textContent).not.toContain('주문내역')
-  expect(within(area).queryByText('AI 제안')).toBeNull()
-  expect(within(area).queryByText('개선안 화면에서 다시 잰 값이에요')).toBeNull()
-  // 공식 평가가 없으면 점수 계산 영역도 없다
-  expect(screen.queryByText('점수 계산 자세히 보기')).toBeNull()
-})
-
-it('점수 계산: 공식 최종안 이름·점수·이름 외 차이 없음·A/B 차이를 보인다', async () => {
-  await renderWith(improved())
-  const details = officialDetails()
-  expect(within(details).getByText(/공식 평가 최종안/).textContent).toContain('주문내역')
-  expect(within(details).getByText('주 목표 점수').nextSibling?.textContent).toBe('70.1%')
-  expect(within(details).getByText('S2 배송').nextSibling?.textContent).toBe('81.2%')
-  expect(within(details).getByText(/이름 외 차이 없음/)).toBeTruthy()
-  expect(within(details).getByText(/추정\(A\)과 공식\(B\)의 차이: 최대 0\.6%p/)).toBeTruthy()
-})
-
-it('모르는 scoreSource는 개발용 원문을 보이지 않고, 모르는 buildCheck는 점수 계산 안에서 "확인 필요"로 보인다', async () => {
-  const body = improved()
-  body.summary.scoreSource = 'SOMETHING_NEW'
-  body.official.site.buildCheck = 'EXTRA_DIFF'
-  const area = await renderWith(body)
-  expect(area.textContent).not.toContain('SOMETHING_NEW')
-  expect(within(area).queryByText('개선안 화면에서 다시 잰 값이에요')).toBeNull()
-  expect(within(officialDetails()).getByText('사이트 확인: 확인 필요')).toBeTruthy()
-})
-
-it('IMPROVED에서 후 점수가 null이면 0%로 보이지 않고 이 영역만 안내한다', async () => {
-  const body = improved()
-  body.summary.guards[0] = { ...body.summary.guards[0], after: null, delta: null }
-  const area = await renderWith(body)
-  expect(area.textContent).not.toContain('0.0%')
-  expect(within(area).getByRole('alert').textContent).toBe('이 부분을 보여줄 수 없어요.')
-})
-
-it('IMPROVED에서 변화량이 없으면 0.0%p로 보이지 않고 이 영역만 안내한다', async () => {
-  const body = improved()
-  body.summary.guards[0] = { ...body.summary.guards[0], delta: undefined }
-  const area = await renderWith(body)
-  expect(within(area).getByRole('alert').textContent).toBe('이 부분을 보여줄 수 없어요.')
-  expect(area.textContent).not.toContain('0.0%p')
-})
-
-it('필수 필드가 없으면 이 영역만 안내하고 점수 계산은 정상이다', async () => {
-  const body = improved()
-  delete body.summary.main.before
-  const area = await renderWith(body)
-  expect(within(area).getByRole('alert')).toBeTruthy()
-  const details = officialDetails()
-  expect(within(details).queryByRole('alert')).toBeNull()
-  await waitFor(() => expect(within(details).getByText('70.1%')).toBeTruthy())
-  // 리포트를 못 읽으면 목표 이름 없이 키만 보인다
-  expect(within(details).getByText('S2')).toBeTruthy()
-})
-
-it('모르는 summary.result는 이름을 정하지 못했다고 보이고 후 값은 숨긴다', async () => {
-  const body = improved()
-  body.summary.result = 'PARTIAL'
-  const area = await renderWith(body)
-  expect(within(area).getByText(/이번 실행에서는 바꿀 이름을 정하지 못했어요\./)).toBeTruthy()
-  expect(area.textContent).not.toContain('PARTIAL')
-  expect(within(area).queryByText('주문내역')).toBeNull()
-  expect(within(area).queryByText('70.1%')).toBeNull()
-  expect(area.querySelector('.summary-delta')).toBeNull()
-  expect(area.textContent).not.toContain('→ 값 없음')
-})
-
-it('plan.rules.maxGuardLoss로 허용 범위를 판정한다', async () => {
+it('plan.rules.maxGuardLoss로 범위를 판정하고, 정확히 경계면 괜찮아요다', async () => {
   const body = improved()
   body.plan.rules = { maxGuardLoss: 0.01 }
-  body.summary.guards[2] = { ...body.summary.guards[2], after: 0.755, delta: -0.015 }
+  body.summary.guards[2] = { ...body.summary.guards[2], after: 0.76, delta: -0.01 }
   const area = await renderWith(body)
-  expect(within(area).getByText(/-1\.0%p까지만 떨어져도 괜찮다고 봐요/)).toBeTruthy()
-  expect(within(lineOf(area, '문의 고객')).getByText('너무 많이 떨어짐')).toBeTruthy()
-  expect(within(area).getAllByText('괜찮음')).toHaveLength(2)
+  expect(guards(area).querySelector('summary')?.textContent).toBe('괜찮아요')
+  expect(within(guards(area)).getByText('-1.0%p까지는 괜찮다고 봐요.')).toBeTruthy()
 })
 
-it('허용 범위가 정확히 경계(−2.0%p)이면 괜찮음이다', async () => {
-  const body = improved()
-  body.summary.guards[2] = { ...body.summary.guards[2], after: 0.75, delta: -0.02 }
-  const area = await renderWith(body)
-  expect(within(lineOf(area, '문의 고객')).getByText('괜찮음')).toBeTruthy()
-})
-
-it('허용 범위 키가 없으면 범위 판정을 보이지 않는다', async () => {
+it('허용 범위가 없으면 판정 없이 "점수 보기"로만 접어 둔다', async () => {
   const body = improved()
   body.plan.rules = {}
   const area = await renderWith(body)
-  expect(within(area).queryByText(/떨어져도 괜찮다고 봐요/)).toBeNull()
-  expect(within(area).queryByText(/^(괜찮음|너무 많이 떨어짐)$/)).toBeNull()
+  expect(guards(area).querySelector('summary')?.textContent).toBe('점수 보기')
+  expect(area.textContent).not.toContain('괜찮아요')
 })
 
-it('다른 고객이 없으면 없다고 안내한다', async () => {
+it('다른 고객이 없으면 다른 고객 줄을 두지 않는다', async () => {
   const body = improved()
   body.summary.guards = []
   const area = await renderWith(body)
-  expect(within(area).getByText('함께 살펴본 다른 고객이 없어요')).toBeTruthy()
+  expect(within(area).queryByText('다른 고객')).toBeNull()
+})
+
+it('NO_IMPROVEMENT: "이름만 바꿔서는 나아지지 않았어요"와 지금 점수만 보이고 후 값은 숨긴다', async () => {
+  const area = await renderWith(noImprovement())
+  expect(area.querySelector('.imp-headline')?.textContent).toBe('이름만 바꿔서는 나아지지 않았어요')
+  expect(area.textContent).toContain("지금은 '이용정보' 메뉴 이름만 바꿀 수 있어요.")
+  expect(numberOf(area, '이 고객이 찾아올 가능성').textContent).toBe('40.2%')
+  expect(area.textContent).not.toContain('→')
+  expect(area.textContent).not.toContain('바꿔 보세요')
+  expect(within(area).queryByText('다른 고객')).toBeNull()
+})
+
+it('모르는 summary.result는 이름을 못 정했다고 보이고 후 값·원문은 숨긴다', async () => {
+  const body = improved()
+  body.summary.result = 'PARTIAL'
+  const area = await renderWith(body)
+  expect(area.querySelector('.imp-headline')?.textContent).toBe('이번에는 바꿀 이름을 못 정했어요')
+  expect(area.textContent).not.toContain('PARTIAL')
+  expect(area.textContent).not.toContain('주문내역')
+  expect(area.textContent).not.toContain('70.1%')
+})
+
+it.each([
+  ['후 점수가 null', (g: Json) => ({ ...g, after: null, delta: null })],
+  ['변화량이 없음', (g: Json) => ({ ...g, delta: undefined })],
+])('IMPROVED에서 %s이면 0으로 보이지 않고 결론만 안내한다', async (_name, change) => {
+  const body = improved()
+  body.summary.guards[0] = change(body.summary.guards[0])
+  const area = await renderWith(body)
+  expect(within(area).getByRole('alert').textContent).toBe('이 부분을 보여 드릴 수 없어요.')
+  expect(area.textContent).not.toContain('0.0%')
+})
+
+it.each([
+  ['주문내역', '으로', '을'], ['주문 환불', '로', '을'], ['배송 조회', '로', '를'], ['내 주문', '으로', '을'], ['FAQ', '(으)로', '을(를)'],
+])('조사: %s → %s / %s', (word, ro, eul) => {
+  expect(roOf(word)).toBe(ro)
+  expect(eulOf(word)).toBe(eul)
 })

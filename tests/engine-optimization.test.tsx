@@ -78,10 +78,10 @@ it('엔진 상태: 진단이 진행 중이면 진단 중과 진행 화면 링크
   expect(statusLink()?.getAttribute('href')).toBe('/runs/run_1')
 })
 
-it('엔진 상태: 링크 없는 작업은 다른 작업 진행 중, 준비 전은 준비 중, 조회 실패는 연결 안내', async () => {
+it('엔진 상태: 링크 없는 작업은 다른 작업 중, 준비 전은 준비 중, 조회 실패는 연결 안내', async () => {
   healthWith({ activeRunOwner: { kind: 'SOMETHING', runId: null, improvementId: null } })
   const first = render(<MemoryRouter><EngineStatus /></MemoryRouter>)
-  expect(await screen.findByText('다른 작업 진행 중')).toBeTruthy()
+  expect(await screen.findByText('다른 작업 중')).toBeTruthy()
   expect(statusLink()).toBeNull()
   first.unmount()
 
@@ -95,7 +95,7 @@ it('엔진 상태: 링크 없는 작업은 다른 작업 진행 중, 준비 전�
   expect(await screen.findByText('서버에 연결할 수 없어요')).toBeTruthy()
 })
 
-const BUSY = '지금 다른 진단이 진행 중이에요. 끝나면 시작할 수 있어요.'
+const BUSY = '다른 진단이 돌고 있어요. 끝나면 시작할 수 있어요.'
 
 it('진단하기: 후보 비교가 진행 중이면 안내를 보이고 시작 버튼을 막는다', async () => {
   setMockActiveOptimization({ optimizationId: 'opt_mock_1', status: 'EVALUATING' })

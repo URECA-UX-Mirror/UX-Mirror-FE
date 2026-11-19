@@ -13,7 +13,7 @@ interface EngineStatusProps {
 export function EngineStatus({ refreshKey }: EngineStatusProps) {
   const { health, error, loading } = useHealth(refreshKey)
 
-  if (loading && !health && !error) return <Status state="pending" label="상태 확인 중" />
+  if (loading && !health && !error) return <Status state="pending" label="확인 중" />
   if (error || !health) return <Status state="unknown" label="서버에 연결할 수 없어요" />
 
   const owner = health.activeOwner
@@ -24,7 +24,7 @@ export function EngineStatus({ refreshKey }: EngineStatusProps) {
   if (health.activeOptimization) {
     return <Status state="busy" label="후보 비교 중" to={`/optimizations/${encodeURIComponent(health.activeOptimization.optimizationId)}`} />
   }
-  if (owner) return <Status state="busy" label="다른 작업 진행 중" />
+  if (owner) return <Status state="busy" label="다른 작업 중" />
   return health.status === 'READY' ? <Status state="ready" label="준비됨" /> : <Status state="pending" label="준비 중" />
 }
 

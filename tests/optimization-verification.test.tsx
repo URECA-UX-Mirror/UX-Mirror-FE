@@ -2,11 +2,9 @@ import { fireEvent, render, screen, waitFor, within } from '@testing-library/rea
 import { http, HttpResponse } from 'msw'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { afterEach, expect, it } from 'vitest'
-import { toRunList } from '../src/adapters/run.ts'
 import { apiUrl } from '../src/api/client.ts'
-import type { OptimizationDto, OptimizationReportDto, RunListDto } from '../src/api/dto/index.ts'
+import type { OptimizationDto, OptimizationReportDto } from '../src/api/dto/index.ts'
 import { OptimizationPage } from '../src/features/optimization/OptimizationPage.tsx'
-import { OtherRuns } from '../src/features/run-result/OtherRuns.tsx'
 import {
   buildOptimization,
   buildReport,
@@ -325,97 +323,19 @@ it('보고서 조회가 실패하면 이유를 보이고 다시 시도할 수 �
 
 // ---- 후보 비교 확인 실행 구분 ----
 
-const CONTEXT = {
-  optimizationId: 'opt_mock_completed',
-  candidateId: 'C2',
-  label: '주문·환불',
-  siteInstanceId: 'site-c2',
-  executionRole: 'CANDIDATE' as const,
-}
 
-function listDto(): RunListDto {
-  const base = {
-    experimentKey: 'k',
-    variant: 'after' as const,
-    status: 'COMPLETED' as const,
-    terminationReason: null,
-    validity: 'VALID' as const,
-    replacementRunId: null,
-    resultOrigin: 'MOCK' as const,
-    goalReached: true,
-    createdAt: '2026-11-01T00:00:00Z',
-    finishedAt: '2026-11-01T00:01:00Z',
-  }
-  return {
-    count: 2,
-    items: [
-      { ...base, runId: 'run_opt', optimizationContext: CONTEXT },
-      { ...base, runId: 'run_plain' },
-    ],
-  }
-}
 
-it('Run 목록: optimizationContext가 있으면 후보 라벨과 역할을 variant와 함께 보이고 Run ID·상태 코드는 보이지 않는다', () => {
-  const items = toRunList(listDto())
-  expect(items[0].optimizationContext?.candidateId).toBe('C2')
-  expect(items[1].optimizationContext).toBeNull()
-  render(
-    <MemoryRouter>
-      <OtherRuns currentRunId="none" items={items} error={null} failed={false} onRetry={() => {}} />
-    </MemoryRouter>,
-  )
-  const [optimizerRow, plainRow] = screen.getAllByRole('listitem')
-  expect(optimizerRow.textContent).toContain('개선안 · ')
-  expect(optimizerRow.textContent).toContain(' · 메뉴 이름 후보 비교 · 후보 "주문·환불"')
-  expect(optimizerRow.textContent).not.toMatch(/Optimizer|C2/)
-  expect(plainRow.textContent).toMatch(/^개선안 · \d{2}-\d{2} \d{2}:\d{2} · /)
-  expect(plainRow.textContent).not.toContain('run_plain')
-  expect(plainRow.textContent).not.toContain('COMPLETED')
-})
-
-it('비교·결과 화면: 검증 Run은 라벨 사이트와 역할을 보이고 일반 Run은 바뀌지 않는다', async () => {
-  const runGets: Record<string, number> = {}
-  server.events.on('request:start', ({ request }) => {
-    const match = new URL(request.url).pathname.match(/^\/api\/runs\/([^/]+)$/)
-    if (match) runGets[match[1]] = (runGets[match[1]] ?? 0) + 1
-  })
-  const { ComparisonPage } = await import('../src/features/comparison/ComparisonPage.tsx')
-  const { RunResultPage } = await import('../src/features/run-result/RunResultPage.tsx')
-  const comparison = render(
-    <MemoryRouter initialEntries={['/comparisons/opt_mock_completed']}>
-      <Routes>
-        <Route path="/comparisons/:experimentKey" element={<ComparisonPage />} />
-      </Routes>
-    </MemoryRouter>,
-  )
-  const setup = await screen.findByRole('region', { name: '비교 대상' })
-  expect(await within(setup).findByText('메뉴 이름 후보 비교 · 기준 "이용정보"')).toBeTruthy()
-  // 고정 변경 문구(상단 메뉴 '…')는 어느 후보인지와 충돌할 수 있어 붙이지 않는다
-  expect(within(setup).queryByText(/상단 메뉴 '/)).toBeNull()
-  expect(runGets['run_opt_mock_completed_baseline']).toBe(1)
-  expect(runGets['run_opt_mock_completed_candidate']).toBe(1)
-  expect(within(setup).getByText('메뉴 이름 후보 비교 · 후보 "주문·환불"')).toBeTruthy()
-  expect(setup.textContent).not.toMatch(/Optimizer/)
-  comparison.unmount()
-
-  const result = (runId: string) =>
-    render(
-      <MemoryRouter initialEntries={[`/runs/${runId}/result`]}>
-        <Routes>
-          <Route path="/runs/:runId/result" element={<RunResultPage />} />
-        </Routes>
-      </MemoryRouter>,
-    )
-  const optimizerRun = result('run_opt_mock_completed_candidate')
-  expect(await screen.findByText('메뉴 이름 후보 비교 · 후보 "주문·환불"', {}, { timeout: 3000 })).toBeTruthy()
-  expect(screen.getByRole('link', { name: '후보 비교 결과 보기' }).getAttribute('href')).toBe('/optimizations/opt_mock_completed')
-  expect(document.body.textContent).not.toMatch(/Optimizer/)
-  expect(screen.queryByText(/상단 메뉴 '/)).toBeNull()
+it('진단 화면: 후보 비교 확인 진단은 바꿔 본 메뉴 이름을, 일반 진단은 지금 화면을 보인다', async () => {
+  const { RunPage } = await import('../src/features/run-result/RunPage.tsx')
+  const view = (runId: string) =>
+    render(<MemoryRouter initialEntries={[`/runs/${runId}`]}><Routes><Route path="/runs/:runId" element={<RunPage />} /></Routes></MemoryRouter>)
+  const optimizerRun = view('run_opt_mock_completed_candidate')
+  expect(await screen.findByText(/메뉴 이름을 '주문·환불'로 바꿔 본 화면/, {}, { timeout: 3000 })).toBeTruthy()
+  expect(document.body.textContent).not.toMatch(/Optimizer|run_opt|C2/)
   optimizerRun.unmount()
-  result('run_mock_done_before')
-  // 일반 Run은 버전 이름에 고정 변경 문구를 그대로 붙인다
-  expect(await screen.findByText("지금 화면 · 상단 메뉴 '이용정보'", {}, { timeout: 3000 })).toBeTruthy()
-  expect(screen.queryByText(/메뉴 이름 후보 비교 ·/)).toBeNull()
+  view('run_mock_done_before')
+  expect(await screen.findByText(/MORO MARKET 지금 화면/, {}, { timeout: 3000 })).toBeTruthy()
+  expect(screen.queryByText(/바꿔 본 화면/)).toBeNull()
 })
 
 const IMPROVEMENT_CONTEXT = { improvementId: 'imp-1119b', goalId: 'S1', label: '주문 환불', siteInstanceId: 'site-final', executionRole: 'CANDIDATE' }
@@ -428,25 +348,13 @@ it('Run 변환: improvementContext가 있으면 읽고 없거나 형식이 다�
   expect(toRun({ ...base, improvementContext: { ...IMPROVEMENT_CONTEXT, label: 1 as unknown as string } }).improvementContext).toBeNull()
 })
 
-it('비교·결과·진행 화면: 자동 개선 검증 Run은 고정 변경 문구 대신 최종안 이름을 보인다', async () => {
+it('진단 화면: AI 개선 확인 진단은 고정 문구 대신 바꿔 본 이름을 보인다', async () => {
   const runDto = async (runId: string) => (await (await fetch(apiUrl(`/api/runs/${runId}`))).json()) as Record<string, unknown>
   const after = { ...(await runDto('run_mock_done_before')), variant: 'after', improvementContext: IMPROVEMENT_CONTEXT }
   server.use(http.get(apiUrl('/api/runs/run_mock_done_before'), () => HttpResponse.json(after)))
-  const { RunResultPage } = await import('../src/features/run-result/RunResultPage.tsx')
-  const { RunProgressPage } = await import('../src/features/run-progress/RunProgressPage.tsx')
-  const { ComparisonPage } = await import('../src/features/comparison/ComparisonPage.tsx')
-  const view = (path: string, route: string, element: React.ReactElement) =>
-    render(<MemoryRouter initialEntries={[path]}><Routes><Route path={route} element={element} /></Routes></MemoryRouter>)
-  const result = view('/runs/run_mock_done_before/result', '/runs/:runId/result', <RunResultPage />)
-  expect(await screen.findByText('자동 개선 검증 · 후보 주문 환불', {}, { timeout: 3000 })).toBeTruthy()
+  const { RunPage } = await import('../src/features/run-result/RunPage.tsx')
+  render(<MemoryRouter initialEntries={['/runs/run_mock_done_before']}><Routes><Route path="/runs/:runId" element={<RunPage />} /></Routes></MemoryRouter>)
+  expect(await screen.findByText(/메뉴 이름을 '주문 환불'로 바꿔 본 화면/, {}, { timeout: 3000 })).toBeTruthy()
   expect(screen.queryByText(/상단 메뉴 '/)).toBeNull()
-  result.unmount()
-  const progress = view('/runs/run_mock_done_before', '/runs/:runId', <RunProgressPage />)
-  expect(await screen.findByText('자동 개선 검증 · 후보 주문 환불', {}, { timeout: 3000 })).toBeTruthy()
-  expect(screen.queryByText(/상단 메뉴 '/)).toBeNull()
-  progress.unmount()
-  const comparison = view('/comparisons/mock-done', '/comparisons/:experimentKey', <ComparisonPage />)
-  const setup = await screen.findByRole('region', { name: '비교 대상' })
-  expect(await within(setup).findAllByText('자동 개선 검증 · 후보 주문 환불')).not.toHaveLength(0)
-  comparison.unmount()
+  expect(document.body.textContent).not.toContain('imp-1119b')
 })

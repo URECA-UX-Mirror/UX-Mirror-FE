@@ -1,0 +1,161 @@
+/* 진단 화면(RunPage) */
+
+.run-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--um-space-4);
+  max-width: 880px;
+}
+
+.run-page > h1 {
+  margin: 0;
+}
+
+.run-page-head p {
+  margin: 0;
+}
+
+.run-page-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--um-space-2) var(--um-space-3);
+  margin-bottom: var(--um-space-1);
+}
+
+.run-page-title h1 {
+  margin: 0;
+}
+
+.run-page-who {
+  color: var(--um-text);
+  font-size: 15px;
+  line-height: 22px;
+}
+
+.run-page .card {
+  padding: var(--um-card-pad);
+}
+
+.run-page .card h2 {
+  margin-bottom: var(--um-space-3);
+}
+
+/* 진행 중 */
+
+.run-live {
+  display: flex;
+  flex-direction: column;
+  gap: var(--um-space-3);
+}
+
+.run-live-progress {
+  margin: 0;
+  color: var(--um-text);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.run-clicks {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--um-space-1);
+  color: var(--um-text-secondary);
+}
+
+.run-clicks li:last-child {
+  color: var(--um-text);
+  font-weight: 600;
+}
+
+/* 지나간 길 */
+
+.run-path ol {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--um-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.run-path li {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--um-space-2);
+}
+
+.run-path li + li::before {
+  content: '→';
+  color: var(--um-text-muted);
+}
+
+.run-path-node {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--um-space-1);
+  padding: var(--um-space-1) var(--um-space-3);
+  border: 1px solid var(--um-border);
+  border-radius: var(--um-radius-pill);
+  background: var(--um-surface-subtle);
+  color: var(--um-text);
+}
+
+.run-path-node[data-back='true'] {
+  border-style: dashed;
+}
+
+.run-path-node[data-goal='true'] {
+  border-color: var(--um-success-border);
+  background: var(--um-success-bg);
+  color: var(--um-success-text);
+}
+
+.run-path-note {
+  color: var(--um-text-muted);
+  font-size: 12px;
+}
+
+/* 접힌 상자 */
+
+.run-collapsible > summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--um-text);
+}
+
+.run-collapsible[open] > summary {
+  margin-bottom: var(--um-space-3);
+}
+
+.run-steps,
+.run-issues ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--um-space-6);
+}
+
+.run-issues ul {
+  gap: var(--um-space-4);
+  margin-bottom: var(--um-space-3);
+}
+
+.run-issues li p {
+  margin: var(--um-space-1) 0 0;
+}
+
+.run-issue-tag {
+  margin-left: var(--um-space-2);
+  padding: 0 var(--um-space-2);
+  border-radius: var(--um-radius-pill);
+  background: var(--um-warning-bg);
+  color: var(--um-warning-text);
+  font-size: 12px;
+}

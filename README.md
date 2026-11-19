@@ -23,34 +23,24 @@ npm test           # 자동 테스트 1회 실행
 
 ## 화면
 
-| 화면 | 데이터 (백엔드 API) |
-| --- | --- |
-| 진단하기 (`/`) | `GET /api/health`, `POST /api/runs` |
-| 다른 사이트 진단 (`/scenario`) | `GET /api/health`, `GET /api/sites`, `POST /api/runs` |
-| 진단 중 (`/runs/:runId`) | `GET /api/health`, `GET /api/runs/{runId}`, `/steps`, `/screenshots/{stepId}`, 시나리오 Run의 `GET /api/sites` |
-| 진단 결과 (`/runs/:runId/result`) | `GET /api/health`, `GET /api/runs`, `POST /api/improvements`(AI에게 고쳐 달라고 하기), `GET /api/runs/{runId}`, `/steps`, `/screenshots/{stepId}`, `/screenshots/goal`, `/issues`, 시나리오 Run의 `GET /api/sites` |
-| 지금 화면 vs 개선안 (`/comparisons/:experimentKey`) | `GET /api/health`, `GET /api/comparisons/{experimentKey}`, `/api/runs/{runId}`, `/api/runs/{runId}/steps`, `/api/runs/{runId}/screenshots/{stepId}` |
-| 메뉴 이름 후보 비교 (`/optimizations`) | `GET /api/health`, `POST /api/optimizations` |
-| 후보 비교 결과 (`/optimizations/:optimizationId`) | `GET /api/optimizations/{optimizationId}`, `POST /api/optimizations/{optimizationId}/verify`, `GET /api/optimizations/{optimizationId}/report` |
-| AI 개선 결과 (`/improvements`, `/improvements/:improvementId`) | `GET /api/health`, `GET /api/improvements`, `POST /api/improvements`, `GET /api/improvements/{improvementId}`(진행 중이면 3초마다, [OI-13](docs/operations/open_issue.md#oi-13)) |
+핵심 흐름은 **진단하기 → 진단 → AI 개선 → 지금 화면 vs 개선안** 하나다. 상단 메뉴는 진단하기와 AI 개선 두 개뿐이고, 나머지 화면은 화면 안의 버튼으로 들어간다.
 
-화면 이름은 `src/shared/pageNames.ts` 한 곳에서 정한다. 화면에는 서버 코드값(상태·멈춘 이유·문제 유형·`CLICK`/`GO_BACK`·Run ID)을 그대로 보이지 않고 `src/shared/runLabels.ts`의 사용자 말로 바꿔 보인다. 메뉴 이름 후보 비교 화면의 상태·선정/제외 이유·최종 판단·판단 이유는 `src/features/optimization/labels.ts`, 결과 출처(`resultOrigin`)는 `src/shared/ResultOriginBadge.tsx`가 바꾸며, 모르는 값은 원문 대신 "확인 필요"로 보인다. 오류 코드·Run ID·후보 비교 ID·후보 ID는 보이지 않는다.
+| 화면 | 하는 일 | 데이터 (백엔드 API) |
+| --- | --- | --- |
+| 진단하기 (`/`) | 누가 · 무엇을 하려고 · 어느 화면을 찾아야 하는지 세 칸을 받아 진단을 시작한다 | `GET /api/health`, `POST /api/runs` |
+| 진단 (`/runs/:runId`) | 진행 중에는 AI 고객이 누르는 화면을, 끝나면 같은 자리에서 결론·첫 화면 선택 가능성·지나간 길을 보인다. 클릭별 화면과 살펴볼 점은 접혀 있다. "AI에게 고쳐 달라고 하기"로 AI 개선을 시작한다 | `GET /api/runs/{runId}`, `/steps`, `/screenshots/{stepId}`, `/issues`, `POST /api/improvements` |
+| AI 개선 (`/improvements`, `/improvements/:id`) | 목록은 지난 결과만 보인다(시작은 진단 화면에서만). 결과는 진행 단계 → 바꿔 볼 이름과 찾아올 가능성 → 개선안에서 다시 해 본 결과 → "나란히 비교하기" 순이고, 고른 과정은 접혀 있다 | `GET /api/improvements`, `GET /api/improvements/{id}`(진행 중이면 3초마다) |
+| 지금 화면 vs 개선안 (`/comparisons/:experimentKey`) | 한 줄 결론, 양쪽 결과(몇 번 만에 도착 / 못 찾음), 지나간 길을 나란히 보인다. 화면별 상세는 접혀 있다 | `GET /api/comparisons/{experimentKey}`, `/api/runs/{runId}`, `/steps`, `/screenshots/{stepId}` |
 
-AI 개선은 진단 결과의 "AI에게 고쳐 달라고 하기"(끝난·유효한 MORO MARKET 일반 진단에만 보인다)나 `/improvements`의 입력(고객 유형·할 일·도착 화면)으로 시작한다. 서버에서는 한 번에 하나만 돌고(약 5분), 그동안 다른 진단은 시작할 수 없다. 결과 화면은 진행 단계 → 바꿔 볼 이름과 점수 → 개선안에서 다시 확인한 결과 → 회차 기록(접힘) → 점수 계산(접힘) 순이다. 결과 출처(`kind`)는 태그로 구분한다: `OFFICIAL` "사전 등록 공식 결과", `LIVE` "심사위원 실행 (공식 기록 아님)", `UNKNOWN`과 모르는 값 "출처 확인 안 된 결과". 진단 결과 화면은 개선안(`variant=after`) 진단을 따로 권하지 않는다(서버의 고정 개선안 사이트가 AI가 고른 이름과 다를 수 있어서, [OI-14](docs/operations/open_issue.md#oi-14)). AI 개선 결과 화면이 고른 이름으로 다시 확인하고 "나란히 비교하기"로 잇는다.
+메뉴에 없고 주소로만 여는 화면: 다른 사이트 진단(`/scenario`), 메뉴 이름 후보 비교(`/optimizations`, `/optimizations/:id`), 지난 결과 다시 보기(`/replay`). `/runs/:runId/result`는 예전 주소라 진단 화면과 같다.
 
-`/replay`는 고정 `experimentKey`(E 실행 목표별 네 개)마다 저장된 Run을 조회만 해서 위 화면들로 연결하는 재생 모드다(`GET /api/runs?experimentKey=`만 호출하고 Run을 만들지 않는다). 고정 키는 E 실행 최종 실행 계획의 키 네 개다([미결정 항목](docs/operations/open_issue.md) OI-7).
-
-후보 비교 확인 실행(`GET /api/runs`·`/api/runs/{runId}` 응답에 `optimizationContext`가 있는 Run)은 진행·결과·비교 화면과 "다른 실행 보기"에서 '메뉴 이름 후보 비교 · 후보 "주문·환불"'처럼 역할과 후보 이름을 표시한다. mock 시드는 `opt_mock_evaluated`(검증 전), `opt_mock_completed`(보고서), `opt_mock_site_changed`(검증 실패)다.
-
-mock 모드에서 ③ 결과 화면(`/runs/:runId/result`)은 시드 Run으로 확인한다: `run_mock_done_before`(정상), `run_mock_goback`(모델 GO_BACK), `run_mock_maxsteps`(목표 미도달), `run_mock_invalid`·`run_mock_invalid_only`(무효 처리), `run_mock_issue_pending`·`run_mock_issue_failed`·`run_mock_issue_empty`(Issue 분석 상태), `run_mock_direct_before`(목표·사용자 유형 직접 입력, 허용 경로 없음. 실험 키 `mock-direct`), `run_mock_sitemap`(사이트 지도 기준·우회 이동 있음), `run_mock_mapfail`(지도 오류로 경로 기준 없음), `run_mock_direct_mapfail`(직접 입력한 목표의 지도 오류), `run_mock_legacy_basis`(`basis` 없는 과거 Run).
-
-④ 비교 화면은 mock 모드에서 `/comparisons/mock-sitemap`(양쪽 사이트 지도 기준, 우회 이동 행 표시), `/comparisons/mock-basis-mismatch`(기준 불일치로 `REFERENCE_PATH_CONFIG_MATCHED` 실패), `/comparisons/mock-done`(허용 경로)으로 확인한다. 비교 응답에는 기준이 없어 각 Run(`GET /api/runs/{runId}`)의 기준을 읽어 진단 전체 비교에 표시한다. 비교·재생 화면도 Run ID·실험 키·`Before`/`After`를 보이지 않고 버전 이름(지금 화면·개선안)과 "결과 보기" 링크를 쓴다.
-
-진단하기는 MORO MARKET에서 "어떤 고객이, 무엇을 하려고, 어느 화면까지 오는지" 세 칸만 받는다. 확인 글자·찾는 범위·최대 클릭 수는 도착 화면마다 정해진 값으로 채우고, 실험 키는 매번 새로 만든다. 문장 검사는 BE와 같은 규칙(`src/shared/inputRules.ts`)으로 시작 전에 안내한다. 엔진이 `READY`가 아니거나 다른 진단·AI 개선·후보 비교가 진행 중이면 시작을 막고 진행 중인 화면 링크를 보인다.
-
-다른 사이트 진단은 사이트 링크를 붙여 넣으면 도메인이 `GET /api/sites`의 `allowedHosts`에 있는 등록 사이트를 찾아 그 `siteId`로 Run 1개를 시작한다. 등록되지 않은 도메인이면 시작할 수 없다(임시, [OI-11](docs/operations/open_issue.md#oi-11)).
-
-화면 테마는 기기 설정을 따르고 상단 바의 "어둡게/밝게" 버튼으로 바꿀 수 있다(선택은 브라우저에 저장).
+- 화면 이름은 `src/shared/pageNames.ts` 한 곳에서 정한다. 문구는 짧은 해요체로 쓰고, 서버 코드값·Run ID·실험 키·영어는 화면에 보이지 않는다(`src/shared/runLabels.ts` 등이 사용자 말로 바꾼다).
+- 문장 검사는 BE와 같은 규칙(`src/shared/inputRules.ts`)으로 시작 전에 안내한다. 다른 진단·AI 개선·후보 비교가 돌고 있으면 시작을 막고 그 화면 링크를 보인다.
+- AI 개선 결과의 출처(`kind`)는 태그로 구분한다: 사전 등록 공식 결과 / 심사위원 실행 (공식 기록 아님) / 출처 확인 안 된 결과. 확정 전·실패한 후보는 "바꿔 보세요"라고 권하지 않는다.
+- 다른 사이트 진단은 링크의 도메인이 `GET /api/sites`의 `allowedHosts`에 있는 등록 사이트를 찾아 그 `siteId`로 진단한다(임시, [OI-11](docs/operations/open_issue.md#oi-11)).
+- `/replay`는 고정 `experimentKey` 네 개의 저장된 Run을 조회만 한다(OI-7).
+- 화면 테마는 기기 설정을 따르고 상단 바 "어둡게/밝게" 버튼으로 바꿀 수 있다.
+- mock 시드: 진단 `run_mock_done_before`(도착), `run_mock_maxsteps`(못 찾음), `run_mock_invalid`(무효), `run_mock_direct_before`(직접 입력); 비교 `/comparisons/mock-done`·`mock-sitemap`·`mock-basis-mismatch`; 후보 비교 `opt_mock_completed` 등.
 
 화면별 상태 관리, 요청·응답 형식, bbox 변환은 [docs/README.md](docs/README.md)의 문서를 따른다.
 

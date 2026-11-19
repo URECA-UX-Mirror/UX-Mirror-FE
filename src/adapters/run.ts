@@ -132,6 +132,7 @@ export function toRunList(dto: RunListDto): RunListItem[] {
     finishedAt: item.finishedAt,
     siteId: item.siteId ?? null,
     mode: item.mode ?? null,
+    optimizationContext: toOptimizationContext(item.optimizationContext),
   }))
 }
 

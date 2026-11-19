@@ -8,8 +8,11 @@ import { SectionTitle } from '../../shared/SectionTitle.tsx'
 import { CompareIcon } from '../../shared/icons.tsx'
 import { useOptimizationProgress } from '../../shared/useOptimizationProgress.ts'
 import { CandidateCard, type CardPhase } from './CandidateCard.tsx'
-import { optimizationStatusLabel, phaseLabel, verificationPhaseLabel } from './labels.ts'
+import { optimizationStatusLabel, phaseLabel } from './labels.ts'
+import { ReportPanel } from './ReportPanel.tsx'
 import { SelectionPanel } from './SelectionPanel.tsx'
+import { VerificationPanel } from './VerificationPanel.tsx'
+import { verificationStepLabel } from './verification.ts'
 import './optimization.css'
 
 export function OptimizationPage() {
@@ -58,9 +61,7 @@ function OptimizationView({ optimizationId }: { optimizationId: string }) {
           <h1>후보 평가</h1>
           <span role="status" className="run-status" data-status={optimization.status}>
             {optimizationStatusLabel(optimization.status)}
-            {optimization.status === 'VERIFYING' && optimization.verificationPhase
-              ? ` · ${verificationPhaseLabel(optimization.verificationPhase)}`
-              : ''}
+            {verificationStepLabel(optimization) ? ` · ${verificationStepLabel(optimization)}` : ''}
           </span>
           <ResultOriginBadge origin={optimization.resultOrigin} />
         </div>
@@ -101,7 +102,11 @@ function OptimizationView({ optimizationId }: { optimizationId: string }) {
       </section>
 
       <Candidates optimization={optimization} />
-      <SelectionPanel optimization={optimization} />
+      <SelectionPanel optimization={optimization} onVerifySettled={polling.retry} />
+      <VerificationPanel optimization={optimization} />
+      {optimization.status === 'COMPLETED' ? (
+        <ReportPanel optimizationId={optimization.optimizationId} />
+      ) : null}
     </section>
   )
 }

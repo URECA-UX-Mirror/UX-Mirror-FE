@@ -46,6 +46,11 @@
 - 백엔드는 응답에 절대 주소를 담지 않는다. 이미지 주소는 경로(`/api/runs/{runId}/screenshots/{stepId}`)에 `VITE_API_BASE_URL`을 붙여 만든다.
 - 방화벽에서 8000 포트를 허용해야 한다.
 
+## Optimizer를 실제 서버로 확인할 때
+
+- 후보 사이트 5개(`8001`~`8005`)와 모델 서버가 모두 떠 있어야 평가부터 검증, 보고서까지 한 번에 확인할 수 있다. 먼저 BE의 `scripts/check_site_instances.py`로 사이트 인스턴스를 점검한다.
+- 평가·검증은 한 번에 하나만 진행하므로 다른 Run이나 Optimization이 끝난 뒤에 시작한다. 검증은 한 번만 시작할 수 있어 다시 확인하려면 새 후보 평가를 만든다.
+
 ## 실제 서버로 Run을 확인할 때
 
 - 백엔드는 Python 3.11을 쓴다(`UX-Mirror-BE` README 기준, 3.10 미만은 문법 오류로 실행되지 않는다). `playwright install chromium`으로 브라우저를 받아야 Run이 실행된다.

@@ -116,6 +116,8 @@ export interface RunListItemDto {
   /** 임시(OI-11). `RunDto`와 같다 */
   siteId?: string | null
   mode?: string | null
+  /** 임시(OI-12). `RunDto`와 같다. 일반 Run에는 없다 */
+  optimizationContext?: OptimizationContextDto | null
 }
 
 export interface RunListDto {

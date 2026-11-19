@@ -134,6 +134,7 @@ export function toVerification(
     decision: stringOrNull(dto.finalDecision ?? dto.decision),
     reasonCode: stringOrNull(dto.reasonCode),
     policyVersion: stringOrNull(dto.verificationPolicyVersion),
+    navigationCostDelta: numberOrNull(dto.navigationCostDelta),
   }
 }
 

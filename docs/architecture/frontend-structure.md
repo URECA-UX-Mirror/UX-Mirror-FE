@@ -73,7 +73,7 @@
 - 오류 안내(`ComparisonError`)는 `error.code`로 구분한다. `RUN_NOT_FOUND`(잘못된 주소), `COMPARISON_NOT_READY`(기다리면 해결, 다시 확인 버튼), `COMPARISON_RUN_INVALID`(재분석 링크 `/?experimentKey=…`), `ANALYSIS_ERROR`(다시 시도). 그 밖의 오류는 `ErrorNotice`를 쓴다.
 - `conditionsMatched = false`이면 `matched = false`인 `conditionChecks`를 서버 순서대로 보인다. `code` 값으로 분기하지 않는다.
 - 화면별 카드는 `pageKey`마다 Before·After 스크린샷과 각 Run의 Step bbox를 따로 그린다. `beforeStepId`/`afterStepId`가 `null`이거나 Step을 못 찾으면 이미지 없이 안내를 보인다. 후보 대응 표는 `semanticKey` 순서 그대로이고 `deltaProbability`가 `null`이면 "계산 불가"로 보인다. 지표 표 펼침 여부는 카드의 화면 상태이며 기본은 접힘이다.
-- `useRunBasis`는 비교 응답에 없는 경로 기준을 각 Run의 `GET /api/runs/{runId}`에서 읽는다. 조회 실패 시 기준은 미상으로 두고 비교 값은 계속 표시한다.
+- `useRunMeta`는 비교 응답에 없는 경로 기준과 `optimizationContext`를 각 Run의 `GET /api/runs/{runId}`에서 한 번에 읽는다(Run당 1회). 조회 실패 시 기준은 미상, 연결 정보는 없음으로 두고 비교 값은 계속 표시한다.
 - Run 단위 비교(`RunComparison`)는 before/after를 나란히 보이고 증감을 만들지 않는다. 경로 지표 기준 행을 표시하며 사이트 지도 Run이 하나라도 있으면 우회 이동 행을 추가한다. 사이트 지도 Run의 기준 경로 이탈은 "사용 안 함"으로 표시한다. 양쪽이 모두 허용 경로 또는 모두 사이트 지도면 해당 기준의 지표 이름을 쓰고, 그 밖에는 중립 이름을 쓴다. Issue 유형은 "탐지됨 / 탐지되지 않음"이다.
 - 한눈에 보기의 화면별 지표 표는 양쪽 기준을 알면 목표 경로 확률에 기준별 설명을 붙인다. 기준이 다르면 Before·After 설명을 각각 표시하고, 하나라도 조회하지 못하면 설명을 붙이지 않는다.
 - 지표 표기: 엔트로피는 소수 둘째 자리(단위 없음), margin·확률은 `%`·`%p`, `null`은 "계산 불가"다(`features/comparison/format.ts`). 증감은 서버 값에 부호만 붙인다.
@@ -97,8 +97,11 @@
 - 시작: "후보 평가 시작"이 `createOptimization()`을 호출하고 성공하면 평가 화면으로 이동한다. 입력 칸은 없고 진단 Run은 주소의 `?sourceRunId=`로만 받는다. 엔진이 `READY`이고 `activeRun`·`activeOptimization`이 없을 때만 시작할 수 있으며, 아니면 이유와 진행 중인 화면 링크를 보인다. 시작 오류(`409 RUN_ALREADY_ACTIVE`, `503 MODEL_UNAVAILABLE`·`OPTIMIZER_POLICY_UNAVAILABLE`, `422 EXPERIMENT_CONDITION_MISMATCH`)는 `optimizationApiErrorMessage`로 서버 `message` 우선 문구를 보이고 시작 화면에 머문다.
 - 평가: `useOptimizationProgress`로 폴링한다(`COMPLETED`·`FAILED`에서 멈추고 `EVALUATED`에서는 검증 시작을 기다리며 계속 조회한다). 후보 풀(`candidates`)을 후보 순서대로 카드로 보이고, 평가가 끝난 후보(`evaluations`)에는 결과를, 다음 후보에는 "평가 중"을, 나머지에는 "평가 대기"를 붙인다. 상태가 `FAILED`이면 끝나지 않은 후보는 "평가하지 못함"이다.
 - 지표: `COMPLETED` 후보는 대상 메뉴 확률·목표 경로 확률을 보이며 `null`은 0이 아니라 "계산 불가"와 `metricNullReasons` 사유다. `FAILED` 후보는 `candidateErrorMessage` 문구와 오류 코드, `SKIPPED`·무효 후보는 `invalidReasons`를 보인다. 기준(C0)이 `INVALID_CANDIDATE`이면 모델 평가를 하지 않았다고 알린다.
-- 선정 결과(`selection`이 있을 때): 추천 후보와 검증 후보를 따로 보이고(다를 수 있다), 선정 사유·`recommendationStatus`·제외된 후보와 `reasonCodes`를 보인다. 알려진 코드는 풀이와 원문을, 모르는 코드는 원문만 보인다(`features/optimization/labels.ts`). "검증 시작" 버튼은 자리만 있고 동작하지 않는다(#70에서 연결).
+- 선정 결과(`selection`이 있을 때): 추천 후보와 검증 후보를 따로 보이고(다를 수 있다), 선정 사유·`recommendationStatus`·제외된 후보와 `reasonCodes`를 보인다. 알려진 코드는 풀이와 원문을, 모르는 코드는 원문만 보인다(`features/optimization/labels.ts`). `EVALUATED`이고 검증 후보가 있으면 "검증 시작"이 `startVerification()`을 호출한다. 한 번만 시작할 수 있고 어느 후보로 검증하는지(추천 후보와 다를 수 있다)를 버튼 위에 보인다. 요청 중에는 버튼을 막고, 오류(`409 OPTIMIZATION_ALREADY_PROCESSED`·`RUN_ALREADY_ACTIVE`, `503 MODEL_UNAVAILABLE`, `422 EXPERIMENT_CONDITION_MISMATCH` 등)는 `optimizationApiErrorMessage` 문구로 보인다. 검증 후보가 없으면(`NOT_SELECTABLE`) 버튼 대신 안내만 보인다.
 - 실패: `error.code`를 `optimizationFailureMessage` 문구로, `failedPhase`·`lastStatus`를 함께 보인다. `OPTIMIZATION_INTERRUPTED`는 시작 화면으로 가는 다시 시작 링크를 둔다.
+- 검증(`VerificationPanel`, FE #70): `VERIFYING`이면 `verificationPhase`(모르는 값은 원문)와 기준 Run(`baselineRunId`)·후보 Run(`validationRunId`)을 기존 진행 화면(`/runs/:runId`)으로 잇는다. Run ID는 기준 → 후보 순으로 채워지므로 `null`이면 "아직 만들어지지 않음"이고, 서버는 Run을 만들기 전에 사이트를 다시 확인하므로 기준 Run이 없는 동안은 phase가 `BASELINE`이어도 "사이트 확인 중"으로 보인다. 기준 실행 이름은 후보 풀의 `BASELINE` role에서 읽는다. 검증 단계(`failedPhase=VERIFYING`)에서 `FAILED`이면 `SITE_INSTANCE_CHANGED`·`SITE_RECHECK_FAILED`는 Run이 만들어지지 않았다고 알리고, 이미 만들어진 Run은 링크로 남긴다.
+- 보고서(`ReportPanel`, 상태 `COMPLETED`): `GET …/report`를 한 번 조회한다(실패하면 다시 시도 버튼). 최종 판단·판단 이유·`navigationCostDelta`와 기준·후보 Run 요약표를 보이고 `null`은 0이 아니라 "계산 불가"이고, 판단 이유가 `NAVIGATION_COST`가 아니면 `navigationCostDelta`의 `null`은 "해당 없음"이다(서버가 그때만 채운다). 단일 관찰값 한계(`limitations.note`)와 `resultOrigin`은 항상 보이며, 모르는 판단·이유 코드는 원문이다. 정책 버전·모델 메타데이터·동결 조건은 접어 둔다. `/comparisons/{optimizationId}` 링크가 있다.
+- Optimizer Run 구분: Run에 `optimizationContext`가 있으면 진행·결과 화면의 메타 정보, 비교 화면의 비교 대상, "다른 실행 보기"에서 `variant`와 함께 후보 라벨·역할을 보인다(`shared/optimizerRun.ts`, `OptimizerRunTag`). 없는 Run의 표시는 바뀌지 않는다. 비교 응답에는 이 값이 없어 각 Run(`GET /api/runs/{runId}`)에서 읽는다.
 - 공통 영역의 엔진 상태에서 진행 중인 Optimizer 표시(`activeOptimization`)는 이 평가 화면으로 연결된다.
 
 ### 저장된 실측 결과 재생
@@ -157,7 +160,7 @@ src/
   mocks/                   # MSW. browser.ts, store.ts, errors.ts, fixtures/(run, scenario, runResult, comparison, sites, optimization), handlers/(endpoint별)
   features/
     new-analysis/, scenario/, run-progress/, run-result/, comparison/, replay/, optimization/   # 화면별. 라우트는 App.tsx
-  shared/                  # Layout(상단 바·접이식 사이드바), SectionTitle(카드 제목 줄), RunGauge(탐색 진행 게이지), icons, ProbabilityGauge, SelectedAction, stepLabel, EngineStatus, optimizationStatus, ErrorNotice, ResultOriginBadge, useHealth, useOptimizationProgress(Optimization 폴링)
+  shared/                  # Layout(상단 바·접이식 사이드바), SectionTitle(카드 제목 줄), RunGauge(탐색 진행 게이지), icons, ProbabilityGauge, SelectedAction, stepLabel, EngineStatus, optimizationStatus, ErrorNotice, ResultOriginBadge, optimizerRun(Optimizer Run 표시 문구), OptimizerRunTag, useHealth, useOptimizationProgress(Optimization 폴링)
     screenshot/            # boxStyle.ts(좌표 변환), ScreenshotViewer, CandidateProbabilityList
     polling/               # poller.ts(간격·backoff 규칙), usePolling(범용 폴링 훅)
 public/

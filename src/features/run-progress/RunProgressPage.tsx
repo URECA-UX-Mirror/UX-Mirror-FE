@@ -18,6 +18,7 @@ import { useRunSite } from '../../shared/useRunSite.ts'
 import { StepMetricsPanel } from '../run-result/StepMetricsPanel.tsx'
 import { VERSIONS } from '../new-analysis/constants.ts'
 import { ReplayNotice } from '../replay/ReplayNotice.tsx'
+import { OptimizerRunTag } from '../../shared/OptimizerRunTag.tsx'
 import { statusLabel } from './statusLabel.ts'
 import { useRunProgress } from './useRunProgress.ts'
 
@@ -90,8 +91,16 @@ function RunProgress({ runId }: { runId: string }) {
           </div>
           <div>
             <dt>버전</dt>
-            <dd>{isScenarioRun(run) ? `시나리오 테스트 · ${site?.name ?? run.siteId ?? '-'}` : version ? `${version.name} · ${version.change}` : run.variant}</dd>
+            <dd>{isScenarioRun(run) ? `시나리오 테스트 · ${site?.name ?? run.siteId ?? '-'}` : version ? (run.optimizationContext ? version.name : `${version.name} · ${version.change}`) : run.variant}</dd>
           </div>
+          {run.optimizationContext ? (
+            <div>
+              <dt>Optimizer 검증</dt>
+              <dd>
+                <OptimizerRunTag context={run.optimizationContext} />
+              </dd>
+            </div>
+          ) : null}
           <div>
             <dt>진행 단계</dt>
             <dd className="num">

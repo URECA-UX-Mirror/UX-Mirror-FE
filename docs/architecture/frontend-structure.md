@@ -155,8 +155,8 @@ src/
     client.ts              # fetch 래퍼, ApiError(ErrorDetail 변환), apiUrl
     runs.ts, presets.ts, sites.ts, comparisons.ts, health.ts, optimizations.ts   # endpoint 함수, screenshotUrl
     dto/                   # 서버 응답 타입 (계약서 그대로)
-  adapters/                # dto -> domain 변환
-  domain/                  # types.ts(도메인 모델), runStatus.ts(isTerminalStatus), site.ts(isScenarioRun, pageLabel), optimizationStatus.ts(isTerminalOptimizationStatus), optimizationErrors.ts(Optimizer 오류 문구)
+  adapters/                # dto -> domain 변환. improvement.ts는 DTO 없이 정적 JSON(unknown)을 영역별로 검증·변환(OI-13)
+  domain/                  # types.ts(도메인 모델), runStatus.ts(isTerminalStatus), site.ts(isScenarioRun, pageLabel), optimizationStatus.ts(isTerminalOptimizationStatus), optimizationErrors.ts(Optimizer 오류 문구), improvement.ts(자동 개선 결과 타입), improvementScore.ts(점수 %·%p 표시)
   mocks/                   # MSW. browser.ts, store.ts, errors.ts, fixtures/(run, scenario, runResult, comparison, sites, optimization), handlers/(endpoint별)
   features/
     new-analysis/, scenario/, run-progress/, run-result/, comparison/, replay/, optimization/   # 화면별. 라우트는 App.tsx
@@ -165,6 +165,7 @@ src/
     polling/               # poller.ts(간격·backoff 규칙), usePolling(범용 폴링 훅)
 public/
   mock/screens/            # 목업 쇼핑몰을 찍은 mock 스크린샷 PNG({before,after}/{home,mypage,orders,support,refund}.png)
+  improvements/            # 자동 개선 결과 정적 JSON(imp_SAMPLE_0001.json, OI-13)
   mockServiceWorker.js     # MSW 생성 파일
 ```
 

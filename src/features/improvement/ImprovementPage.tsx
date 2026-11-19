@@ -4,6 +4,10 @@ import type { Area } from '../../domain/improvement.ts'
 import { useImprovement } from './useImprovement.ts'
 import './improvement.css'
 
+/** JSON에 `limitations`가 없거나 비어 있을 때 쓰는 기본 안내 */
+const DEFAULT_LIMITATIONS =
+  'Zoro-1의 선택 분포에 기반한 추정 결과이며, 실제 사용자 클릭률이나 UX 개선 효과를 입증하지 않습니다. 사람 대상 사용성 테스트를 위한 검토 자료로 활용해 주세요.'
+
 export function ImprovementPage() {
   const { improvementId } = useParams()
   if (!improvementId) return null
@@ -80,9 +84,10 @@ function ImprovementView({ improvementId }: { improvementId: string }) {
       </AreaSlot>
       {!view.rounds.ok ? <AreaSlot title="개선 회차" area={view.rounds} /> : null}
 
-      {view.limitations ? (
-        <p className="improvement-limitations">{view.limitations}</p>
-      ) : null}
+      {/* 영역 오류나 `limitations` 누락과 상관없이 항상 보인다 */}
+      <p className="improvement-limitations">
+        {view.limitations?.trim() || DEFAULT_LIMITATIONS}
+      </p>
     </section>
   )
 }

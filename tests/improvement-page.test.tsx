@@ -147,3 +147,27 @@ it('report 영역이 오류여도 샘플 배지와 생성 시각은 보인다', 
   expect(screen.getByText('샘플 데이터')).toBeTruthy()
   expect(screen.getByText(sample().createdAt)).toBeTruthy()
 })
+
+it.each([
+  ['누락', (data: Record<string, unknown>) => delete data.limitations],
+  ['빈 문자열', (data: Record<string, unknown>) => { data.limitations = '  ' }],
+])('limitations가 %s이면 기본 안내 문구를 보인다', async (name, mutate) => {
+  const data = sample()
+  mutate(data)
+  const id = `imp_LIM_${name === '누락' ? 'A' : 'B'}`
+  serve(id, data)
+  renderPage(id)
+  await screen.findByText(id)
+  expect(screen.getByText(/실제 사용자 클릭률이나 UX 개선 효과를 입증하지 않습니다/)).toBeTruthy()
+})
+
+it('영역 오류가 있고 limitations도 없어도 기본 안내 문구를 보인다', async () => {
+  const data = sample()
+  delete data.limitations
+  delete data.verification.status
+  serve('imp_LIM_C', data)
+  renderPage('imp_LIM_C')
+  await screen.findByText('imp_LIM_C')
+  expect(screen.getByRole('region', { name: '② 실제 검증' }).textContent).toContain('데이터 오류')
+  expect(screen.getByText(/실제 사용자 클릭률이나 UX 개선 효과를 입증하지 않습니다/)).toBeTruthy()
+})

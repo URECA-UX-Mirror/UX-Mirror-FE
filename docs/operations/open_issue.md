@@ -21,6 +21,7 @@
 | [OI-10](#oi-10) | 경로 지표 기준(basis)·우회 이동 | 정자비, 장근창 | 설계 v2.1 기준으로 optional로 받고, 설정의 `basis`가 없으면 `ALLOWED_PATHS`, 설정이 없으면 기준 없음으로 읽음 | 서버 동작과 대조 완료 |
 | [OI-11](#oi-11) | 시나리오 테스트(외부 사이트) | 장근창, 정자비, 권혁준 | 등록 사이트 선택, mock과 Adapter로 선행 | API 세부 사항 확정 대기 |
 | [OI-12](#oi-12) | UX Optimizer 응답 형식·이유 코드 | 정윤희, 장근창, 권혁준 | BE 코드·README 기준으로 DTO·mock 선행, 이유 코드는 원문 문자열로 받음 | 계약 v1.3.8 반영(#43)과 정책 모듈 값 목록 확정 대기 |
+| [OI-13](#oi-13) | 자동 개선 결과(`improvement.json`) 형식 | 정자비, 권혁준 | 팀이 확정한 샘플을 정본으로 정적 JSON을 영역별로 검증, 모르는 enum은 원문 | 통합 후 정자비가 계약서에 반영 |
 
 ## 항목
 
@@ -119,3 +120,12 @@
 - mock: 제외 이유는 정책 모듈 코드(`uxm/optimizer_policy.py`)를 따라 `EVALUATION_NOT_COMPLETED`에 오류 코드·`invalidReasons`를 이어 붙인다. 시나리오와 시드는 `src/mocks/fixtures/optimization.ts`의 주석을 따른다.
 - 확인할 것: 정책 모듈의 선정·무효·제외 이유 코드 값 목록과 근거 형식, `GET /api/runs` 목록 항목에 `optimizationContext`가 없어(상세 `GET /api/runs/{runId}`에는 있다) 목록에서는 Optimizer Run을 구분하지 못한다. FE는 필드가 오면 구분해 표시하도록 구현했고 BE 담당(정자비·정윤희)에게 목록 응답에 넣을지 확인한다. 실서버 확인(11-19, #70): 평가 → 검증 시작 → 기준·후보 Run 링크 → 보고서 → 비교 화면과 `SITE_RECHECK_FAILED`(후보 사이트 8002를 끈 채 검증 시작, Run 미생성)·`409 OPTIMIZATION_ALREADY_PROCESSED`를 확인했다. 확인하지 못한 것: `SITE_INSTANCE_CHANGED`·`RUN_TIMEOUT`·`OPTIMIZATION_INTERRUPTED`·`503 MODEL_UNAVAILABLE`·`422 EXPERIMENT_CONDITION_MISMATCH` 실서버 응답, 검증 후보가 C2가 아닌 경우.
 - 확정되면 `docs/contracts/`를 고치고 DTO의 `임시` 표기를 없앤 뒤 이 항목을 지운다.
+
+<a id="oi-13"></a>
+### OI-13 자동 개선 결과(`improvement.json`) 형식
+
+- 범위: 자동 개선 에이전트가 만드는 `improvement.json`(`schemaVersion: improvement-v1`). 1단계(해커톤)에서는 백엔드 API 없이 정적 JSON을 읽는다. 계약서에 없는 형식이다.
+- 임시 결정: 팀이 확정한 샘플(`public/improvements/imp_SAMPLE_0001.json`, `sample: true`)을 정본으로 삼는다. 샘플의 `_required`·`_displayRules`를 따라 `src/adapters/improvement.ts`가 report·official·rounds·verification 네 영역을 각각 `{ ok, data | reason }`로 검증하고, 한 영역이 오류여도 다른 영역은 정상 변환한다. `null`은 "값 없음"이라 0으로 바꾸지 않고, 모르는 enum 값은 원문 문자열로 둔다. 점수 표시 변환(`%`·`%p`)은 `src/domain/improvementScore.ts` 한 곳에 둔다.
+- 형식을 바꿔야 하면 정자비(생성 담당)와 먼저 합의한다. 계약서 갱신은 통합 후 정자비가 한 번에 한다.
+- 담당: 정자비(생성·계약서), 권혁준(프론트). 관련 FE 이슈: #77.
+- 확정되면 `docs/contracts/`를 고친 뒤 이 항목을 지운다.

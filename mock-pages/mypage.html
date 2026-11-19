@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=1440" />
+    <title>마이페이지</title>
+    <link rel="stylesheet" href="assets/shop.css" />
+  </head>
+  <body data-page="mypage">
+    <header class="hd">
+      <a class="logo" href="home.html"><span class="logo-mark">M</span>MORO MARKET</a>
+      <nav class="gnb" aria-label="주요 메뉴">
+        <a href="mypage.html" data-key="top.mypage">마이페이지</a>
+        <a href="orders.html" data-key="top.orders" data-menu-orders>이용정보</a>
+        <a href="support.html" data-key="top.support">고객센터</a>
+      </nav>
+      <div class="hd-right">
+        <div class="search">
+          <svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
+          상품·브랜드 검색
+        </div>
+        <a class="hd-link" href="home.html"><svg class="i" viewBox="0 0 24 24"><path d="M6 7h12l-1 13H7z" /><path d="M9 7a3 3 0 0 1 6 0" /></svg>장바구니 <em>2</em></a>
+        <a class="hd-link quiet" href="home.html">로그인</a>
+      </div>
+    </header>
+
+    <div class="crumb"><a class="home" href="home.html" data-key="crumb.home">홈으로</a><span>마이페이지</span></div>
+
+    <div class="my">
+      <nav class="side" aria-label="마이페이지 메뉴">
+        <div class="grp">쇼핑 관리</div>
+        <a href="orders.html" data-key="side.orders">주문 내역</a>
+        <a href="refund.html" data-key="side.refund">환불 신청</a>
+        <div class="grp gap">내 정보</div>
+        <a href="mypage.html">위시리스트</a>
+        <a href="mypage.html">쿠폰함</a>
+        <a href="mypage.html">리뷰 관리</a>
+        <a href="mypage.html">배송지 관리</a>
+      </nav>
+
+      <main>
+        <h1 style="margin-top: 0">마이페이지</h1>
+        <p class="sub">김모로님, 환영합니다</p>
+        <div class="stats">
+          <div class="card stat"><span>배송 중</span><strong>2건</strong></div>
+          <div class="card stat"><span>사용 가능 쿠폰</span><strong>3장</strong></div>
+          <div class="card stat"><span>적립금</span><strong>4,200원</strong></div>
+        </div>
+        <section class="card recent" aria-label="최근 주문">
+          <h2>최근 주문</h2>
+          <ul>
+            <li><img class="thumb" src="assets/img/linen.svg" alt="" /><span><b>오가닉 린넨 키친웨어</b></span><span class="ok">배송 완료</span></li>
+            <li><img class="thumb" src="assets/img/candle.svg" alt="" /><span><b>소이 왁스 무드 캔들</b></span><span class="ok">구매 확정</span></li>
+            <li><img class="thumb" src="assets/img/mug.svg" alt="" /><span><b>아티장 핸드크래프트 머그</b></span><span class="ok">구매 확정</span></li>
+          </ul>
+        </section>
+      </main>
+    </div>
+    <script src="assets/shop.js"></script>
+  </body>
+</html>

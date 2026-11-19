@@ -1,0 +1,329 @@
+/* 핵심 흐름의 보고서형 화면: 좁은 한 단 + 번호가 붙은 세로 단계 */
+
+.report-page {
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+  width: 100%;
+  max-width: 760px;
+  margin: 0 auto;
+  padding: var(--um-space-6) 0 64px;
+  color: var(--um-text-secondary);
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.report-page p {
+  margin: 0;
+}
+
+.report-head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--um-space-1);
+}
+
+.report-head h1 {
+  margin: 0;
+  font-size: 22px;
+  line-height: 1.35;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  overflow-wrap: anywhere;
+}
+
+.report-eyebrow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--um-space-2);
+  color: var(--um-text-muted);
+  font-size: 13px;
+}
+
+.kind-tag {
+  padding: 0 var(--um-space-2);
+  border: 1px solid var(--um-border-strong);
+  border-radius: var(--um-radius-pill);
+  font-size: 12px;
+  line-height: 20px;
+}
+
+/* 알림: 색 면 없이 글자로만 */
+.report-page [role='alert'],
+.home [role='alert'],
+.notice {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  color: var(--um-danger-text);
+  background: none;
+}
+
+.notice[role='status'] {
+  color: var(--um-warning-text);
+}
+
+.notice a {
+  color: inherit;
+  text-decoration: underline;
+}
+
+.report-page button.primary,
+.home button.primary {
+  align-self: flex-start;
+  min-height: 44px;
+  padding: 0 22px;
+  font-weight: 600;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* ---------- 세로 단계 ---------- */
+
+.tl {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: tl;
+}
+
+.tl-step {
+  position: relative;
+  min-width: 0;
+  padding: 0 0 56px 56px;
+  counter-increment: tl;
+  animation: tl-in 200ms ease-out both;
+}
+
+.tl-step:last-child {
+  padding-bottom: 0;
+}
+
+/* 왼쪽 선 */
+.tl-step::before {
+  content: '';
+  position: absolute;
+  top: 36px;
+  bottom: 8px;
+  left: 13.5px;
+  width: 1px;
+  background: var(--um-border-strong);
+}
+
+.tl-step:last-child::before {
+  display: none;
+}
+
+.tl-dot {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--um-border-strong);
+  border-radius: 50%;
+  color: var(--um-text-muted);
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.tl-dot::before {
+  content: counter(tl);
+}
+
+.tl-step[data-state='done'] .tl-dot {
+  border-color: var(--um-text);
+  color: var(--um-canvas);
+  background: var(--um-text);
+}
+
+.tl-step[data-state='current'] .tl-dot {
+  border: 2px solid var(--um-accent);
+  color: var(--um-accent-strong);
+  animation: tl-pulse 1.8s ease-out infinite;
+}
+
+.tl-question {
+  margin: 0;
+  color: var(--um-text-muted);
+  font-size: 13px;
+  line-height: 28px;
+  font-weight: 500;
+  letter-spacing: 0;
+}
+
+.tl-answer {
+  margin: var(--um-space-1) 0 0;
+  color: var(--um-text);
+  font-size: 34px;
+  line-height: 1.25;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+.tl-answer-pre {
+  color: var(--um-text-muted);
+  font-size: 0.55em;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  vertical-align: 0.2em;
+}
+
+.tl-answer strong {
+  font-weight: inherit;
+}
+
+/* 잘 됐는지는 작은 점으로만 */
+.tl-answer[data-tone]::after {
+  content: '';
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-left: 10px;
+  border-radius: 50%;
+  background: var(--um-success);
+  vertical-align: 0.12em;
+}
+
+.tl-answer[data-tone='bad']::after {
+  background: var(--um-danger);
+}
+
+.tl-body {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--um-space-3);
+  margin-top: var(--um-space-4);
+}
+
+.tl-body h3 {
+  margin: var(--um-space-3) 0 0;
+  color: var(--um-text-muted);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0;
+}
+
+/* 단계 아래 한 줄 안내 (번호 없음) */
+.tl-step:has(+ .tl-note) {
+  padding-bottom: var(--um-space-6);
+}
+
+.tl-step:has(+ .tl-note)::before {
+  display: none;
+}
+
+.tl-note {
+  padding-left: 56px;
+  font-size: 13px;
+}
+
+/* ---------- 글자만 있는 접힘 ---------- */
+
+.disclosure > summary {
+  display: inline-block;
+  color: var(--um-accent);
+  font-size: 15px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.disclosure > summary::-webkit-details-marker {
+  display: none;
+}
+
+.disclosure > summary::after {
+  content: ' ▾';
+}
+
+.disclosure[open] > summary::after {
+  content: ' ▴';
+}
+
+.disclosure > summary:hover {
+  text-decoration: underline;
+}
+
+.disclosure-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--um-space-3);
+  margin-top: var(--um-space-3);
+}
+
+@keyframes tl-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+@keyframes tl-pulse {
+  0% {
+    box-shadow: 0 0 0 0 var(--um-brand-border);
+  }
+
+  70%,
+  100% {
+    box-shadow: 0 0 0 8px transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tl-step,
+  .tl-step[data-state='current'] .tl-dot {
+    animation: none;
+  }
+}
+
+@media (max-width: 767px) {
+  .report-page {
+    gap: var(--um-space-8);
+    padding-top: var(--um-space-2);
+  }
+
+  /* 선을 접고 번호를 질문 줄에 붙인다 */
+  .tl-step {
+    padding: 0 0 40px;
+  }
+
+  .tl-step::before {
+    display: none;
+  }
+
+  .tl-dot {
+    top: 3px;
+    width: 22px;
+    height: 22px;
+    font-size: 12px;
+  }
+
+  .tl-question {
+    padding-left: 30px;
+  }
+
+  .tl-note {
+    padding-left: 0;
+  }
+
+  .tl-answer {
+    font-size: 28px;
+  }
+}

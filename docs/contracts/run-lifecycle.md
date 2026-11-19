@@ -1,0 +1,68 @@
+# 실행 상태와 폴링
+
+분석 실행은 비동기다. `POST /api/runs`는 `runId`를 즉시 반환하고(`계약 §17.2`), 프론트는 `GET /api/runs/{runId}`를 주기적으로 호출해 상태를 확인한다. 백엔드의 실행 방식은 프론트가 가정하지 않는다.
+
+## 상태값 (`계약 §4.1`)
+
+| 값 | 의미 | 종료 | 프론트 표시 |
+| --- | --- | --- | --- |
+| `READY` | 생성됐지만 실행 전 | 아니오 | "실행 대기 중" |
+| `RUNNING` | 탐색 진행 중 | 아니오 | "AI 탐색 진행 중" |
+| `SUCCESS` | 목표 화면 도달 | 예 | "목표 화면 도달" |
+| `BLOCKED` | 후보 부족·반복 제한·복구 실패·페이지 로딩 실패로 계속할 수 없음 | 예 | "탐색을 계속할 수 없음" |
+| `MAX_STEPS` | 최대 탐색 단계 도달 | 예 | "최대 탐색 횟수 도달" |
+| `TIMEOUT` | 모델 또는 전체 실행 시간 초과 | 예 | "시간 초과" |
+| `ERROR` | 복구할 수 없는 시스템 오류 | 예 | "실행 오류" + `error.message` |
+
+- 종료 상태는 `SUCCESS`, `BLOCKED`, `MAX_STEPS`, `TIMEOUT`, `ERROR`다. 모르는 상태값은 진행 중으로 간주하고 오류로 만들지 않는다. 종료 판정은 한 함수에서만 한다.
+- 종료 사유는 `terminationReason`(`계약 §4.14`)이 정한다. 상태와 사유의 대응은 계약서 표를 따른다.
+- `validity`는 종료 시 정해진다. `INVALID`이면 결과 화면에 무효 안내와 `invalidReason`을 표시한다. 비교에는 서버가 `VALID`인 최종 Run만 쓴다. `계약 §6.1`, `§15.1`
+- 진행도는 `Run.progress`(`stepCount / maxSteps`, `currentPageKey`)로 표시한다. `RunStatus`에 `PENDING`은 없다.
+
+## 폴링 규칙
+
+| 항목 | 규칙 |
+| --- | --- |
+| 간격 | 1초. 값은 한 곳에서 바꾼다. 서버는 결과 파일만 읽으므로 1초 폴링의 부담이 거의 없다 |
+| 시작 | `POST /api/runs` 응답으로 `runId`를 받으면 진행 화면에서 즉시 1회 조회하고 이후 간격마다 반복한다 |
+| 중단 | 종료 상태 응답, 진행 화면 이탈, `404`(`RUN_NOT_FOUND`) |
+| 단계 조회 | Run을 조회할 때 `/steps`도 함께 조회한다. 종료 응답을 받은 뒤 `/steps`를 한 번 더 조회해 마지막 단계를 반영한다 |
+| 이슈 조회 | 종료 후 `/issues`를 조회한다. `analysisStatus = PENDING`이면 그 응답만 같은 간격으로 최대 5회 다시 조회하고 멈춘 뒤 "분석 대기 중"과 수동 재시도 버튼을 보인다. 분석 전에 만들어진 Run은 종료 후에도 `PENDING`이 계속될 수 있다 |
+| 중복 방지 | 이전 요청이 끝나기 전에는 다음 요청을 보내지 않는다. 같은 `runId`에는 폴링 루프를 하나만 둔다 |
+| 정리 | 화면 이탈 시 타이머와 진행 중인 요청을 취소한다(`AbortController`) |
+| 종료 후 | 진행 화면은 "분석 결과 보기"를 활성화한다. 자동 이동은 하지 않는다 |
+
+`/steps`는 완전히 저장된 Step만 준다. 진행 중인 단계는 서버 데이터가 없으므로 `progress`로만 표시하고, 아직 실행되지 않은 칸은 `maxSteps`로 대기 자리를 만든다.
+
+## 오류 처리
+
+| 상황 | 처리 |
+| --- | --- |
+| 네트워크 오류·5xx | 폴링을 멈추지 않고 간격을 늘려(1초 → 2초 → 4초, 상한 8초) 재시도하고 "연결 재시도 중"을 표시한다. 성공하면 간격을 되돌린다 |
+| 연속 5회 실패 | 폴링을 멈추고 수동 재시도 버튼을 보인다 |
+| `404` | 폴링 중단. "실행을 찾을 수 없음"과 새 분석 이동 |
+| `error.retryable = false`인 오류 | 재시도하지 않고 `error.message`를 보인다 |
+
+재시도 횟수와 상한은 `임시`다.
+
+## Optimization 폴링 (임시, [OI-12](../operations/open_issue.md#oi-12))
+
+UX Optimizer(`GET /api/optimizations/{id}`)는 Run과 같은 폴링 엔진(`usePolling`)을 쓰는 `useOptimizationProgress`로 조회한다. 간격은 1초이고, 오류 backoff(1 → 2 → 4 → 8초, 연속 5회 실패 시 멈춤)와 `404`·`retryable = false` 중단 규칙은 위와 같다.
+
+- 종료 상태는 `COMPLETED`, `FAILED`뿐이고 종료 판정은 `isTerminalOptimizationStatus` 한 함수에서만 한다. `EVALUATING`·`VERIFYING`·`MODEL_CALL_PENDING`과 모르는 상태값은 진행 중으로 본다.
+- `EVALUATED`는 사용자의 검증 시작을 기다리는 상태라 종료가 아니다. 폴링은 이어지고, 화면 7의 "검증 시작" 버튼(`startVerification()`)이 검증을 시작한다([프론트엔드 구조](../architecture/frontend-structure.md)).
+- `FAILED`는 정상 응답이므로 폴링은 멈추고 `error.code`는 `optimizationFailureMessage`로 문구를 만든다.
+
+## 새로고침 뒤 복원
+
+1. 진행 화면과 결과 화면은 `runId`를 URL에 담는다.
+2. 새로고침하면 URL의 `runId`로 `GET /api/runs/{runId}`를 호출한다.
+3. 종료 상태면 폴링 없이 결과를 표시하고, 진행 중이면 폴링을 다시 시작한다.
+4. 화면 상태(열람 중인 단계, 펼침 여부)는 복원하지 않는다. 열람 중인 단계는 최신 단계로 초기화한다.
+
+새 분석 화면의 "마지막 Run"과 결과 화면의 "다른 실행 보기"는 `GET /api/runs`([REST API](rest-api.md))로 채운다. 브라우저 저장소에 `runId`를 기록하지 않는다.
+
+## 동시 실행
+
+- 한 번에 Run 하나만 실행한다. 다른 Run이 실행 중이면 `POST /api/runs`가 `409 RUN_ALREADY_ACTIVE`를 반환한다. `계약 §17.2`
+- 프론트는 Before와 After를 순서대로 시작한다. 한 Run이 종료되기 전에는 다음 Run을 시작하지 않고, `/api/health`의 `activeRun`으로 실행 중인 Run을 확인한다.

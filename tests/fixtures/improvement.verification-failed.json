@@ -1,0 +1,66 @@
+{
+  "status": "FAILED",
+  "error": {
+    "code": "MODEL_UNAVAILABLE",
+    "message": "모델 서버에 연결할 수 없어 검증 Run을 끝내지 못했습니다."
+  },
+  "method": "run_verification",
+  "pairs": [
+    {
+      "goalKey": "S1",
+      "name": "환불",
+      "experimentKey": "imp-1119-s1",
+      "comparisonPath": "/comparisons/imp-1119-s1",
+      "before": {
+        "label": "이용정보",
+        "variant": "before",
+        "runId": "run_before_improved_s1",
+        "resultPath": "/runs/run_before_improved_s1/result",
+        "progressPath": "/runs/run_before_improved_s1",
+        "status": "BLOCKED",
+        "validity": "VALID",
+        "goalReached": false,
+        "path": [
+          "home",
+          "support",
+          "home",
+          "support",
+          "home"
+        ],
+        "stepCount": 4,
+        "issues": [
+          "GOAL_NOT_REACHED",
+          "REPEATED_VISIT",
+          "CHOICE_AMBIGUITY"
+        ],
+        "resultOrigin": "LIVE",
+        "modelEndpointId": "brev-l40s-bf16"
+      },
+      "after": {
+        "label": "주문내역",
+        "variant": "after",
+        "runId": "run_after_improved_s1",
+        "resultPath": "/runs/run_after_improved_s1/result",
+        "progressPath": "/runs/run_after_improved_s1",
+        "status": "ERROR",
+        "validity": "INVALID",
+        "goalReached": false,
+        "path": [
+          "home"
+        ],
+        "stepCount": 0,
+        "issues": [],
+        "resultOrigin": "LIVE",
+        "modelEndpointId": "brev-l40s-bf16"
+      }
+    },
+    {
+      "goalKey": "S4",
+      "name": "문의",
+      "experimentKey": "imp-1119-s4",
+      "comparisonPath": "/comparisons/imp-1119-s4",
+      "before": null,
+      "after": null
+    }
+  ]
+}

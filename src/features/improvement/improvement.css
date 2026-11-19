@@ -1,0 +1,267 @@
+/* ③ 어떻게 바꾸면 좋을까요 · ④ 바꾸면 얼마나 좋아질까요 (진단 화면과 /improvements/:id가 같이 쓴다) */
+
+/* 진행 단계 */
+.imp-steps {
+  display: flex;
+  flex-direction: column;
+  gap: var(--um-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.imp-steps li {
+  display: flex;
+  align-items: center;
+  gap: var(--um-space-2);
+  color: var(--um-text-muted);
+}
+
+.imp-step-mark {
+  display: inline-grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border: 1px solid var(--um-border-strong);
+  border-radius: 50%;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.imp-steps li[data-state='doing'] {
+  color: var(--um-text);
+  font-weight: 600;
+}
+
+.imp-steps li[data-state='doing'] .imp-step-mark {
+  border-color: var(--um-accent);
+  color: var(--um-accent-strong);
+}
+
+.imp-steps li[data-state='done'] {
+  color: var(--um-text-secondary);
+}
+
+.imp-steps li[data-state='done'] .imp-step-mark {
+  border-color: var(--um-text);
+  color: var(--um-canvas);
+  background: var(--um-text);
+}
+
+/* 확정 전 후보 */
+.imp-candidate {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-left: var(--um-space-3);
+  border-left: 2px solid var(--um-border-strong);
+}
+
+/* 가능성 전 → 후 */
+.score-change {
+  font-variant-numeric: tabular-nums;
+}
+
+.score-change strong {
+  color: var(--um-text);
+}
+
+.delta-pill {
+  display: inline-block;
+  margin-left: var(--um-space-2);
+  padding: 0 var(--um-space-2);
+  border: 1px solid var(--um-success-border);
+  border-radius: var(--um-radius-pill);
+  color: var(--um-success-text);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 20px;
+  letter-spacing: 0;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.delta-pill[data-negative='true'] {
+  border-color: var(--um-warning-border);
+  color: var(--um-warning-text);
+}
+
+/* 이 화면에서 가장 중요한 숫자 하나에만 노란색 */
+.score-change-big strong {
+  padding: 0 0.18em;
+  border-radius: 8px;
+  color: var(--um-highlight-ink);
+  background: var(--um-highlight);
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+
+.score-change-big .delta-pill {
+  margin-left: var(--um-space-3);
+  font-size: 14px;
+  line-height: 26px;
+  padding: 0 10px;
+}
+
+.imp-guards {
+  display: flex;
+  flex-direction: column;
+  gap: var(--um-space-1);
+}
+
+.imp-guards p[data-bad],
+.imp-bad {
+  color: var(--um-warning-text);
+}
+
+.imp-guards ul,
+.imp-score-list,
+.imp-candidates {
+  display: flex;
+  flex-direction: column;
+  gap: var(--um-space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* 개선안에서 다시 해 본 결과: 두 줄 */
+.imp-recheck,
+.imp-verification {
+  display: flex;
+  flex-direction: column;
+  gap: var(--um-space-3);
+}
+
+.imp-recheck h3 {
+  margin-top: var(--um-space-2);
+}
+
+.recheck {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  border-top: 1px solid var(--um-border);
+}
+
+.recheck-row {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--um-space-3);
+  padding: 10px 0;
+  border-bottom: 1px solid var(--um-border);
+}
+
+.recheck-row dt {
+  color: var(--um-text-muted);
+}
+
+.recheck-row dd {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--um-space-2);
+  margin: 0;
+  color: var(--um-text);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.recheck-row[data-reached] dd::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--um-success);
+}
+
+.recheck-row[data-reached='false'] dd::before {
+  background: var(--um-danger);
+}
+
+.imp-other-pair {
+  display: flex;
+  flex-direction: column;
+  gap: var(--um-space-2);
+}
+
+.imp-other-pair h4 {
+  margin: 0;
+  font-size: 14px;
+}
+
+/* 어떻게 골랐는지 */
+.imp-rounds,
+.imp-official,
+.imp-round {
+  display: flex;
+  flex-direction: column;
+  gap: var(--um-space-1);
+}
+
+.imp-rounds,
+.imp-official {
+  gap: var(--um-space-2);
+  padding-top: var(--um-space-3);
+  border-top: 1px solid var(--um-border);
+}
+
+.imp-rounds h3,
+.imp-official h3 {
+  margin: 0;
+  color: var(--um-text);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.imp-round h4 {
+  margin: var(--um-space-2) 0 0;
+  font-size: 14px;
+}
+
+.imp-candidates li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 4.5em minmax(0, 1.2fr);
+  gap: var(--um-space-2);
+  overflow-wrap: anywhere;
+}
+
+.imp-candidates li[data-adopted='true'] {
+  color: var(--um-text);
+  font-weight: 700;
+}
+
+.imp-num {
+  font-variant-numeric: tabular-nums;
+}
+
+.imp-verdict {
+  color: var(--um-text-muted);
+  font-size: 13px;
+}
+
+.imp-score-list li {
+  display: flex;
+  justify-content: space-between;
+  max-width: 320px;
+}
+
+.imp-limitation {
+  color: var(--um-text-muted);
+  font-size: 13px;
+}
+
+/* 받은 개선안 (/improvements) */
+.imp-history {
+  display: flex;
+  flex-direction: column;
+  gap: var(--um-space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.imp-empty {
+  display: flex;
+  flex-direction: column;
+  gap: var(--um-space-2);
+}

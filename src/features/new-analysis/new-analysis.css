@@ -1,0 +1,121 @@
+/* 첫 화면: 큰 질문 하나, 칸 두 개, 버튼 하나 */
+
+.home {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 40px;
+  width: 100%;
+  max-width: 560px;
+  min-height: calc(100vh - 220px);
+  margin: 0 auto;
+  padding: var(--um-space-8) 0 64px;
+}
+
+.home-head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--um-space-3);
+}
+
+.home-head h1 {
+  margin: 0;
+  font-size: 40px;
+  line-height: 1.2;
+  font-weight: 800;
+  letter-spacing: -0.035em;
+  word-break: keep-all;
+}
+
+.home-head p {
+  margin: 0;
+  color: var(--um-text-muted);
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.home-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--um-space-6);
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.home-form p {
+  margin: 0;
+}
+
+.home-form .field input,
+.home-form .field select {
+  min-height: 48px;
+  font-size: 15px;
+}
+
+.home-form .field {
+  gap: var(--um-space-3);
+}
+
+.chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--um-space-2);
+}
+
+.chip {
+  min-height: 32px;
+  padding: 0 var(--um-space-3);
+  border-color: var(--um-border);
+  color: var(--um-text-secondary);
+  background: transparent;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.chip[aria-pressed='true'] {
+  border-color: var(--um-text);
+  color: var(--um-text);
+  background: transparent;
+  font-weight: 600;
+}
+
+.home-screen {
+  color: var(--um-text-secondary);
+}
+
+.home-screen strong {
+  color: var(--um-text);
+}
+
+.home-screen-pick {
+  display: flex;
+  flex-direction: column;
+  gap: var(--um-space-2);
+  color: var(--um-text-secondary);
+}
+
+@media (max-width: 767px) {
+  .home {
+    gap: var(--um-space-8);
+    min-height: 0;
+    padding-top: var(--um-space-4);
+  }
+
+  .home-head h1 {
+    font-size: 30px;
+  }
+}
+
+.site-pick {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--um-space-2);
+  font-size: 13px;
+}
+
+.site-chosen {
+  color: var(--um-success-text);
+  font-size: 13px;
+  font-weight: 600;
+}

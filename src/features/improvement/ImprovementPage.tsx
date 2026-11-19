@@ -48,8 +48,8 @@ function ImprovementView({ improvementId }: { improvementId: string }) {
   }
 
   const { view } = state
-  // `report` 영역이 오류여도 헤더 메타(샘플 배지·생성 시각·상태)는 보인다.
-  const { sample, status, createdAt } = view.meta
+  // `report` 영역이 오류여도 헤더 메타(생성 시각·상태)는 보인다.
+  const { status, createdAt } = view.meta
 
   return (
     <section className="improvement-page">
@@ -58,7 +58,6 @@ function ImprovementView({ improvementId }: { improvementId: string }) {
           <h1>자동 개선 리포트</h1>
           {/* E(공식 비교) 결과와 구분한다 */}
           <span className="experiment-tag">추가 실험</span>
-          {sample ? <span className="sample-badge">샘플 데이터</span> : null}
         </div>
         <dl className="meta-row">
           <div>

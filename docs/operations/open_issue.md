@@ -21,7 +21,7 @@
 | [OI-10](#oi-10) | 경로 지표 기준(basis)·우회 이동 | 정자비, 장근창 | 설계 v2.1 기준으로 optional로 받고, 설정의 `basis`가 없으면 `ALLOWED_PATHS`, 설정이 없으면 기준 없음으로 읽음 | 서버 동작과 대조 완료 |
 | [OI-11](#oi-11) | 시나리오 테스트(외부 사이트) | 장근창, 정자비, 권혁준 | 등록 사이트 선택, mock과 Adapter로 선행 | API 세부 사항 확정 대기 |
 | [OI-12](#oi-12) | UX Optimizer 응답 형식·이유 코드 | 정윤희, 장근창, 권혁준 | BE 코드·README 기준으로 DTO·mock 선행, 이유 코드는 원문 문자열로 받음 | 계약 v1.3.8 반영(#43)과 정책 모듈 값 목록 확정 대기 |
-| [OI-13](#oi-13) | 자동 개선 결과(`improvement.json`) 형식 | 정자비, 권혁준 | 팀이 확정한 샘플을 정본으로 정적 JSON을 영역별로 검증, 모르는 enum은 원문 | 통합 후 정자비가 계약서에 반영 |
+| [OI-13](#oi-13) | 자동 개선 결과(`improvement.json`) 형식 | 정자비, 권혁준 | 팀이 확정한 공식 결과를 정본으로 정적 JSON을 영역별로 검증, 모르는 enum은 원문 | 통합 후 정자비가 계약서에 반영 |
 
 ## 항목
 
@@ -125,9 +125,9 @@
 ### OI-13 자동 개선 결과(`improvement.json`) 형식
 
 - 범위: 자동 개선 에이전트가 만드는 `improvement.json`(`schemaVersion: improvement-v1`). 1단계(해커톤)에서는 백엔드 API 없이 정적 JSON을 읽는다. 계약서에 없는 형식이다.
-- 임시 결정: 팀이 확정한 샘플(`public/improvements/imp_SAMPLE_0001.json`, `sample: true`)을 정본으로 삼는다. 샘플의 `_required`·`_displayRules`를 따라 `src/adapters/improvement.ts`가 report·official·rounds·verification 네 영역을 각각 `{ ok, data | reason }`로 검증하고, 한 영역이 오류여도 다른 영역은 정상 변환한다. `null`은 "값 없음"이라 0으로 바꾸지 않고, 모르는 enum 값은 원문 문자열로 둔다. 점수 표시 변환(`%`·`%p`)은 `src/domain/improvementScore.ts` 한 곳에 둔다.
+- 임시 결정: 팀이 확정한 공식 결과(`public/improvements/imp-1119.json`)를 정본으로 삼는다. `src/adapters/improvement.ts`가 필수 필드 규칙에 따라 report·official·rounds·verification 네 영역을 각각 `{ ok, data | reason }`로 검증하고, 한 영역이 오류여도 다른 영역은 정상 변환한다. `null`은 "값 없음"이라 0으로 바꾸지 않고, 모르는 enum 값은 원문 문자열로 둔다. 점수 표시 변환(`%`·`%p`)은 `src/domain/improvementScore.ts` 한 곳에 둔다.
 - 임시: 검증 Run의 빈 `issues`만으로 분석 대기·실패·정상 빈 결과를 구분할 수 없다. 무효 Run은 "판단 불가", 그 밖에는 "저장된 Issue 없음 (분석 상태 확인 불가)"로 표시한다. BE PR #110의 `_run_view`는 분석 상태 없이 목록만 저장하므로 상태 필드와 값이 확정되면 표시를 구분한다.
-- 샘플이 정본이다. 탈락 사유 코드는 BE 실제 코드 기준 이름(`GUARD_LOSS_EXCEEDED:<목표>`, `MAIN_GAIN_INSUFFICIENT`, `TRUNCATED_LABEL`, `LABEL_TOO_LONG`, `EXISTING_LABEL` 등)을 쓰고 모르는 코드는 원문으로 보인다. 검증 쌍 키(`goalKey` `S1`, experimentKey `imp-1119-s1` 형식)는 BE #102와 샘플이 다를 수 있어 정자비가 확인한다. 샘플의 `path`·`stepCount`·`issues`·`goalReached`는 `improvement.json`을 만드는 쪽이 Run을 읽어 채운다. 공식 결과(`imp-1119.json`)는 `NO_IMPROVEMENT`(개선안 미채택, 검증 `NOT_RUN`, `official: null`)이고, 연습 실행(개선안 채택 예시)은 공식이 아니라 아직 화면에 반영하지 않았다.
+- 공식 결과가 정본이다. 탈락 사유 코드는 BE 실제 코드 기준 이름(`GUARD_LOSS_EXCEEDED:<목표>`, `MAIN_GAIN_INSUFFICIENT`, `TRUNCATED_LABEL`, `LABEL_TOO_LONG`, `EXISTING_LABEL` 등)을 쓰고 모르는 코드는 원문으로 보인다. 검증 쌍 키(`goalKey` `S1`, experimentKey `imp-1119-s1` 형식)는 BE #102와 다를 수 있어 정자비가 확인한다. 검증 쌍의 `path`·`stepCount`·`issues`·`goalReached`는 `improvement.json`을 만드는 쪽이 Run을 읽어 채운다. 공식 결과(`imp-1119.json`)는 `NO_IMPROVEMENT`(개선안 미채택, 검증 `NOT_RUN`, `official: null`)이고, 연습 실행(개선안 채택 예시)은 공식이 아니라 아직 화면에 반영하지 않았다.
 - 전달 방식: 1단계는 `public/improvements/<id>.json` 정적 파일이다(반영 절차는 [자동 개선 JSON 반영 절차](improvement-release.md)). 2단계에서 `GET /api/improvements/{id}`로 바꿀 예정이며, 바뀌면 `useImprovement`의 읽기 부분만 교체한다.
 - 형식을 바꿔야 하면 정자비(생성 담당)와 먼저 합의한다. 계약서 갱신은 통합 후 정자비가 한 번에 한다.
 - 담당: 정자비(생성·계약서), 권혁준(프론트). 관련 FE 이슈: #77, #82.

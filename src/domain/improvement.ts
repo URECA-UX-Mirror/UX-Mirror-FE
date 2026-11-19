@@ -1,5 +1,5 @@
 // 자동 개선 결과(`improvement.json`, `schemaVersion: improvement-v1`)의 도메인 타입. 계약서에 없는 형식이며 팀이 확정한
-// 샘플(`public/improvements/imp_SAMPLE_0001.json`)이 정본이다([OI-13](../../docs/operations/open_issue.md#oi-13)).
+// 공식 결과(`public/improvements/imp-1119.json`)가 정본이다([OI-13](../../docs/operations/open_issue.md#oi-13)).
 
 export const IMPROVEMENT_SCHEMA_VERSION = 'improvement-v1'
 
@@ -45,8 +45,6 @@ export interface ImprovementReport {
   schemaVersion: string
   improvementId: string
   status: string
-  /** 샘플 데이터이면 `true`. 없으면 `false` */
-  sample: boolean
   createdAt: string | null
   finishedAt: string | null
   result: ImprovementResult
@@ -180,7 +178,7 @@ export interface ImprovementView {
   plan: ImprovementPlan | null
   limitations: string | null
   /** 헤더용 메타. `report` 영역 검증과 분리해 그 영역이 오류여도 읽는다 */
-  meta: { sample: boolean; status: string | null; createdAt: string | null }
+  meta: { status: string | null; createdAt: string | null }
 }
 
 export interface ImprovementPlan {

@@ -18,7 +18,7 @@ import {
   type VerificationRun,
 } from '../domain/improvement.ts'
 
-// `improvement-v1` JSON을 영역별로 검증·변환한다(필수 필드 규칙은 샘플의 `_required`). 정적 파일이라 `src/api/dto`는 없고
+// `improvement-v1` JSON을 영역별로 검증·변환한다(필수 필드 규칙은 이 파일의 검증기가 정본이다). 정적 파일이라 `src/api/dto`는 없고
 // 입력은 `unknown`이다. 한 영역이 오류여도 다른 영역은 정상 변환한다. `null`은 "값 없음"이라 0으로 바꾸지 않고,
 // 모르는 enum 값은 오류가 아니라 원문 문자열로 둔다.
 
@@ -128,7 +128,6 @@ export function toImprovementReport(json: unknown): ImprovementReport {
     schemaVersion,
     improvementId: reqString(root.improvementId, 'improvementId'),
     status: reqString(root.status, 'status'),
-    sample: root.sample === true,
     createdAt: stringOrNull(root.createdAt),
     finishedAt: stringOrNull(root.finishedAt),
     result,
@@ -376,7 +375,6 @@ export function toImprovementView(json: unknown): ImprovementView {
     plan: root ? toPlan(root.plan) : null,
     limitations: root ? stringOrNull(root.limitations) : null,
     meta: {
-      sample: root?.sample === true,
       status: root ? stringOrNull(root.status) : null,
       createdAt: root ? stringOrNull(root.createdAt) : null,
     },

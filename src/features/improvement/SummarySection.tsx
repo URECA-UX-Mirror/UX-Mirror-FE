@@ -17,16 +17,10 @@ const SOURCE_LABELS: Record<string, string> = { AI: 'AI 제안', HUMAN: '사람 
 /** 부동소수점 오차로 정확히 경계인 값(−2.0%p)이 범위 밖이 되지 않게 한다 */
 const EPSILON = 1e-9
 
-/** 샘플 배지와 겹치지 않도록 headline 끝의 `(샘플)`을 뗀다 */
-function headlineText(headline: string | null, sample: boolean): string | null {
-  if (headline === null) return null
-  return sample ? headline.replace(/\s*\(샘플\)\s*$/, '') : headline
-}
-
 export function SummarySection({ report, maxGuardLoss }: SummarySectionProps) {
   const improved = report.result === 'IMPROVED'
   const rejected = report.result === 'NO_IMPROVEMENT'
-  const headline = headlineText(report.headline, report.sample)
+  const headline = report.headline
   const scoreSource = report.scoreSource
     ? (SCORE_SOURCE_LABELS[report.scoreSource] ?? report.scoreSource)
     : null

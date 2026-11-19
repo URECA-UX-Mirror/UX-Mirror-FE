@@ -5,15 +5,15 @@ import { expect, it } from 'vitest'
 import { toImprovementView } from '../src/adapters/improvement.ts'
 import { VerificationSection } from '../src/features/improvement/VerificationSection.tsx'
 
-function sample() { return JSON.parse(readFileSync('public/improvements/imp_SAMPLE_0001.json', 'utf8')) }
-function show(data: ReturnType<typeof sample>) {
+function improved() { return JSON.parse(readFileSync('tests/fixtures/improvement.improved.json', 'utf8')) }
+function show(data: ReturnType<typeof improved>) {
   const view = toImprovementView(data)
   if (!view.verification.ok) throw new Error(view.verification.reason)
   return render(<MemoryRouter><VerificationSection verification={view.verification.data} /></MemoryRouter>)
 }
 
 it('완료된 목표별 저장 결과와 유효한 재생 링크를 표시한다', () => {
-  show(sample())
+  show(improved())
   expect(screen.getByText('환불 (S1)')).toBeTruthy()
   expect(screen.getByText('문의 (S4)')).toBeTruthy()
   expect(screen.getByText('4단계 도달 실패 → 2단계 성공')).toBeTruthy()
@@ -25,14 +25,14 @@ it('완료된 목표별 저장 결과와 유효한 재생 링크를 표시한다
 })
 
 it('미진행은 안내만 보여 준다', () => {
-  const data = sample(); data.verification.status = 'NOT_RUN'; data.verification.pairs = []
+  const data = improved(); data.verification.status = 'NOT_RUN'; data.verification.pairs = []
   show(data)
   expect(screen.getByText('검증 미진행')).toBeTruthy()
   expect(screen.queryAllByRole('link')).toHaveLength(0)
 })
 
 it('실패 사유와 무효 및 누락 Run을 표시하고 유효한 Run 링크만 보인다', () => {
-  const data = sample(); data.verification.status = 'FAILED'; data.verification.error = { code: 'FAILED_CODE', message: '오류 사유' }
+  const data = improved(); data.verification.status = 'FAILED'; data.verification.error = { code: 'FAILED_CODE', message: '오류 사유' }
   data.verification.pairs[0].before.validity = 'INVALID'
   data.verification.pairs[0].after = null
   data.verification.pairs[1].after = null
@@ -48,7 +48,7 @@ it('실패 사유와 무효 및 누락 Run을 표시하고 유효한 Run 링크�
 })
 
 it.each(['https://evil.test', '//evil.test', '/\\evil.test', '/bad\npath'])('외부 또는 비정상 경로 %s는 링크로 만들지 않는다', (path) => {
-  const data = sample(); data.verification.pairs = [data.verification.pairs[0]]
+  const data = improved(); data.verification.pairs = [data.verification.pairs[0]]
   const pair = data.verification.pairs[0]
   pair.comparisonPath = path; pair.before.resultPath = path; pair.before.progressPath = path
   show(data)
@@ -58,7 +58,7 @@ it.each(['https://evil.test', '//evil.test', '/\\evil.test', '/bad\npath'])('외
 })
 
 it.each(['RUNNING', 'READY', 'UNKNOWN', null])('종료되지 않은 상태 %s에는 재생·비교 링크와 비교 요약을 표시하지 않는다', (status) => {
-  const data = sample()
+  const data = improved()
   data.verification.status = 'FAILED'
   data.verification.error = { code: 'FAILED', message: '중단' }
   data.verification.pairs = [data.verification.pairs[0]]
@@ -71,7 +71,7 @@ it.each(['RUNNING', 'READY', 'UNKNOWN', null])('종료되지 않은 상태 %s에
 })
 
 it.each(['status', 'path', 'issues'])('단계와 도달이 같아도 %s가 다르면 변화 없다고 표시하지 않는다', (field) => {
-  const data = sample()
+  const data = improved()
   data.verification.pairs = [data.verification.pairs[1]]
   const after = data.verification.pairs[0].after
   if (field === 'status') after.status = 'BLOCKED'
@@ -83,7 +83,7 @@ it.each(['status', 'path', 'issues'])('단계와 도달이 같아도 %s가 다�
 })
 
 it('무효 Run의 빈 Issue 목록을 판단 불가로 표시한다', () => {
-  const data = sample()
+  const data = improved()
   data.verification.pairs = [data.verification.pairs[0]]
   data.verification.pairs[0].before.validity = 'INVALID'
   data.verification.pairs[0].before.issues = []
@@ -92,7 +92,7 @@ it('무효 Run의 빈 Issue 목록을 판단 불가로 표시한다', () => {
 })
 
 it('분석 상태가 저장되지 않은 빈 목록은 결과 없음을 단정하지 않는다', () => {
-  const data = sample()
+  const data = improved()
   data.verification.pairs = [data.verification.pairs[1]]
   show(data)
   // 대기·실패·정상 빈 결과는 모두 같은 빈 목록으로 저장되어 구분할 수 없다.
@@ -100,7 +100,7 @@ it('분석 상태가 저장되지 않은 빈 목록은 결과 없음을 단정�
 })
 
 it('무효 Run에도 저장된 Issue 코드가 있으면 원문을 표시한다', () => {
-  const data = sample()
+  const data = improved()
   data.verification.pairs = [data.verification.pairs[0]]
   data.verification.pairs[0].before.validity = 'INVALID'
   data.verification.pairs[0].before.issues = ['UNKNOWN_CODE']

@@ -17,7 +17,6 @@ const official = () =>
 it('사이드바 링크가 공식 결과를 가리키고 파일이 같은 id를 가진다', () => {
   expect(FINAL_IMPROVEMENT_ID).toBe('imp-1119')
   expect(official().improvementId).toBe('imp-1119')
-  expect(official().sample).toBe(false)
 })
 
 it('네 영역이 모두 오류 없이 변환되고 후보 11개를 읽는다', () => {
@@ -43,7 +42,6 @@ it('화면은 개선안 미채택과 검증 미진행을 보이고 데이터 오
     </MemoryRouter>,
   )
   expect(await screen.findByRole('heading', { name: '자동 개선 리포트' })).toBeTruthy()
-  expect(screen.queryByText('샘플 데이터')).toBeNull()
   expect(screen.getByText('개선안 미채택')).toBeTruthy()
   expect(screen.getByText('검증 미진행')).toBeTruthy()
   expect(screen.queryByText(/데이터 오류/)).toBeNull()

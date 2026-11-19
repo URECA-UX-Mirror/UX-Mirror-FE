@@ -3,17 +3,12 @@
   gap: var(--um-space-4);
 }
 
-.experiment-tag,
-.sample-badge {
+.experiment-tag {
   padding: 2px var(--um-space-2);
   border-radius: var(--um-radius-pill);
   font-size: 12px;
   font-weight: 600;
   border: 1px solid currentColor;
-}
-
-.sample-badge {
-  color: var(--um-warning-text);
 }
 
 .experiment-tag {

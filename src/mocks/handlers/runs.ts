@@ -12,6 +12,7 @@ import {
   buildRun,
   buildSteps,
   getTiming,
+  goalImagePageKey,
   specsOf,
 } from '../fixtures/run.ts'
 import { scenarioForGoal, textVisibleOn, VISIBLE_TEXTS } from '../fixtures/scenario.ts'
@@ -304,6 +305,20 @@ export const runsHandlers = [
       ? issueOverride(runId)
       : null
     return HttpResponse.json(override ?? buildIssues(record, now))
+  }),
+
+  // 도착 화면 이미지(OI-3). `:stepId` 핸들러보다 먼저 등록해야 `goal`이 stepId로 해석되지 않는다.
+  // 목표 화면에 도착한 Run(`GOAL_VERIFIED`)만 PNG를 주고, 그 외·없는 Run은 404 RUN_NOT_FOUND다
+  http.get(apiUrl('/api/runs/:runId/screenshots/goal'), async ({ params }) => {
+    await delay(80)
+    const record = findRun(String(params.runId))
+    if (!record) return runNotFound()
+    const key = goalImagePageKey(record, Date.now())
+    const image = key
+      ? await fetch(`${import.meta.env.BASE_URL}mock/screens/${record.variant === 'after' ? 'after' : 'before'}/${key}.png`)
+      : null
+    if (!image?.ok) return errorResponse(404, 'RUN_NOT_FOUND', '스크린샷을 찾을 수 없습니다')
+    return new HttpResponse(await image.arrayBuffer(), { headers: { 'Content-Type': 'image/png' } })
   }),
 
   // 화면별 mock 이미지(PNG, 1440×900)를 돌려준다. 이미지는 `mock-pages/`의 목업 쇼핑몰을 `npm run mock:shots`로 찍은 것이다. 저장된 Step이 아니면 404(서버도 RUN_NOT_FOUND를 쓴다).

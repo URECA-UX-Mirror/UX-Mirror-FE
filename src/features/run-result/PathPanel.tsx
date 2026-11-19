@@ -1,5 +1,5 @@
-import { screenshotUrl } from '../../api/runs.ts'
-import type { PathVisit, Step } from '../../domain/types.ts'
+import { goalScreenshotUrl, screenshotUrl } from '../../api/runs.ts'
+import type { PathVisit, Size, Step } from '../../domain/types.ts'
 import { RouteIcon, ColumnsIcon } from '../../shared/icons.tsx'
 import { SectionTitle } from '../../shared/SectionTitle.tsx'
 import { SelectedAction } from '../../shared/SelectedAction.tsx'
@@ -24,6 +24,10 @@ interface PathPanelProps {
   onRetrySteps: () => void
   /** 목표 화면에 도달했는지(`Run.summary`). 마지막 노드의 이름표에 쓴다 */
   goalReached: boolean
+  /** `Run.terminationReason`. `GOAL_VERIFIED`일 때만 마지막 노드의 도착 화면 이미지를 요청한다(OI-3) */
+  terminationReason: string | null
+  /** `Run.viewport`. 도착 화면 이미지의 비율을 잡는다 */
+  viewport: Size
   selected: number
   onSelect: (index: number) => void
 }
@@ -65,6 +69,8 @@ export function PathPanel({
   stepsRetrying,
   onRetrySteps,
   goalReached,
+  terminationReason,
+  viewport,
   selected,
   onSelect,
 }: PathPanelProps) {
@@ -144,10 +150,20 @@ export function PathPanel({
           <p>시스템이 이전 화면으로 복구한 화면입니다.</p>
         ) : null}
 
-        {stepId === null ? (
+        {stepId === null && isLast && terminationReason === 'GOAL_VERIFIED' ? (
+          // 도착 화면은 Step이 없어 후보 좌표가 없다. bbox를 그리지 않고, 404·로드 실패면 기존 문구를 보인다
+          <ScreenshotViewer
+            src={goalScreenshotUrl(runId)}
+            alt={`${labelPage(visit.pageKey)} 도착 화면`}
+            viewport={viewport}
+            boxes={[]}
+            runInProgress={false}
+            missingText="도착 화면 이미지 없음"
+          />
+        ) : stepId === null ? (
           <p role="status" className="no-image">
             {isLast
-              ? '도착 화면 이미지 없음'
+              ? '마지막 화면 이미지 없음'
               : '이 화면에서 모델이 판단한 Step이 없어 이미지가 없습니다'}
           </p>
         ) : step === null ? (

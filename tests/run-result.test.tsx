@@ -40,9 +40,37 @@ it('탐색 경로는 노드 사이에 이동을 만든 행동을 보이고 노�
   fireEvent.click(nodes[1])
   expect(nodes[1].getAttribute('aria-pressed')).toBe('true')
   expect(detail.textContent).toContain('선택된 노드: mypage')
-  // 마지막 도착 화면은 모델이 판단한 Step이 없어 이미지가 없다
+  // 마지막 도착 화면은 모델이 판단한 Step이 없어 도착 화면 이미지 endpoint로 가져온다
   fireEvent.click(nodes[4])
-  expect(await within(detail).findByText('도착 화면 이미지 없음')).toBeTruthy()
+  expect((await within(detail).findByRole('img')).getAttribute('src')).toMatch(
+    /\/api\/runs\/run_mock_goback\/screenshots\/goal$/,
+  )
+})
+
+it('도착 화면 이미지는 bbox 없이 보이고 로드에 실패하면 "도착 화면 이미지 없음"을 보인다', async () => {
+  renderResult('run_mock_done_before')
+  const path = await screen.findByRole('region', { name: '탐색 경로' })
+  const nodes = within(path).getAllByRole('button')
+  fireEvent.click(nodes[nodes.length - 1])
+  const detail = screen.getByRole('region', { name: '단계별 탐색 상세' })
+  const image = await within(detail).findByRole('img')
+  expect(image.getAttribute('src')).toMatch(/\/screenshots\/goal$/)
+  expect(detail.querySelector('.screenshot-box')).toBeNull()
+  fireEvent.error(image)
+  expect(within(detail).getByText('도착 화면 이미지 없음')).toBeTruthy()
+  // 다른 노드의 표시는 그대로다
+  fireEvent.click(nodes[0])
+  expect((await within(detail).findByRole('img')).getAttribute('src')).toMatch(/\/screenshots\/1\?kind=original$/)
+})
+
+it('목표에 도착하지 못한 Run은 도착 화면 이미지를 요청하지 않고 기존 문구를 보인다', async () => {
+  renderResult('run_mock_maxsteps')
+  const path = await screen.findByRole('region', { name: '탐색 경로' })
+  const nodes = within(path).getAllByRole('button')
+  fireEvent.click(nodes[nodes.length - 1])
+  const detail = screen.getByRole('region', { name: '단계별 탐색 상세' })
+  expect(await within(detail).findByText('마지막 화면 이미지 없음')).toBeTruthy()
+  expect(detail.querySelector('img')).toBeNull()
 })
 
 it('검토 후보는 우선 검토·일반 검토 두 단계로만 보이고 항목을 열면 근거를 보인다', async () => {

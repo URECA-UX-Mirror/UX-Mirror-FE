@@ -42,6 +42,15 @@ const PHASE_LABELS: Readonly<Record<string, string>> = {
 
 export const phaseLabel = (phase: string) => labelOf(PHASE_LABELS, phase)
 
+// 검증 중(`verificationPhase`)에 지금 어느 Run을 실행하는지. `error.failedPhase`와 값이 다르다
+const VERIFICATION_PHASE_LABELS: Readonly<Record<string, string>> = {
+  BASELINE: '기준 실행',
+  CANDIDATE: '후보 실행',
+}
+
+export const verificationPhaseLabel = (phase: string) =>
+  labelOf(VERIFICATION_PHASE_LABELS, phase)
+
 const METRIC_LABELS: Readonly<Record<string, string>> = {
   targetOptionProbability: '대상 메뉴 확률',
   goalPathProbability: '목표 경로 확률',

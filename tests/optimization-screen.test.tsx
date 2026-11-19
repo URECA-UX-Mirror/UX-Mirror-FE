@@ -248,6 +248,27 @@ it('null 지표는 0이 아니라 계산 불가와 사유로 보인다', async (
   expect(c1.queryByText('0%')).toBeNull()
 })
 
+it('VERIFYING: 검증 단계를 한글로 보이고 선택 확률 안내 문구를 둔다', async () => {
+  const dto = seeded('opt_mock_evaluated')
+  dto.status = 'VERIFYING'
+  dto.verificationPhase = 'BASELINE'
+  serve(dto)
+  renderOptimization('opt_mock_evaluated')
+  expect(await screen.findByText('후보 검증 중 · 기준 실행')).toBeTruthy()
+  expect(screen.queryByText(/BASELINE/)).toBeNull()
+  expect(screen.getByText('모델의 선택 확률이며 실제 사용자의 클릭 확률이 아닙니다')).toBeTruthy()
+})
+
+it('FAILED이고 후보 목록이 비면 불러오는 중이 아니라 목록 없음을 보인다', async () => {
+  const dto = seeded('opt_mock_interrupted')
+  dto.candidateLabels = []
+  dto.evaluations = []
+  serve(dto)
+  renderOptimization('opt_mock_interrupted')
+  expect(await screen.findByText('후보 목록 없음')).toBeTruthy()
+  expect(screen.queryByText('후보 목록을 불러오는 중')).toBeNull()
+})
+
 it('NOT_SELECTABLE: 검증 후보가 없으면 그렇게 보이고 검증 시작은 막혀 있다', async () => {
   const rec = { ...FAKE, scenario: 'not-selectable' } as const
   serve(buildOptimization(rec, FAR_FUTURE))

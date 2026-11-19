@@ -8,7 +8,7 @@ import { SectionTitle } from '../../shared/SectionTitle.tsx'
 import { CompareIcon } from '../../shared/icons.tsx'
 import { useOptimizationProgress } from '../../shared/useOptimizationProgress.ts'
 import { CandidateCard, type CardPhase } from './CandidateCard.tsx'
-import { optimizationStatusLabel, phaseLabel } from './labels.ts'
+import { optimizationStatusLabel, phaseLabel, verificationPhaseLabel } from './labels.ts'
 import { SelectionPanel } from './SelectionPanel.tsx'
 import './optimization.css'
 
@@ -59,7 +59,7 @@ function OptimizationView({ optimizationId }: { optimizationId: string }) {
           <span role="status" className="run-status" data-status={optimization.status}>
             {optimizationStatusLabel(optimization.status)}
             {optimization.status === 'VERIFYING' && optimization.verificationPhase
-              ? ` · ${phaseLabel(optimization.verificationPhase)}`
+              ? ` · ${verificationPhaseLabel(optimization.verificationPhase)}`
               : ''}
           </span>
           <ResultOriginBadge origin={optimization.resultOrigin} />
@@ -144,8 +144,11 @@ function Candidates({ optimization }: { optimization: Optimization }) {
   return (
     <section className="card" aria-label="후보 목록">
       <SectionTitle icon={<CompareIcon />} title="후보 평가" />
+      <p className="muted">모델의 선택 확률이며 실제 사용자의 클릭 확률이 아닙니다</p>
       {ordered.length === 0 ? (
-        <p role="status">후보 목록을 불러오는 중</p>
+        <p role="status">
+          {optimization.status === 'FAILED' ? '후보 목록 없음' : '후보 목록을 불러오는 중'}
+        </p>
       ) : (
         <ol className="candidate-list">
           {ordered.map((candidate) => (

@@ -166,7 +166,7 @@
 
 ### UX Optimizer API (`/api/optimizations`)
 
-라벨 후보 풀을 모델로 평가해 후보를 고르고(`POST /api/optimizations`), 고른 후보와 기준을 실제 브라우저로 다시 실행해 검증한 뒤(`POST …/{id}/verify`) 최종 판단과 보고서(`GET …/{id}/report`)를 만든다. 기존 `POST /api/runs` 흐름과 별도다. 계약 v1.3.8(§17.12, §4.9, §6.1)에 정의되며 이 저장소의 계약 문서는 v1.3.5라 아직 반영하지 않았다. 구현은 API 함수(`src/api/optimizations.ts`)·DTO·Adapter·mock까지이고 화면은 없다. 타입과 값 목록의 임시 결정은 [OI-12](../operations/open_issue.md#oi-12)에 있다.
+라벨 후보 풀을 모델로 평가해 후보를 고르고(`POST /api/optimizations`), 고른 후보와 기준을 실제 브라우저로 다시 실행해 검증한 뒤(`POST …/{id}/verify`) 최종 판단과 보고서(`GET …/{id}/report`)를 만든다. 기존 `POST /api/runs` 흐름과 별도다. 계약 v1.3.8(§17.12, §4.9, §6.1)에 정의되며 이 저장소의 계약 문서는 v1.3.5라 아직 반영하지 않았다. 구현은 API 함수(`src/api/optimizations.ts`)·DTO·Adapter·mock과 후보 평가 화면(`features/optimization/`)까지이고 검증 시작·보고서 화면은 아직 없다. 타입과 값 목록의 임시 결정은 [OI-12](../operations/open_issue.md#oi-12)에 있다.
 
 | 함수 | 요청 | 응답 |
 | --- | --- | --- |

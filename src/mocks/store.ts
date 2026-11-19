@@ -59,6 +59,14 @@ const SEEDS: RunRecord[] = [
     scenario: 'direct',
   }),
   seed({ runId: 'run_mock_done_after', experimentKey: 'mock-done', variant: 'after' }, 5),
+  // `/replay`의 첫 고정 키(`REPLAY_EXPERIMENTS[0]`). mock-done과 같은 모양의 쌍이다
+  seed({
+    runId: 'run_mock_replay_before',
+    experimentKey: 'e-s1-1119',
+    variant: 'before',
+    scenario: 'direct',
+  }, 30),
+  seed({ runId: 'run_mock_replay_after', experimentKey: 'e-s1-1119', variant: 'after' }, 35),
   // Before만 마이페이지를 거쳐 비교가 PARTIAL이 되는 쌍(NOT_VISITED_IN_AFTER)
   seed({ runId: 'run_mock_partial_before', experimentKey: 'mock-partial', variant: 'before' }, 6),
   seed({ runId: 'run_mock_partial_after', experimentKey: 'mock-partial', variant: 'after' }, 7),

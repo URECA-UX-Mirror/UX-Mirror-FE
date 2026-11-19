@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { http, HttpResponse } from 'msw'
 import { afterEach, expect, it, vi } from 'vitest'
@@ -50,8 +50,15 @@ function item(variant: 'before' | 'after', over: Record<string, unknown> = {}) {
   }
 }
 
+// 재생 키가 여러 개라 첫 키에만 목록을 주고 나머지 키는 비어 있게 한다
 function useRunList(items: unknown[]) {
-  server.use(http.get(apiUrl('/api/runs'), () => HttpResponse.json({ count: items.length, items })))
+  server.use(
+    http.get(apiUrl('/api/runs'), ({ request }) => {
+      const key = new URL(request.url).searchParams.get('experimentKey')
+      const list = key === REPLAY_EXPERIMENT_KEY ? items : []
+      return HttpResponse.json({ count: list.length, items: list })
+    }),
+  )
 }
 
 const compareLink = () => screen.queryByRole('link', { name: '버전 비교 보기' })
@@ -73,7 +80,7 @@ it('고정 키의 저장된 Run 목록을 보이고 Run을 만드는 요청은 �
 })
 
 it('MOCK 데이터의 재생 표시는 실측이 아니라 MOCK 재생 테스트이고 원본 배지는 그대로다', async () => {
-  renderAt('/runs/run_mock_done_before/result')
+  renderAt('/runs/run_mock_replay_before/result')
   expect((await screen.findByRole('note')).textContent).toBe(MOCK_NOTE)
   expect(document.querySelector('.origin-badge')?.textContent).toBe('MOCK')
 })
@@ -106,7 +113,9 @@ it('고정 키의 비교 화면에는 재생 표시가 있다', async () => {
 it('저장된 실행이 없으면 버전 비교 링크를 보이지 않는다', async () => {
   useRunList([])
   renderAt('/replay')
-  expect(await screen.findByText('저장된 실행이 없습니다')).toBeTruthy()
+  await waitFor(() =>
+    expect(screen.getAllByText('저장된 실행이 없습니다')).toHaveLength(REPLAY_EXPERIMENTS.length),
+  )
   expect(compareLink()).toBeNull()
 })
 
@@ -140,6 +149,6 @@ it('두 버전 모두 종료된 VALID Run이면 버전 비교 링크를 보인�
 it('조회 실패로 재시도하는 동안 연결 재시도 중을 보이고 비교 링크는 숨긴다', async () => {
   server.use(http.get(apiUrl('/api/runs'), () => new HttpResponse(null, { status: 500 })))
   renderAt('/replay')
-  expect(await screen.findByText('연결 재시도 중')).toBeTruthy()
+  expect(await screen.findAllByText('연결 재시도 중')).not.toHaveLength(0)
   expect(compareLink()).toBeNull()
 })

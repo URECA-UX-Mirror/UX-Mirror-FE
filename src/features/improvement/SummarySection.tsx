@@ -1,5 +1,5 @@
 import type { ImprovementReport, ImprovementScoreLine } from '../../domain/improvement.ts'
-import { formatScore, formatScoreDelta } from '../../domain/improvementScore.ts'
+import { formatScore, formatScoreDelta, SCORE_NULL_TEXT } from '../../domain/improvementScore.ts'
 
 interface SummarySectionProps {
   report: ImprovementReport
@@ -37,9 +37,10 @@ export function SummarySection({ report, guardMaxDrop }: SummarySectionProps) {
 
       <div className="summary-block">
         <h3>무엇을 바꿨나</h3>
-        {rejected ? (
+        {!improved ? (
           <p className="summary-rejected">
-            개선안 미채택
+            {/* 모르는 result 값은 원문으로 보이고, 후 값은 `NO_IMPROVEMENT`처럼 숨긴다 */}
+            {rejected ? '개선안 미채택' : `알 수 없는 결과: ${report.result}`}
             <span className="summary-muted"> · 현재 이름: {report.beforeLabel}</span>
           </p>
         ) : (
@@ -49,7 +50,7 @@ export function SummarySection({ report, guardMaxDrop }: SummarySectionProps) {
             ) : null}
             <span>{report.beforeLabel}</span>
             <span aria-hidden="true"> → </span>
-            <strong>{report.afterLabel ?? formatScoreDelta(null)}</strong>
+            <strong>{report.afterLabel ?? SCORE_NULL_TEXT}</strong>
             {report.afterSource ? (
               <span className="summary-source">
                 {SOURCE_LABELS[report.afterSource] ?? report.afterSource}
@@ -57,7 +58,7 @@ export function SummarySection({ report, guardMaxDrop }: SummarySectionProps) {
             ) : null}
           </p>
         )}
-        {rejected && report.target?.region ? (
+        {!improved && report.target?.region ? (
           <p className="summary-muted">대상 위치: {report.target.region}</p>
         ) : null}
       </div>

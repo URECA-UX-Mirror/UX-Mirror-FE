@@ -1,5 +1,5 @@
 import type { ImprovementOfficial } from '../../domain/improvement.ts'
-import { formatScore, formatScoreDelta } from '../../domain/improvementScore.ts'
+import { formatScore, formatScoreMagnitude } from '../../domain/improvementScore.ts'
 
 interface OfficialSectionProps {
   /** `null`이면 공식 평가 전이다 */
@@ -45,7 +45,7 @@ export function OfficialSection({ official, goalNames = {} }: OfficialSectionPro
       ) : null}
       {scoresA && maxDiffAvsB !== null ? (
         <p className="summary-muted">
-          추정(A)과 공식(B)의 차이: 최대 {formatScoreDelta(maxDiffAvsB)} (A 주 목표 {formatScore(scoresA.mainScore)})
+          추정(A)과 공식(B)의 차이: 최대 {formatScoreMagnitude(maxDiffAvsB)} (A 주 목표 {formatScore(scoresA.mainScore)})
         </p>
       ) : null}
     </div>

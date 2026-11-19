@@ -91,7 +91,7 @@ it('공식 평가: 점수·이름 외 차이 없음·A/B 차이를 보인다', a
   expect(within(aux).getByText('70.1%')).toBeTruthy()
   expect(within(aux).getByText('S2 배송').nextSibling?.textContent).toBe('81.2%')
   expect(within(aux).getByText(/이름 외 차이 없음/)).toBeTruthy()
-  expect(within(aux).getByText(/추정\(A\)과 공식\(B\)의 차이: 최대 \+0\.6%p/)).toBeTruthy()
+  expect(within(aux).getByText(/추정\(A\)과 공식\(B\)의 차이: 최대 0\.6%p/)).toBeTruthy()
 })
 
 it('모르는 scoreSource·buildCheck는 원문으로 보인다', async () => {
@@ -128,4 +128,15 @@ it('필수 필드가 없으면 이 영역만 데이터 오류로 보인다', asy
   const aux = screen.getByRole('region', { name: '보조 정보' })
   expect(within(aux).queryByRole('alert')).toBeNull()
   await waitFor(() => expect(within(aux).getByText('70.1%')).toBeTruthy())
+})
+
+it('모르는 summary.result는 원문을 보이고 후 값은 숨긴다', async () => {
+  const body = sample()
+  body.summary.result = 'PARTIAL'
+  const area = await renderWith(body)
+  expect(within(area).getByText(/알 수 없는 결과: PARTIAL/)).toBeTruthy()
+  expect(within(area).queryByText('주문내역')).toBeNull()
+  expect(within(area).queryByText('70.1%')).toBeNull()
+  expect(area.querySelector('.summary-delta')).toBeNull()
+  expect(area.textContent).not.toContain('→ 값 없음')
 })

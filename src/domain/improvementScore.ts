@@ -19,3 +19,9 @@ export function formatScoreDelta(value: number | null): string {
   if (tenths === 0) return '0.0%p'
   return `${tenths > 0 ? '+' : ''}${tenths.toFixed(1)}%p`
 }
+
+/** 방향이 없는 차이의 크기를 `%p`로. 부호를 붙이지 않는다(`0.006` → `0.6%p`) */
+export function formatScoreMagnitude(value: number | null): string {
+  if (value === null) return SCORE_NULL_TEXT
+  return `${Math.abs(roundTenth(value)).toFixed(1)}%p`
+}

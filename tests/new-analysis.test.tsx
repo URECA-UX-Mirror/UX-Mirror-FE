@@ -6,7 +6,6 @@ import { apiUrl } from '../src/api/client.ts'
 import type { HealthDto } from '../src/api/dto/index.ts'
 import { NewAnalysisPage } from '../src/features/new-analysis/NewAnalysisPage.tsx'
 import { errorResponse } from '../src/mocks/errors.ts'
-import { SITES } from '../src/mocks/fixtures/sites.ts'
 import { DEFAULT_PERSONA, GOAL_SCREENS } from '../src/shared/customerInput.ts'
 import { sentenceProblem } from '../src/shared/inputRules.ts'
 import { server } from './setup.ts'
@@ -52,35 +51,32 @@ const startButton = () => screen.getByRole('button', { name: '진단 시작' }) 
 const goalInput = () => screen.getByLabelText(/^무엇을 하려고/) as HTMLInputElement
 const pageSelect = () => screen.getByLabelText(/^어느 화면을 찾아야 하나요/) as HTMLSelectElement
 const noPageSelect = () => expect(screen.queryByLabelText(/^어느 화면을 찾아야 하나요/)).toBeNull()
-const linkInput = () => screen.getByLabelText('진단할 사이트') as HTMLInputElement
-const siteChips = () => within(screen.getByRole('group', { name: '진단할 수 있는 사이트' }))
-const siteChip = (name: string | RegExp) => siteChips().findByRole('button', { name })
 const exampleChips = () => within(screen.getByRole('group', { name: '예시' })).getAllByRole('button')
 const matchedLine = () => document.querySelector('.home-screen')?.textContent ?? null
-const CAFE24_LINK = 'https://ecudemo360127.cafe24.com'
-const UNREGISTERED = '아직 등록되지 않은 사이트예요. 지금은 등록된 사이트만 진단할 수 있어요.'
 const typeGoal = (value: string) => fireEvent.change(goalInput(), { target: { value } })
 
 /** 엔진 상태를 읽을 때까지 기다린다 (READY 전에는 시작 버튼이 열려 있어도 결과가 달라질 수 있다) */
 const settle = () => waitFor(() => expect(startButton().disabled).toBe(false))
 
-it('진단할 사이트와 하려는 일만 받고, 고객 유형·찾을 화면·개발자용 입력은 처음에 없다', async () => {
+it('사이트는 예시 쇼핑몰 MORO MARKET 하나이고 첫 화면을 미리 볼 수 있으며, 하려는 일만 받는다', async () => {
   renderPage()
   expect(screen.getByRole('form', { name: '새 진단' })).toBeTruthy()
-  // 글 칸은 사이트 주소와 하려는 일 두 개뿐이고, 화면을 고르는 칸은 아직 없다
-  expect(screen.getAllByRole('textbox')).toHaveLength(2)
+  // 글 칸은 하려는 일 하나뿐이고, 사이트 주소 칸·화면 고르는 칸은 없다
+  expect(screen.getAllByRole('textbox')).toHaveLength(1)
   expect(screen.queryByRole('combobox')).toBeNull()
-  expect(linkInput().value).toBe('')
-  expect(linkInput().placeholder).toBe('내 사이트 주소를 붙여 넣어 주세요')
+  expect(screen.queryByPlaceholderText(/사이트 주소/)).toBeNull()
   expect(goalInput().value).toBe('')
-  // 예시 쇼핑몰이 기본으로 골라져 있고, 주소가 있는 등록 사이트가 칩으로 나온다
-  expect((await siteChip('ONS 공식몰 (cafe24 데모)')).getAttribute('aria-pressed')).toBe('false')
-  expect((await siteChip('예시 쇼핑몰로 해 보기 (MORO MARKET)')).getAttribute('aria-pressed')).toBe('true')
-  expect(siteChips().getAllByRole('button')).toHaveLength(1 + SITES.filter((s) => s.siteUrl).length)
+  expect(screen.getByText('예시 쇼핑몰 MORO MARKET')).toBeTruthy()
+  // 첫 화면 스크린샷(정적 파일)을 작게 보이고, 누르면 크게 보인다
+  expect(screen.getByRole('img', { name: 'MORO MARKET 첫 화면' }).getAttribute('src')).toBe('/moro-market-home.jpg')
+  expect(screen.queryByRole('dialog')).toBeNull()
+  fireEvent.click(screen.getByRole('button', { name: '첫 화면 크게 보기' }))
+  const dialog = screen.getByRole('dialog', { name: 'MORO MARKET 첫 화면' })
+  fireEvent.click(within(dialog).getByRole('button', { name: '닫기' }))
+  expect(screen.queryByRole('dialog')).toBeNull()
   // 누가(고객 유형)를 묻는 칸·문구가 없다
   expect(screen.queryByText(/누가|고객 유형|직접 쓰기/)).toBeNull()
   expect(document.body.textContent).not.toContain(DEFAULT_PERSONA)
-  expect(document.body.textContent).not.toMatch(/다른 사이트|남의 사이트/)
   expect(screen.queryByLabelText(/실험 키|최대|성공 조건/)).toBeNull()
   expect(screen.queryByRole('link')).toBeNull()
   await settle()
@@ -134,111 +130,17 @@ it.each([
 it('예시를 누르면 문장 칸이 채워지고 찾아야 할 화면이 정해진다', async () => {
   renderPage()
   await settle()
-  expect(exampleChips().map((b) => b.textContent)).toEqual(['지난주에 산 운동화가 발에 안 맞아서 돌려보내고 돈을 돌려받고 싶다', '배송이 어디쯤인지 궁금해요', '쿠폰이 있는지 보고 싶어요'])
-  fireEvent.click(exampleChips()[2])
-  expect(goalInput().value).toBe('쿠폰이 있는지 보고 싶어요')
-  expect(matchedLine()).toBe('찾아야 할 화면: 마이페이지 · 바꾸기')
+  expect(exampleChips().map((b) => b.textContent)).toEqual(['지난주에 산 운동화가 발에 안 맞아서 돌려보내고 돈을 돌려받고 싶다', '선물로 받은 셔츠가 작아서 반품하고 환불받고 싶다', '어제 받은 원피스가 마음에 안 들어서 반품하고 싶다'])
+  // 세 예시 모두 환불 신청 화면으로 맞춰진다
+  for (const chip of exampleChips()) {
+    fireEvent.click(chip)
+    expect(matchedLine()).toBe('찾아야 할 화면: 환불 신청 · 바꾸기')
+  }
+  fireEvent.click(exampleChips()[0])
+  expect(goalInput().value).toBe('지난주에 산 운동화가 발에 안 맞아서 돌려보내고 돈을 돌려받고 싶다')
+  expect(matchedLine()).toBe('찾아야 할 화면: 환불 신청 · 바꾸기')
 })
 
-it('등록 사이트 칩을 누르면 주소가 채워지고, 그 사이트의 고를 수 있는 화면과 예시로 바뀐다', async () => {
-  renderPage()
-  await settle()
-  typeGoal(GOAL)
-  fireEvent.click(await siteChip('ONS 공식몰 (cafe24 데모)'))
-  expect(linkInput().value).toBe(CAFE24_LINK)
-  expect((await siteChip('ONS 공식몰 (cafe24 데모)')).getAttribute('aria-pressed')).toBe('true')
-  expect((await siteChip(/MORO MARKET/)).getAttribute('aria-pressed')).toBe('false')
-  // 예시 쇼핑몰의 화면("환불 신청")은 이 사이트에 없어 고르게 한다. 서버가 고를 수 있다고 한 화면만 나온다
-  expect(matchedLine()).toBeNull()
-  expect(Array.from(pageSelect().options).map((o) => o.textContent)).toEqual(['화면을 골라 주세요', '제품 목록', '상품 리뷰', '이벤트', '장바구니'])
-  expect(exampleChips().map((b) => b.textContent)).toEqual(['제품 목록을 보고 싶어요', '상품 리뷰를 보고 싶어요', '이벤트를 보고 싶어요'])
-  fireEvent.click(exampleChips()[1])
-  expect(matchedLine()).toBe('찾아야 할 화면: 상품 리뷰 · 바꾸기')
-})
-
-it('등록 사이트는 siteId와 그 화면의 경로·확인 글자, 숨긴 고객 유형으로 한 번 시작한다', async () => {
-  const bodies = captureRuns()
-  renderPage()
-  await settle()
-  await siteChip('ONS 공식몰 (cafe24 데모)')
-  fireEvent.change(linkInput(), { target: { value: 'ecudemo360127.cafe24.com/product/list.html' } })
-  typeGoal('마음에 드는 제품을 담을 화면 찾기')
-  expect(matchedLine()).toBe('찾아야 할 화면: 제품 목록 · 바꾸기')
-  fireEvent.click(startButton())
-  expect((await screen.findByTestId('where')).textContent).toBe('/runs/run_new')
-  expect(bodies).toEqual([{
-    experimentKey: expect.stringMatching(/^exp_[0-9a-f]{32}$/),
-    variant: 'before',
-    siteId: 'cafe24-ons',
-    goal: '마음에 드는 제품을 담을 화면 찾기',
-    verification: { path: '/product/list.html', text: '제품' },
-    persona: DEFAULT_PERSONA,
-    maxSteps: 8,
-  }])
-})
-
-it('사이트를 바꾸면 직접 고른 화면을 지운다', async () => {
-  renderPage()
-  await settle()
-  fireEvent.click(await siteChip('ONS 공식몰 (cafe24 데모)'))
-  typeGoal('둘러보고 싶어요')
-  fireEvent.change(pageSelect(), { target: { value: 'basket' } })
-  expect(matchedLine()).toBe('찾아야 할 화면: 장바구니 · 바꾸기')
-  fireEvent.click(await siteChip(/MORO MARKET/))
-  expect(linkInput().value).toBe('')
-  expect(matchedLine()).toBeNull()
-  expect(pageSelect().value).toBe('')
-})
-
-it('등록되지 않은 사이트 주소는 안내하고 시작할 수 없다', async () => {
-  const bodies = captureRuns()
-  renderPage()
-  await settle()
-  await siteChip('ONS 공식몰 (cafe24 데모)')
-  fireEvent.change(linkInput(), { target: { value: 'https://www.example.org' } })
-  typeGoal(GOAL)
-  expect(screen.getByRole('alert').textContent).toBe(UNREGISTERED)
-  expect(startButton().disabled).toBe(true)
-  expect(matchedLine()).toBeNull()
-  noPageSelect()
-  expect(bodies).toHaveLength(0)
-})
-
-it.each(['링크 아님 입니다', 'ftp://ecudemo360127.cafe24.com'])('주소 형식이 아니면(%s) 형식 안내를 보인다', async (link) => {
-  renderPage()
-  await settle()
-  fireEvent.change(linkInput(), { target: { value: link } })
-  expect(screen.getByRole('alert').textContent).toBe('사이트 링크를 확인해 주세요. 예: https://www.example.com')
-  expect(startButton().disabled).toBe(true)
-})
-
-it('고를 수 있는 화면이 없는 등록 사이트는 안내하고 시작할 수 없다', async () => {
-  server.use(http.get(apiUrl('/api/sites'), () => HttpResponse.json({
-    items: [{ ...SITES[0], pages: SITES[0].pages.map((p) => ({ ...p, goalSelectable: false })) }],
-  })))
-  renderPage()
-  fireEvent.click(await siteChip('ONS 공식몰 (cafe24 데모)'))
-  expect(screen.getByText('이 사이트에는 찾을 화면이 아직 없어요.')).toBeTruthy()
-  expect(startButton().disabled).toBe(true)
-})
-
-it('등록 사이트 목록을 불러오지 못해도 예시 쇼핑몰은 진단할 수 있고, 다시 시도할 수 있다', async () => {
-  server.use(http.get(apiUrl('/api/sites'), () => errorResponse(500, 'STORAGE_ERROR', '오류', true)))
-  const bodies = captureRuns()
-  renderPage()
-  expect(await screen.findByText(/등록된 사이트 목록을 불러오지 못했어요/)).toBeTruthy()
-  expect(siteChips().getAllByRole('button')).toHaveLength(1)
-  server.resetHandlers()
-  const more = captureRuns()
-  fireEvent.click(screen.getByRole('button', { name: '다시 시도' }))
-  expect(await siteChip('ONS 공식몰 (cafe24 데모)')).toBeTruthy()
-  expect(screen.queryByText(/불러오지 못했어요/)).toBeNull()
-  await settle()
-  typeGoal(GOAL)
-  fireEvent.click(startButton())
-  await screen.findByTestId('where')
-  expect(bodies.length + more.length).toBe(1)
-})
 
 it('숨겨서 보내는 고객 유형은 서버와 같은 문장 검사를 통과한다', () => {
   expect(sentenceProblem(DEFAULT_PERSONA, '고객 유형')).toBeNull()
@@ -398,7 +300,7 @@ it('화면을 직접 고른 뒤에도 예시를 누르면 그 예시에 맞는 �
   fireEvent.click(screen.getByRole('button', { name: '바꾸기' }))
   fireEvent.change(pageSelect(), { target: { value: 'support' } })
   expect(matchedLine()).toBe('찾아야 할 화면: 고객센터 · 바꾸기')
-  fireEvent.click(exampleChips()[1])
-  expect(goalInput().value).toBe('배송이 어디쯤인지 궁금해요')
-  expect(matchedLine()).toBe('찾아야 할 화면: 주문·배송 조회 · 바꾸기')
+  fireEvent.click(exampleChips()[0])
+  expect(goalInput().value).toBe('지난주에 산 운동화가 발에 안 맞아서 돌려보내고 돈을 돌려받고 싶다')
+  expect(matchedLine()).toBe('찾아야 할 화면: 환불 신청 · 바꾸기')
 })

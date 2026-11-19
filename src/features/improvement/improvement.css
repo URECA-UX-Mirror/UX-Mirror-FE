@@ -265,3 +265,41 @@
   flex-direction: column;
   gap: var(--um-space-2);
 }
+
+.imp-choice {
+  display: grid;
+  gap: var(--um-space-2);
+}
+
+.imp-choice p {
+  margin: 0;
+}
+
+.imp-choice-list {
+  display: grid;
+  margin: var(--um-space-2) 0;
+  padding: 0;
+  list-style: none;
+}
+
+.imp-choice-list li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 4.5em minmax(8em, auto);
+  gap: var(--um-space-3);
+  align-items: baseline;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--um-border);
+  font-size: 14px;
+}
+
+.imp-choice-list li[data-adopted='true'] {
+  font-weight: 700;
+}
+
+.imp-choice-list .imp-num {
+  text-align: right;
+}
+
+.imp-pick {
+  color: var(--um-success-text);
+}

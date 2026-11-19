@@ -75,16 +75,6 @@
   overflow-wrap: anywhere;
 }
 
-.choice-tag {
-  margin-left: var(--um-space-2);
-  padding: 0 var(--um-space-2);
-  border: 1px solid var(--um-brand-border);
-  border-radius: var(--um-radius-pill);
-  color: var(--um-accent-strong);
-  font-size: 12px;
-  line-height: 18px;
-  white-space: nowrap;
-}
 
 .choice-value {
   color: var(--um-text);

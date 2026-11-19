@@ -218,6 +218,17 @@ function simulate(specs: StepSpec[], count: number): Move[] {
   return moves
 }
 
+/** 사이트 지도의 모든 CLICK 목적지를 확인한 뒤 목표 방향의 확률을 합한다. */
+export function siteMapGoalProbability(
+  distances: Record<string, number | null>,
+  pageKey: PageKey,
+  candidates: { leadsTo: PageKey; probability: number }[],
+): number | null {
+  if (!(pageKey in distances) || candidates.some((c) => !(c.leadsTo in distances))) return null
+  return round(candidates.filter((c) => movesCloser(distances, pageKey, c.leadsTo))
+    .reduce((sum, c) => sum + c.probability, 0))
+}
+
 // ---- Step ----
 
 export function buildSteps(rec: RunRecord, count: number): StepDto[] {
@@ -235,17 +246,12 @@ export function buildSteps(rec: RunRecord, count: number): StepDto[] {
       choices.goBackProbability === null
         ? clickProbabilities
         : [...clickProbabilities, choices.goBackProbability]
-    // 목표 경로로 이어지는 후보가 없으면 null이다. 0으로 바꾸지 않는다(metrics-and-goal.md).
-    // 허용 경로 기준은 `onGoalPath`, 사이트 지도 기준은 목표까지의 거리가 줄어드는 이동이다.
-    const goalPath = isSiteMap(rec)
-      ? choices.candidates.filter((c) =>
-          movesCloser(stepDistancesOf(rec), pageKey, c.leadsTo),
-        )
-      : choices.candidates.filter((c) => c.onGoalPath)
-    const goalPathProbability =
-      goalPath.length === 0 || hasNoReference(rec)
-        ? null
-        : round(goalPath.reduce((sum, c) => sum + c.probability, 0))
+    const goalPath = choices.candidates.filter((c) => c.onGoalPath)
+    const goalPathProbability = hasNoReference(rec)
+      ? null
+      : isSiteMap(rec)
+        ? siteMapGoalProbability(stepDistancesOf(rec), pageKey, choices.candidates)
+        : goalPath.length === 0 ? null : round(goalPath.reduce((sum, c) => sum + c.probability, 0))
     const startedMs = rec.createdAtMs + START_MS + i * STEP_MS
     const move = moves[i]
     const view = pageView(rec, pageKey)

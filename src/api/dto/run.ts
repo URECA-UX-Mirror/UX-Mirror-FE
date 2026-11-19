@@ -28,7 +28,7 @@ export interface RunDto {
   persona: string
   /** 저장된 성공 조건. 과거 Run에는 없을 수 있다 */
   verification?: VerificationDto | null
-  /** 경로 지표 기준 설정. 필드가 없으면 과거 Run(`ALLOWED_PATHS`), 명시적 `null`이면 기준 없음(경로 기반 지표 계산 안 함) */
+  /** 경로 지표 기준 설정. 필드가 없거나 `null`이면 기준 없음, 설정에 `basis`가 없으면 `ALLOWED_PATHS` */
   referencePathConfig?: ReferencePathConfigDto | null
   startPath: string
   viewport: Size

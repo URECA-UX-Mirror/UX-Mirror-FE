@@ -27,17 +27,17 @@ describe('경로 지표 기준(basis) 변환', () => {
     expect(toRun(dto).referenceBasis).toBe('ALLOWED_PATHS')
   })
 
-  it('referencePathConfig 필드 자체가 없는 과거 Run도 ALLOWED_PATHS다', () => {
+  it('referencePathConfig 필드 자체가 없는 과거 Run은 기준 없음이다', () => {
     const dto = runOf('run_mock_done_before')
     delete dto.referencePathConfig
-    expect(toRun(dto).referenceBasis).toBe('ALLOWED_PATHS')
+    expect(toRun(dto).referenceBasis).toBeNull()
   })
 
-  it('명시적 null만 기준 없음이다', () => {
+  it('명시적 null과 필드 누락은 기준 없음이다', () => {
     expect(toRun(runOf('run_mock_mapfail')).referenceBasis).toBeNull()
     expect(toRun(runOf('run_mock_direct_before')).referenceBasis).toBeNull()
     expect(toReferenceBasis(null)).toBeNull()
-    expect(toReferenceBasis(undefined)).toBe('ALLOWED_PATHS')
+    expect(toReferenceBasis(undefined)).toBeNull()
   })
 
   it('SITE_MAP 설정은 SITE_MAP으로 읽고 기존 preset은 ALLOWED_PATHS다', () => {
@@ -61,6 +61,15 @@ describe('detourMoveCount 변환', () => {
     // 거리가 줄지 않는 CLICK은 센다
     expect(countDetourMoves([{ to: 'mypage', back: false }], distances)).toBe(1)
   })
+
+  it('도달 불가 거리는 무한대로 비교하고 지도 밖 CLICK은 계산 불가다', () => {
+    expect(countDetourMoves([{ to: 'orders', back: false }], { home: 1, orders: null })).toBe(1)
+    expect(countDetourMoves([{ to: 'orders', back: false }], { home: null, orders: null })).toBe(1)
+    expect(countDetourMoves([{ to: 'orders', back: false }], { home: null, orders: 0 })).toBe(0)
+    expect(countDetourMoves([{ to: 'orders', back: false }], { home: 1 })).toBeNull()
+    expect(countDetourMoves([{ to: 'orders', back: true }], { home: 1 })).toBe(0)
+  })
+
 })
 
 describe('SITE_MAP 설정(설계 v2.1 4.1) 변환', () => {

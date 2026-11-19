@@ -28,7 +28,7 @@
 | `top2Margin` | 전체 선택지의 1위 확률 − 2위 확률 | 선택지가 2개 미만 |
 | `clickOnlyTop2Margin` | 클릭 후보만 재정규화한 분포의 1위 − 2위 | `clickOnlyNormalizedEntropy`와 같음 |
 | `goBackProbability` | GO_BACK 선택지의 확률 | GO_BACK이 선택지에 없음 |
-| `goalPathProbability` | 허용 경로 기준은 다음 화면으로 이어지는 클릭 후보 확률 합, 사이트 지도 기준은 목표에 가까워지는 클릭 후보 확률 합 | 허용 경로에서 해당 후보가 없거나, 사이트 지도에서 현재 화면 또는 후보의 거리를 모를 때. 기준 없음도 `null` |
+| `goalPathProbability` | 허용 경로 기준은 다음 화면으로 이어지는 클릭 후보 확률 합, 사이트 지도 기준은 목표에 가까워지는 클릭 후보 확률 합 | 허용 경로에서 해당 후보가 없거나, 사이트 지도에 현재 화면 또는 후보가 없을 때. 지도에 있는 도달 불가 화면의 거리 `null`은 무한대로 비교한다. 기준 없음도 `null` |
 | `modelLatencyMs` | 모델 판단 소요 시간, 정수 밀리초 | 값이 없음 |
 | `metricWarnings` | 지표 계산 경고. 없으면 `[]` | — |
 

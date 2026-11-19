@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router'
 import { isApiError } from '../../api/client.ts'
 import { screenshotUrl } from '../../api/runs.ts'
 import { isTerminalStatus } from '../../domain/runStatus.ts'
+import { isScenarioRun, pageLabel } from '../../domain/site.ts'
 import type { Run, Step } from '../../domain/types.ts'
 import { ErrorNotice } from '../../shared/ErrorNotice.tsx'
 import { ResultOriginBadge } from '../../shared/ResultOriginBadge.tsx'
@@ -13,6 +14,7 @@ import { ColumnsIcon, HistoryIcon, SettingsIcon } from '../../shared/icons.tsx'
 import { RunGauge } from '../../shared/RunGauge.tsx'
 import { SelectedAction } from '../../shared/SelectedAction.tsx'
 import { selectedLabel, stepTime } from '../../shared/stepLabel.ts'
+import { useRunSite } from '../../shared/useRunSite.ts'
 import { StepMetricsPanel } from '../run-result/StepMetricsPanel.tsx'
 import { VERSIONS } from '../new-analysis/constants.ts'
 import { ReplayNotice } from '../replay/ReplayNotice.tsx'
@@ -29,6 +31,7 @@ export function RunProgressPage() {
 function RunProgress({ runId }: { runId: string }) {
   const polling = useRunProgress(runId)
   const snapshot = polling.data
+  const site = useRunSite(snapshot?.run)
 
   if (!snapshot) {
     if (polling.status === 'failed') {
@@ -87,7 +90,7 @@ function RunProgress({ runId }: { runId: string }) {
           </div>
           <div>
             <dt>버전</dt>
-            <dd>{version ? `${version.name} · ${version.change}` : run.variant}</dd>
+            <dd>{isScenarioRun(run) ? `시나리오 테스트 · ${site?.name ?? run.siteId ?? '-'}` : version ? `${version.name} · ${version.change}` : run.variant}</dd>
           </div>
           <div>
             <dt>진행 단계</dt>
@@ -98,7 +101,7 @@ function RunProgress({ runId }: { runId: string }) {
           <div>
             <dt>현재 화면</dt>
             <dd>
-              <span className="mono">{run.progress.currentPageKey ?? '-'}</span>
+              <span className="mono">{run.progress.currentPageKey ? pageLabel(site, run.progress.currentPageKey) : '-'}</span>
             </dd>
           </div>
           <div className="meta-goal">
@@ -106,6 +109,8 @@ function RunProgress({ runId }: { runId: string }) {
             <dd>{run.goal}</dd>
           </div>
         </dl>
+        {run.validity === 'INVALID' ? <p role="alert">무효 처리된 실행{run.invalidReason ? ` · ${run.invalidReason}` : ''}</p> : null}
+        {run.error ? <p role="alert">실행 오류: {run.error.message}</p> : null}
         <RunGauge
           stepCount={run.progress.stepCount}
           maxSteps={run.progress.maxSteps}

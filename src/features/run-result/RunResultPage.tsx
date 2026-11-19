@@ -3,11 +3,13 @@ import { Link, useParams } from 'react-router'
 import { isApiError } from '../../api/client.ts'
 import { getRun, getRunIssues, getRunSteps, listRuns } from '../../api/runs.ts'
 import { isTerminalStatus } from '../../domain/runStatus.ts'
+import { isScenarioRun, pageLabel } from '../../domain/site.ts'
 import type { Run } from '../../domain/types.ts'
 import { usePolling } from '../../shared/polling/usePolling.ts'
 import { ErrorNotice } from '../../shared/ErrorNotice.tsx'
 import { ResultOriginBadge } from '../../shared/ResultOriginBadge.tsx'
 import { formatDateTime } from '../../shared/stepLabel.ts'
+import { useRunSite } from '../../shared/useRunSite.ts'
 import { ReplayNotice } from '../replay/ReplayNotice.tsx'
 import { VERSIONS } from '../new-analysis/constants.ts'
 import { statusLabel } from '../run-progress/statusLabel.ts'
@@ -77,6 +79,8 @@ export function RunResultPage() {
 
 function ResultBody({ run }: { run: Run }) {
   const [selected, setSelected] = useState(0)
+  const site = useRunSite(run)
+  const scenario = isScenarioRun(run)
   const version = VERSIONS.find((item) => item.variant === run.variant)
   const steps = usePolling({
     fetch: (signal) => getRunSteps(run.runId, signal),
@@ -107,12 +111,12 @@ function ResultBody({ run }: { run: Run }) {
             <ResultOriginBadge origin={run.resultOrigin} />
             <ReplayNotice experimentKey={run.experimentKey} origins={[run.resultOrigin]} />
           </div>
-          <Link
+          {!scenario ? <Link
             className="run-result-link"
             to={`/comparisons/${encodeURIComponent(run.experimentKey)}`}
           >
             버전 비교 보기
-          </Link>
+          </Link> : null}
         </div>
         <dl className="meta-row">
           <div>
@@ -123,7 +127,7 @@ function ResultBody({ run }: { run: Run }) {
           </div>
           <div>
             <dt>버전</dt>
-            <dd>{version ? `${version.name} · ${version.change}` : run.variant}</dd>
+            <dd>{scenario ? `시나리오 테스트 · ${site?.name ?? run.siteId ?? '-'}` : version ? `${version.name} · ${version.change}` : run.variant}</dd>
           </div>
           <div>
             <dt>실행 일시</dt>
@@ -140,11 +144,12 @@ function ResultBody({ run }: { run: Run }) {
         </dl>
       </section>
 
-      <RunSummaryPanel run={run} issues={issues.data} />
+      <RunSummaryPanel run={run} issues={issues.data} siteMapUnavailable={scenario && site?.siteMapAvailable === false} />
 
       {run.summary ? (
         <PathPanel
           runId={run.runId}
+          labelPage={(key) => pageLabel(site, key)}
           basis={run.referenceBasis}
           path={run.summary.path}
           steps={steps.data}
@@ -159,6 +164,8 @@ function ResultBody({ run }: { run: Run }) {
 
       <IssuePanel
         runId={run.runId}
+        labelPage={(key) => pageLabel(site, key)}
+        validity={run.validity}
         steps={steps.data}
         stepsFailed={steps.status === 'failed'}
         onRetrySteps={steps.retry}

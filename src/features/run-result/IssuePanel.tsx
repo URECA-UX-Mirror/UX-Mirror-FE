@@ -12,6 +12,8 @@ import { evidenceLabel, evidenceValue, priorityLabel } from './issueLabels.ts'
 interface IssuePanelProps {
   issues: IssueList | null
   runId: string
+  labelPage?: (key: string) => string
+  validity?: 'VALID' | 'INVALID' | null
   steps: Step[] | null
   stepsFailed: boolean
   onRetrySteps: () => void
@@ -26,6 +28,8 @@ interface IssuePanelProps {
 export function IssuePanel({
   issues,
   runId,
+  labelPage = (key) => key,
+  validity,
   steps,
   stepsFailed,
   onRetrySteps,
@@ -73,7 +77,7 @@ export function IssuePanel({
   } else if (issues.analysisStatus === 'FAILED') {
     body = <p role="alert">분석에 실패했습니다</p>
   } else if (issues.items.length === 0) {
-    body = <p>검토 후보 0건</p>
+    body = <p>{validity === 'INVALID' ? '무효 처리된 실행의 검토 후보가 없습니다' : '검토 후보 없음'}</p>
   } else {
     body = (
       <ul className="issue-list">
@@ -98,8 +102,8 @@ export function IssuePanel({
                 <div className="issue-detail">
                   <p>{issue.description}</p>
                   <p>
-                    유형: {issue.issueType}
-                    {issue.pageKey ? ` · 화면: ${issue.pageKey}` : ''}
+                    유형: {issue.issueType}{issue.issueType === 'GOAL_NOT_REACHED' ? ' · 실행 전체 결과' : ''}
+                    {issue.issueType !== 'GOAL_NOT_REACHED' && issue.pageKey ? ` · 화면: ${labelPage(issue.pageKey)}` : ''}
                     {issue.stepId === null ? '' : ` · Step ${issue.stepId}`}
                     {` · 발생 ${issue.occurrenceCount}회`}
                   </p>
@@ -140,13 +144,13 @@ export function IssuePanel({
         icon={<ListChecksIcon />}
         title="UX 검토 후보"
         aside={
-          issues && issues.analysisStatus === 'COMPLETED'
+          issues && issues.analysisStatus === 'COMPLETED' && !(validity === 'INVALID' && issues.items.length === 0)
             ? `${issues.items.length}건 탐지됨`
             : undefined
         }
       />
       <p className="probability-note">
-        AI 탐색 기록 기반의 검토 후보이며 실제 사용자 결함이 아닙니다
+        AI 탐색 기록 기반의 검토 후보이며 실제 문제가 확정된 것이 아니라 검토가 필요한 단서입니다
       </p>
       {body}
     </section>

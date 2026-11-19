@@ -27,8 +27,8 @@ npm test           # 자동 테스트 1회 실행
 | --- | --- |
 | ① 새 UX 분석 | `GET /api/health`, `GET /api/runs`, `POST /api/runs` |
 | 시나리오 테스트 (`/scenario`) | `GET /api/health`, `GET /api/sites`, `POST /api/runs` |
-| ② AI 탐색 진행 | `GET /api/health`, `GET /api/runs/{runId}`, `/steps`, `/screenshots/{stepId}` |
-| ③ UX 탐색 분석 결과 | `GET /api/health`, `GET /api/runs`, `GET /api/runs/{runId}`, `/steps`, `/screenshots/{stepId}`, `/issues` |
+| ② AI 탐색 진행 | `GET /api/health`, `GET /api/runs/{runId}`, `/steps`, `/screenshots/{stepId}`, 시나리오 Run의 `GET /api/sites` |
+| ③ UX 탐색 분석 결과 | `GET /api/health`, `GET /api/runs`, `GET /api/runs/{runId}`, `/steps`, `/screenshots/{stepId}`, `/issues`, 시나리오 Run의 `GET /api/sites` |
 | ④ 버전 비교 | `GET /api/health`, `GET /api/comparisons/{experimentKey}`, `/api/runs/{runId}`, `/api/runs/{runId}/steps`, `/api/runs/{runId}/screenshots/{stepId}` |
 
 `/replay`는 고정 `experimentKey`(E 실행 목표별로 여러 개)마다 저장된 Run을 조회만 해서 위 화면들로 연결하는 재생 모드다(`GET /api/runs?experimentKey=`만 호출하고 Run을 만들지 않는다). 고정 키 목록은 아직 임시 값이다([미결정 항목](docs/operations/open_issue.md) OI-7).

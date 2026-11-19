@@ -8,12 +8,14 @@ interface RunSummaryPanelProps {
   run: Run
   /** 아직 응답이 없으면 `null` */
   issues: IssueList | null
+  siteMapUnavailable?: boolean
 }
 
-function issueCountText(issues: IssueList | null): string {
+function issueCountText(issues: IssueList | null, validity: Run['validity']): string {
   if (!issues) return '확인 중'
   switch (issues.analysisStatus) {
     case 'COMPLETED':
+      if (validity === 'INVALID' && issues.items.length === 0) return '무효 실행'
       return `${issues.items.length}건`
     case 'FAILED':
       return '분석 실패'
@@ -46,7 +48,7 @@ function StatCard({
 }
 
 /** `Run.summary`를 그대로 표시한다. 계산하거나 보정하지 않는다. */
-export function RunSummaryPanel({ run, issues }: RunSummaryPanelProps) {
+export function RunSummaryPanel({ run, issues, siteMapUnavailable = false }: RunSummaryPanelProps) {
   const { summary } = run
   const basis = run.referenceBasis
   // 기준 없음(`null`)은 이름을 정하지 않으므로 기존 허용 경로 표시를 쓴다
@@ -76,6 +78,7 @@ export function RunSummaryPanel({ run, issues }: RunSummaryPanelProps) {
           <p>{run.error.message}</p>
         </div>
       ) : null}
+      {siteMapUnavailable ? <p>이 사이트는 사이트 지도가 없어 경로 지표를 계산하지 않습니다</p> : null}
       {summary ? (
         <>
           <p className="basis-line">
@@ -102,8 +105,8 @@ export function RunSummaryPanel({ run, issues }: RunSummaryPanelProps) {
             />
             <StatCard
               label="UX 검토 후보"
-              value={issueCountText(issues)}
-              note="AI 탐색 기록 기반의 선별 항목이며 실제 결함 확정이 아닙니다"
+              value={issueCountText(issues, run.validity)}
+              note="AI 탐색 기록 기반의 검토 후보이며 실제 문제가 확정된 것이 아니라 검토가 필요한 단서입니다"
             />
           </div>
           <button
@@ -150,7 +153,7 @@ export function RunSummaryPanel({ run, issues }: RunSummaryPanelProps) {
                 </>
               ) : null}
               <dt>검토 후보 수</dt>
-              <dd>{issueCountText(issues)}</dd>
+              <dd>{issueCountText(issues, run.validity)}</dd>
             </dl>
           ) : null}
         </>

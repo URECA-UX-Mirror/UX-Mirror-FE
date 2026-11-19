@@ -1,6 +1,7 @@
 import { expect, it, vi } from 'vitest'
 import { apiUrl } from '../src/api/client.ts'
-import { buildIssues, buildRun, buildSteps, siteMapGoalProbability } from '../src/mocks/fixtures/run.ts'
+import { buildIssues, buildRun, buildSteps, siteMapGoalProbability, specsOf } from '../src/mocks/fixtures/run.ts'
+import * as siteMap from '../src/mocks/fixtures/siteMap.ts'
 import { scenarioForGoal, textVisibleOn, VISIBLE_TEXTS } from '../src/mocks/fixtures/scenario.ts'
 import { GOAL_PAGES } from '../src/features/new-analysis/constants.ts'
 import { allRuns, findRun } from '../src/mocks/store.ts'
@@ -132,4 +133,21 @@ it('허용 경로 기준의 목표 확률은 기존 후보 확률의 합이다',
   const rec = findRun('run_mock_done_before')!
   const step = buildSteps(rec, 1)[0]
   expect(step.decision.goalPathProbability).toBe(0.684)
+})
+
+it('Step 생성에도 사이트 지도 목표 확률의 0과 null이 반영된다', () => {
+  const rec = findRun('run_mock_sitemap')!
+  const spec = specsOf(rec)[0]
+  const config = siteMap.siteMapConfig('orders')
+  const distances = Object.fromEntries(spec.choices.candidates.map((c) => [c.leadsTo, 1]))
+  distances[spec.pageKey] = 1
+  const spy = vi.spyOn(siteMap, 'siteMapConfig')
+  try {
+    spy.mockReturnValue({ ...config, distances })
+    expect(buildSteps(rec, 1)[0].decision.goalPathProbability).toBe(0)
+    delete distances[spec.choices.candidates[0].leadsTo]
+    expect(buildSteps(rec, 1)[0].decision.goalPathProbability).toBeNull()
+  } finally {
+    spy.mockRestore()
+  }
 })

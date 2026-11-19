@@ -60,20 +60,21 @@ export function siteMapConfig(goal: PageKey): SiteMapConfigDto {
 
 /**
  * 우회 이동 수. BACK은 세지 않고, CLICK 이동 중 목표까지의 거리가 줄지 않은 이동만 센다.
- * 거리를 모르는(`null`) 화면이 낀 이동은 세지 않는다.
+ * 도달 불가 화면의 거리는 무한대로 비교하고, CLICK 이동이 지도 밖이면 null이다.
  */
 export function countDetourMoves(
   moves: { to: PageKey; back: boolean }[],
   distances: Record<string, number | null>,
   start: PageKey = 'home',
-): number {
+): number | null {
   let from = start
   let count = 0
   for (const move of moves) {
     if (!move.back) {
       const before = distances[from]
       const after = distances[move.to]
-      if (before != null && after != null && after >= before) count += 1
+      if (before === undefined || after === undefined) return null
+      if ((after ?? Infinity) >= (before ?? Infinity)) count += 1
     }
     from = move.to
   }

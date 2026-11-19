@@ -4,6 +4,12 @@
 /** 임시(OI-11). 지금은 `SCENARIO`만 온다 */
 export type SiteMode = 'SCENARIO'
 
+/** 도착 화면으로 고를 수 없는 이유(임시, OI-11). 모르는 값이 와도 오류로 만들지 않는다 */
+export type GoalUnavailableReason =
+  | 'START_PAGE'
+  | 'NO_GOAL_TEXT'
+  | 'UNREACHABLE_ON_SITE_MAP'
+
 export interface SitePageDto {
   pageKey: string
   /** 쿼리가 없는 경로 */
@@ -14,6 +20,8 @@ export interface SitePageDto {
   goalText: string | null
   /** 도착 화면으로 고를 수 있는지(서버가 정한다). 없는 응답은 FE가 `goalText`와 시작 화면으로 판단한다 */
   goalSelectable?: boolean
+  /** 고를 수 없는 이유. 고를 수 있으면 `null`이고 응답에 없을 수도 있다 */
+  goalUnavailableReason?: GoalUnavailableReason | (string & {}) | null
 }
 
 export interface SiteDto {
@@ -22,8 +30,15 @@ export interface SiteDto {
   mode: SiteMode
   startPage: string
   pages: SitePageDto[]
-  /** `available`이 `false`면 사이트 지도가 없다 */
-  siteMap: { available: boolean }
+  /**
+   * `available`이 `false`면 사이트 지도가 없다(그때 나머지는 `null`).
+   * `unreachablePages`는 지도가 기록한 "시작 화면의 링크로 닿지 않는 화면"의 `pageKey` 목록이다
+   */
+  siteMap: {
+    available: boolean
+    siteMapVersion?: string | null
+    unreachablePages?: string[] | null
+  }
 }
 
 /** GET /api/sites 응답 (임시, OI-11) */

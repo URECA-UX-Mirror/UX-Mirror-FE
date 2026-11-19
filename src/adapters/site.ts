@@ -6,13 +6,16 @@ import type { Site, SitePage } from '../domain/types.ts'
  * 지도에서 닿는지는 서버만 알 수 있어 여기서 판단하지 않는다(임시, OI-11).
  */
 function toSitePage(dto: SitePageDto, startPage: string): SitePage {
+  // 필드가 없는 응답(`undefined`)도 확인 글자 없음으로 본다
+  const goalText = dto.goalText ?? null
   return {
     pageKey: dto.pageKey,
     path: dto.path,
     label: dto.label,
-    goalText: dto.goalText,
+    goalText,
     goalSelectable:
-      dto.goalSelectable ?? (dto.goalText !== null && dto.pageKey !== startPage),
+      dto.goalSelectable ?? (goalText !== null && dto.pageKey !== startPage),
+    goalUnavailableReason: dto.goalUnavailableReason ?? null,
   }
 }
 
@@ -24,6 +27,8 @@ export function toSite(dto: SiteDto): Site {
     startPage: dto.startPage,
     pages: dto.pages.map((page) => toSitePage(page, dto.startPage)),
     siteMapAvailable: dto.siteMap.available,
+    siteMapVersion: dto.siteMap.siteMapVersion ?? null,
+    unreachablePages: dto.siteMap.unreachablePages ?? null,
   }
 }
 

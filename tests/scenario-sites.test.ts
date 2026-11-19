@@ -7,7 +7,7 @@ import { listSites } from '../src/api/sites.ts'
 import { toRun, toRunList } from '../src/adapters/run.ts'
 import { toSite } from '../src/adapters/site.ts'
 import { isScenarioRun, pageLabel } from '../src/domain/site.ts'
-import { buildRun, buildSteps } from '../src/mocks/fixtures/run.ts'
+import { buildIssues, buildRun, buildSteps } from '../src/mocks/fixtures/run.ts'
 import { SITES } from '../src/mocks/fixtures/sites.ts'
 import { addRun, allRuns, type RunRecord } from '../src/mocks/store.ts'
 import type { CreateRunInput } from '../src/domain/types.ts'
@@ -18,7 +18,7 @@ const FAR_FUTURE = Date.parse('2100-01-01T00:00:00Z')
 const scenarioInput = (overrides: Partial<CreateRunInput> = {}): CreateRunInput => ({
   experimentKey: `scn_${Math.random().toString(36).slice(2, 10)}`,
   variant: 'before',
-  goal: { goal: '구매후기 화면 찾기', verification: { path: '/board/review/4/', text: '구매후기' } },
+  goal: { goal: '구매후기 화면 찾기', verification: { path: '/board/review/list.html', text: '상품 리뷰' } },
   persona: { persona: '처음 방문한 사용자' },
   siteId: 'cafe24-ons',
   ...overrides,
@@ -88,6 +88,32 @@ describe('GET /api/sites (mock)', () => {
     expect(demo.pages.filter((page) => page.goalText === null).every((page) => !page.goalSelectable)).toBe(true)
   })
 
+  it('실제 서버(BE cafe24-ons 설정)와 같은 경로·화면 이름·확인 글자를 쓴다', async () => {
+    const demo = (await listSites()).find((site) => site.siteId === 'cafe24-ons')!
+    expect(demo.pages.map((page) => [page.pageKey, page.path, page.label, page.goalText])).toEqual([
+      ['home', '/', '홈', null],
+      ['products', '/product/list.html', '제품 목록', '제품'],
+      ['review', '/board/review/list.html', '상품 리뷰', '상품 리뷰'],
+      ['qna', '/board/product/list.html', '상품 문의 (Q&A)', 'Q&A'],
+      ['event', '/board/gallery/list.html', '이벤트', 'EVENT'],
+      ['guide', '/shopinfo/guide.html', '이용안내', '이용안내'],
+      ['company', '/shopinfo/company.html', '회사소개', '회사소개'],
+      ['basket', '/order/basket.html', '장바구니', '장바구니'],
+      ['brand', '/ons/html/brand.html', '브랜드스토리', null],
+    ])
+  })
+
+  it('고를 수 없는 화면은 이유를, 지도 정보는 버전과 닿지 않는 화면을 준다', async () => {
+    const [demo, noMap] = await listSites()
+    expect(Object.fromEntries(demo.pages.filter((page) => !page.goalSelectable).map((page) => [page.pageKey, page.goalUnavailableReason]))).toEqual({
+      home: 'START_PAGE', qna: 'UNREACHABLE_ON_SITE_MAP', guide: 'UNREACHABLE_ON_SITE_MAP',
+      company: 'UNREACHABLE_ON_SITE_MAP', brand: 'NO_GOAL_TEXT',
+    })
+    expect(demo.pages.filter((page) => page.goalSelectable).every((page) => page.goalUnavailableReason === null)).toBe(true)
+    expect([demo.siteMapVersion, demo.unreachablePages]).toEqual(['sitemap-cafe24-ons-v1', ['qna', 'guide', 'company']])
+    expect([noMap.siteMapVersion, noMap.unreachablePages]).toEqual([null, null])
+  })
+
   it('siteMap.available이 true인 사이트와 false인 사이트가 모두 있다', async () => {
     const sites = await listSites()
     expect(sites.map((site) => site.siteMapAvailable)).toEqual([true, false])
@@ -115,6 +141,13 @@ describe('Adapter', () => {
       ['home', false], ['a', true], ['b', false], ['c', false],
     ])
     expect(site.siteMapAvailable).toBe(false)
+  })
+
+  it('goalText 필드가 없는 응답은 확인 글자 없음으로 보고 선택할 수 없다', () => {
+    const missing = { pageKey: 'x', path: '/x', label: '화면 X' } as unknown as SiteDto['pages'][number]
+    const site = toSite({ ...dto, pages: [missing] })
+    expect([site.pages[0].goalText, site.pages[0].goalSelectable, site.pages[0].goalUnavailableReason]).toEqual([null, false, null])
+    expect([site.siteMapVersion, site.unreachablePages]).toEqual([null, null])
   })
 
   it('서버가 준 goalSelectable은 그대로 쓴다', () => {
@@ -169,11 +202,13 @@ describe('시나리오 Run mock', () => {
     const run = await getRun(created.runId)
     expect([run.siteId, run.mode, run.variant, run.resultOrigin]).toEqual(['cafe24-ons', 'SCENARIO', 'before', 'MOCK'])
     expect(isScenarioRun(run)).toBe(true)
-    expect(run.verification?.path).toBe('/board/review/4/')
+    expect(run.verification?.path).toBe('/board/review/list.html')
     // 끝난 뒤의 경로도 사이트 화면이고 성공 조건의 도착 화면에서 끝난다
     const finished = buildRun(allRuns().find((rec) => rec.runId === created.runId)!, FAR_FUTURE)
-    expect(finished.summary!.path.map((visit) => visit.path)).toEqual(['/', '/board/review/4/'])
+    expect(finished.summary!.path.map((visit) => visit.path)).toEqual(['/', '/board/review/list.html'])
     expect(finished.summary!.goalReached).toBe(true)
+    // 지도가 있는 사이트(cafe24-ons)에서 만든 Run은 사이트 지도 기준이다
+    expect(finished.referencePathConfig).toMatchObject({ basis: 'SITE_MAP', goalPageKey: 'review' })
     const listed = (await listRuns({ experimentKey: input.experimentKey }))[0]
     expect([listed.siteId, listed.mode]).toEqual(['cafe24-ons', 'SCENARIO'])
   })
@@ -185,11 +220,11 @@ describe('시나리오 Run mock', () => {
 
   it.each([
     ['등록되지 않은 siteId', { siteId: 'unknown-site' }],
-    ['사이트 화면 밖의 도착 화면', { goal: { goal: '없는 화면', verification: { path: '/nowhere', text: '구매후기' } } }],
-    ['goalSelectable이 false인 화면', { goal: { goal: '이용안내', verification: { path: '/board/guide/3/', text: '이용안내' } } }],
+    ['사이트 화면 밖의 도착 화면', { goal: { goal: '없는 화면', verification: { path: '/nowhere', text: '상품 리뷰' } } }],
+    ['goalSelectable이 false인 화면', { goal: { goal: '이용안내', verification: { path: '/shopinfo/guide.html', text: '이용안내' } } }],
     ['시작 화면', { goal: { goal: '홈', verification: { path: '/', text: '홈' } } }],
-    ['exact인데 부분 일치뿐인 글자', { goal: { goal: '구매후기', verification: { path: '/board/review/4/', text: '구매', exact: true } } }],
-    ['도착 화면에 없는 글자', { goal: { goal: '구매후기', verification: { path: '/board/review/4/', text: '없는글자' } } }],
+    ['exact인데 부분 일치뿐인 글자', { goal: { goal: '상품 리뷰', verification: { path: '/board/review/list.html', text: '상품', exact: true } } }],
+    ['도착 화면에 없는 글자', { goal: { goal: '상품 리뷰', verification: { path: '/board/review/list.html', text: '없는글자' } } }],
     ['variant after', { variant: 'after' as const }],
     ['preset 목표', { goal: { goalId: 'refund' } }],
   ] satisfies [string, Partial<CreateRunInput>][])('%s는 422이고 메시지에 Before/After가 없다', async (_name, override) => {
@@ -207,9 +242,9 @@ describe('시나리오 Run mock', () => {
   it('시나리오 Run만 있는 experimentKey의 비교는 404 RUN_NOT_FOUND다', async () => {
     // 시계를 건드리지 않도록 이미 끝난 시각(createdAtMs: 0)의 시나리오 Run을 store에 직접 넣는다
     addRun({
-      runId: 'run_test_scenario_only', experimentKey: 'scn_only', variant: 'before', scenario: 'to-mypage', siteId: 'cafe24-ons',
+      runId: 'run_test_scenario_only', experimentKey: 'scn_only', variant: 'before', siteId: 'cafe24-ons',
       goalId: null, goal: '구매후기 화면 찾기', personaId: null, persona: '처음 방문한 사용자', maxSteps: 8, createdAtMs: 0,
-      verification: { type: 'PATH_AND_VISIBLE_TEXT', path: '/board/review/4/', text: '구매후기', exact: false, scope: 'page' },
+      verification: { type: 'PATH_AND_VISIBLE_TEXT', path: '/board/review/list.html', text: '상품 리뷰', exact: false, scope: 'page' },
     })
     const response = await fetch(apiUrl('/api/comparisons/scn_only'))
     expect(response.status).toBe(404)
@@ -234,7 +269,7 @@ describe('시나리오 Run의 경로와 목표 달성 판정', () => {
   it.each(cases)('$site.siteId → $page.pageKey: 시작·마지막 방문 경로가 사이트 화면이고 성공 조건과 일치한다', ({ site, page }) => {
     const start = site.pages.find((item) => item.pageKey === site.startPage)!
     const rec: RunRecord = {
-      runId: `run_test_path_${site.siteId}_${page.pageKey}`, experimentKey: 'scn_path', variant: 'before', scenario: 'to-mypage',
+      runId: `run_test_path_${site.siteId}_${page.pageKey}`, experimentKey: 'scn_path', variant: 'before',
       siteId: site.siteId, goalId: null, goal: '테스트 목표', personaId: null, persona: '테스트 사용자', maxSteps: 8, createdAtMs: 0,
       verification: { type: 'PATH_AND_VISIBLE_TEXT', path: page.path, text: page.goalText!, exact: false, scope: 'page' },
     }
@@ -258,5 +293,41 @@ describe('시나리오 Run의 경로와 목표 달성 판정', () => {
     const run = buildRun(allRuns().find((rec) => rec.runId === 'run_mock_done_before')!, FAR_FUTURE)
     expect(run.startPath).toBe('/shop/home')
     expect(run.summary!.path.at(-1)!.path).toBe(run.verification!.path)
+  })
+})
+
+describe('시나리오 Run의 경로 지표 기준', () => {
+  const record = (siteId: string, path: string, text: string, reference: 'site-map' | 'none'): RunRecord => ({
+    runId: `run_test_ref_${siteId}`, experimentKey: 'scn_ref', variant: 'before', siteId, reference,
+    goalId: null, goal: '테스트 목표', personaId: null, persona: '테스트 사용자', maxSteps: 8, createdAtMs: 0,
+    verification: { type: 'PATH_AND_VISIBLE_TEXT', path, text, exact: false, scope: 'page' },
+  })
+
+  it('지도가 있는 사이트의 Run은 SITE_MAP 기준이고 거리표가 사이트 화면 기준이다', () => {
+    const run = buildRun(record('cafe24-ons', '/board/review/list.html', '상품 리뷰', 'site-map'), FAR_FUTURE)
+    expect(run.referencePathConfig).toMatchObject({
+      basis: 'SITE_MAP', siteMapVersion: 'sitemap-cafe24-ons-v1', startPageKey: 'home', goalPageKey: 'review', shortestSteps: 1,
+    })
+    const config = run.referencePathConfig as { distances: Record<string, number | null> }
+    expect(config.distances).toMatchObject({ review: 0, home: 1, products: 1, qna: 1 })
+    expect(Object.keys(config.distances).sort()).toEqual(SITES[0].pages.map((page) => page.pageKey).sort())
+    expect(toRun(run).referenceBasis).toBe('SITE_MAP')
+    // 시작 화면에서 도착 화면으로 곧장 가므로 우회·추가 이동이 없다
+    expect([run.summary!.extraSteps, run.summary!.detourMoveCount, run.summary!.referencePathDeviationCount]).toEqual([0, 0, null])
+  })
+
+  it('지도가 없는 사이트의 Run은 기준 없음(null)이다', () => {
+    const run = buildRun(record('demo-no-map', '/notice', '공지사항', 'none'), FAR_FUTURE)
+    expect(run.referencePathConfig).toBeNull()
+    expect(toRun(run).referenceBasis).toBeNull()
+    expect([run.summary!.extraSteps, run.summary!.referencePathDeviationCount]).toEqual([null, null])
+  })
+
+  it('시나리오 Run의 Issue도 사이트 화면 경로를 쓴다', () => {
+    const rec = record('cafe24-ons', '/board/review/list.html', '상품 리뷰', 'site-map')
+    const issues = buildIssues({ ...rec, maxSteps: 1 }, FAR_FUTURE)
+    for (const issue of issues.items) {
+      if (issue.pagePath !== null) expect(SITES[0].pages.map((page) => page.path)).toContain(issue.pagePath)
+    }
   })
 })

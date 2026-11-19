@@ -83,7 +83,7 @@
 
 `임시`([OI-11](../operations/open_issue.md#oi-11), FE #53). 계약서 v1.3.5에 없고 백엔드 구현 전이라 **mock 형식**만 있다. API 함수는 `src/api/sites.ts`의 `listSites()`다.
 
-응답은 `{ items: Site[] }`이고 시나리오용 등록 사이트만 나온다(MORO MARKET 제외). 한 항목은 `siteId`, `name`, `mode`(`SCENARIO`), `startPage`, `pages`, `siteMap.available`이다. `pages`의 원소는 `pageKey`, `path`(쿼리 없음), `label`(화면 이름), `goalText`(도착 화면 확인용 글자, `null` 가능), `goalSelectable`(도착 화면으로 고를 수 있는지)이다. `goalSelectable`이 없는 응답은 Adapter가 `goalText`가 있고 시작 화면이 아닌 화면을 선택 가능으로 본다. 사이트 이름은 Run에 없고 이 목록의 `name`으로 찾는다.
+응답은 `{ items: Site[] }`이고 시나리오용 등록 사이트만 나온다(MORO MARKET 제외). 한 항목은 `siteId`, `name`, `mode`(`SCENARIO`), `startPage`, `pages`, `siteMap.available`이다. `pages`의 원소는 `pageKey`, `path`(쿼리 없음), `label`(화면 이름), `goalText`(도착 화면 확인용 글자, `null` 가능), `goalSelectable`(도착 화면으로 고를 수 있는지)이다. `goalSelectable`이 없는 응답은 Adapter가 `goalText`가 있고 시작 화면이 아닌 화면을 선택 가능으로 본다. `pages[].goalUnavailableReason`(`START_PAGE` / `NO_GOAL_TEXT` / `UNREACHABLE_ON_SITE_MAP`, 고를 수 있으면 `null`)와 `siteMap.siteMapVersion`·`siteMap.unreachablePages`(지도가 없으면 `null`)도 받는다. 사이트 이름은 Run에 없고 이 목록의 `name`으로 찾는다. mock의 `cafe24-ons` 값은 UX-Mirror-BE `config/sites/cafe24-ons.json`과 같고, 지도가 있는 사이트의 시나리오 Run은 `SITE_MAP` 기준, 없는 사이트는 `referencePathConfig: null`이다.
 
 ### GET /api/runs
 

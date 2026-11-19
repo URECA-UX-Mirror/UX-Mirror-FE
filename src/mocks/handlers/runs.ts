@@ -12,9 +12,9 @@ import {
   buildRun,
   buildSteps,
   getTiming,
-  scenarioOf,
+  specsOf,
 } from '../fixtures/run.ts'
-import { scenarioForGoal, stepSpecs, textVisibleOn, VISIBLE_TEXTS } from '../fixtures/scenario.ts'
+import { scenarioForGoal, textVisibleOn, VISIBLE_TEXTS } from '../fixtures/scenario.ts'
 import { issueOverride } from '../fixtures/runResult.ts'
 import { findSite } from '../fixtures/sites.ts'
 import type { SiteDto } from '../../api/dto/index.ts'
@@ -41,7 +41,8 @@ import type { RunRecord } from '../store.ts'
 // 시나리오 Run(임시, OI-11, FE #53): POST /api/runs 에 siteId가 있으면 등록 사이트에서 만든다.
 //   variant는 `before`만 받고 목표는 goal+verification만 받는다. verification.path는 사이트 화면의 path, text는 goalText의 일부여야 하며
 //   goalSelectable: false인 화면, 등록되지 않은 siteId, 같은 experimentKey의 버전 비교 Run과 섞는 요청은 422(메시지에 Before/After를 붙이지 않는다)
-//   경로는 사이트의 시작 화면 → 선택한 도착 화면(클릭 1번)이고 도착 화면에서 끝나 목표 달성이다(fixtures/run.ts `specsOf`). 화면 이미지만 기존 쇼핑몰 mock을 재사용한다(MOCK 배지가 붙는다)
+//   경로는 사이트의 시작 화면 → 선택한 도착 화면(클릭 1번)이고 도착 화면에서 끝나 목표 달성이다(fixtures/run.ts `siteSpecs`). 화면 이미지만 기존 쇼핑몰 mock을 재사용한다(MOCK 배지가 붙는다)
+//   경로 지표 기준은 사이트의 siteMap.available가 true면 SITE_MAP(`siteMapConfigForSite`), false면 `referencePathConfig: null`
 //   시나리오 Run은 비교 대상이 아니라서 GET /api/comparisons/{experimentKey}가 404 RUN_NOT_FOUND다
 // 직접 입력 검사(UX-Mirror-BE #42와 같은 규칙): 빈 값·200자 초과·누출 금지 문자열·성공 조건 오류·첫 Run과 다른 입력은 422
 
@@ -161,9 +162,9 @@ export const runsHandlers = [
     const inputs = resolveInputs(body, site)
     if (typeof inputs === 'string') return validationError(inputs)
     // 직접 입력한 목표는 성공 조건의 도착 화면에서 끝나는 시나리오로 진행한다(환불 화면으로 가서 성공 처리하지 않음)
-    // 시나리오 Run은 기존 시나리오 중 가장 짧은 것(홈 → 마이페이지, 1단계)의 틀을 쓰고, 경로 출력만 사이트 화면으로 바꾼다
+    // 시나리오 Run의 Step은 시작 화면 → 도착 화면 1단계다(fixtures/run.ts `siteSpecs`)
     const scenario = scenarioRun
-      ? 'to-mypage'
+      ? undefined
       : inputs.verification ? scenarioForGoal(body.variant, inputs.verification.path) : undefined
     if (scenario === null) return validationError('MOCK에서 지원하지 않는 도착 화면입니다 (시작 화면 home 등)')
     // MOCK은 화면 전체 글자를 모르므로, 도착 화면의 알려진 제목과 맞는 성공 조건만 받는다.
@@ -221,7 +222,8 @@ export const runsHandlers = [
       variant: body.variant,
       ...inputs,
       ...(scenario ? { scenario } : {}),
-      ...(scenarioRun ? { siteId: body.siteId } : {}),
+      // 지도가 있는 사이트는 사이트 지도 기준, 없는 사이트는 경로 기준 없음(`referencePathConfig: null`)
+      ...(site ? { siteId: site.siteId, reference: site.siteMap.available ? 'site-map' as const : 'none' as const } : {}),
       maxSteps: body.maxSteps ?? 8,
       createdAtMs: now,
     }
@@ -327,8 +329,7 @@ export const runsHandlers = [
           '스크린샷을 찾을 수 없습니다',
         )
       }
-      const scenario = scenarioOf(record)
-      const spec = stepSpecs(scenario)[stepId - 1]
+      const spec = specsOf(record)[stepId - 1]
       // 상단 메뉴 라벨만 버전마다 다르다(Before `이용정보` / After `주문·환불`). 이미지는 버전별로 따로 있다
       const image = await fetch(
         `${import.meta.env.BASE_URL}mock/screens/${record.variant === 'after' ? 'after' : 'before'}/${spec.pageKey}.png`,

@@ -391,6 +391,10 @@ export interface SitePage {
   goalText: string | null
   /** 도착 화면으로 고를 수 있는지. 서버가 알려 주지 않으면 Adapter가 채운다 */
   goalSelectable: boolean
+  /** 고를 수 없는 이유. 고를 수 있거나 서버가 알려 주지 않으면 `null` */
+  goalUnavailableReason: Open<
+    'START_PAGE' | 'NO_GOAL_TEXT' | 'UNREACHABLE_ON_SITE_MAP'
+  > | null
 }
 
 export interface Site {
@@ -401,4 +405,7 @@ export interface Site {
   pages: SitePage[]
   /** `false`면 사이트 지도가 없다 */
   siteMapAvailable: boolean
+  siteMapVersion: string | null
+  /** 시작 화면의 링크로 닿지 않는 화면의 `pageKey`. 지도가 없거나 서버가 알려 주지 않으면 `null` */
+  unreachablePages: string[] | null
 }

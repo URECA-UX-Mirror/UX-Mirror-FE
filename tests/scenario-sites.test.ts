@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import { http, HttpResponse } from 'msw'
 import { server } from './setup.ts'
 import { apiUrl, isApiError } from '../src/api/client.ts'
@@ -8,7 +8,7 @@ import { toRun, toRunList } from '../src/adapters/run.ts'
 import { toSite } from '../src/adapters/site.ts'
 import { isScenarioRun, pageLabel } from '../src/domain/site.ts'
 import { buildRun } from '../src/mocks/fixtures/run.ts'
-import { allRuns } from '../src/mocks/store.ts'
+import { addRun, allRuns } from '../src/mocks/store.ts'
 import type { CreateRunInput } from '../src/domain/types.ts'
 import type { SiteDto } from '../src/api/dto/index.ts'
 
@@ -162,8 +162,6 @@ describe('Adapter', () => {
 })
 
 describe('시나리오 Run mock', () => {
-  afterEach(() => vi.restoreAllMocks())
-
   it('siteId가 있는 POST /api/runs는 시나리오 Run을 만들고 상세·목록에 siteId·mode가 온다', async () => {
     const input = scenarioInput()
     const created = await createRun(input)
@@ -185,6 +183,7 @@ describe('시나리오 Run mock', () => {
     ['사이트 화면 밖의 도착 화면', { goal: { goal: '없는 화면', verification: { path: '/nowhere', text: '구매후기' } } }],
     ['goalSelectable이 false인 화면', { goal: { goal: '이용안내', verification: { path: '/board/guide/3/', text: '이용안내' } } }],
     ['시작 화면', { goal: { goal: '홈', verification: { path: '/', text: '홈' } } }],
+    ['exact인데 부분 일치뿐인 글자', { goal: { goal: '구매후기', verification: { path: '/board/review/4/', text: '구매', exact: true } } }],
     ['도착 화면에 없는 글자', { goal: { goal: '구매후기', verification: { path: '/board/review/4/', text: '없는글자' } } }],
     ['variant after', { variant: 'after' as const }],
     ['preset 목표', { goal: { goalId: 'refund' } }],
@@ -201,12 +200,13 @@ describe('시나리오 Run mock', () => {
   })
 
   it('시나리오 Run만 있는 experimentKey의 비교는 404 RUN_NOT_FOUND다', async () => {
-    // 앞 테스트가 만든 Run이 아직 진행 중이면 409이므로, 시계를 1시간 뒤로 옮겨 모두 끝난 상태로 만든다
-    const now = Date.now()
-    vi.spyOn(Date, 'now').mockReturnValue(now + 3_600_000)
-    const input = scenarioInput()
-    await createRun(input)
-    const response = await fetch(apiUrl(`/api/comparisons/${input.experimentKey}`))
+    // 시계를 건드리지 않도록 이미 끝난 시각(createdAtMs: 0)의 시나리오 Run을 store에 직접 넣는다
+    addRun({
+      runId: 'run_test_scenario_only', experimentKey: 'scn_only', variant: 'before', scenario: 'to-mypage', siteId: 'cafe24-ons',
+      goalId: null, goal: '구매후기 화면 찾기', personaId: null, persona: '처음 방문한 사용자', maxSteps: 8, createdAtMs: 0,
+      verification: { type: 'PATH_AND_VISIBLE_TEXT', path: '/board/review/4/', text: '구매후기', exact: false, scope: 'page' },
+    })
+    const response = await fetch(apiUrl('/api/comparisons/scn_only'))
     expect(response.status).toBe(404)
     expect(((await response.json()) as { error: { code: string } }).error.code).toBe('RUN_NOT_FOUND')
   })

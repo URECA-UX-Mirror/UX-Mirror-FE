@@ -94,15 +94,17 @@ function resolveInputs(body: Partial<CreateRunRequestDto>, site?: SiteDto): Inpu
     const v = body.verification
     if (!v) return 'goal을 직접 입력할 때는 성공 조건(verification)이 필요합니다.'
     const page = v.path?.trim().replace(/\/$/, '').replace(/^\/shop\//, '')
+    const sitePage = site?.pages.find((item) => item.path === v.path?.trim())
     if (site) {
-      const sitePage = site.pages.find((item) => item.path === v.path?.trim())
       if (!sitePage) return 'verification.path가 사이트에 등록된 화면이 아닙니다.'
       if (!sitePage.goalSelectable) return `도착 화면으로 고를 수 없는 화면입니다: ${sitePage.label}`
     } else if (!v.path?.trim().startsWith('/shop/') || !SHOP_PAGES.includes(page)) return 'verification.path가 쇼핑몰 화면이 아닙니다.'
     if (!v.text?.trim() || v.text.trim().length > 100) return 'verification.text는 1~100자여야 합니다.'
-    if (site) {
-      const goalText = site.pages.find((item) => item.path === v.path.trim())?.goalText ?? ''
-      if (!goalText.includes(v.text.trim())) return `도착 화면에 '${v.text.trim()}' 글자가 없습니다.`
+    if (sitePage) {
+      // 실제 판정처럼 exact=true는 전체 일치, 아니면 부분 일치
+      const goalText = sitePage.goalText ?? ''
+      const text = v.text.trim()
+      if (!(v.exact ? goalText === text : goalText.includes(text))) return `도착 화면에 '${text}' 글자가 없습니다${v.exact ? ' (정확 일치)' : ''}.`
     }
     if (v.scope !== undefined && v.scope !== 'page' && v.scope !== 'main') return 'verification.scope는 page/main 중 하나여야 합니다.'
     inputs.goal = (body.goal as string).trim()

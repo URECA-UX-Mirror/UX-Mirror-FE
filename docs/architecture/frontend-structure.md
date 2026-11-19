@@ -127,7 +127,7 @@ src/
     runs.ts, presets.ts, sites.ts, comparisons.ts, health.ts   # endpoint 함수, screenshotUrl
     dto/                   # 서버 응답 타입 (계약서 그대로)
   adapters/                # dto -> domain 변환
-  domain/                  # types.ts(도메인 모델), runStatus.ts(isTerminalStatus)
+  domain/                  # types.ts(도메인 모델), runStatus.ts(isTerminalStatus), site.ts(isScenarioRun, pageLabel)
   mocks/                   # MSW. browser.ts, store.ts, errors.ts, fixtures/(run, scenario, runResult, comparison, sites), handlers/(endpoint별)
   features/
     new-analysis/, run-progress/, run-result/, comparison/, replay/   # 화면별. 라우트는 App.tsx

@@ -34,7 +34,7 @@ npm test           # 자동 테스트 1회 실행
 | UX Optimizer 후보 평가·검증·보고서 (`/optimizations/:optimizationId`) | `GET /api/optimizations/{optimizationId}`, `POST /api/optimizations/{optimizationId}/verify`, `GET /api/optimizations/{optimizationId}/report` |
 | 자동 개선 리포트 (`/improvements/:improvementId`) | 정적 파일 `/improvements/{improvementId}.json`(API 호출 없음, [OI-13](docs/operations/open_issue.md#oi-13)). `improvementId`는 영숫자·`_`·`-`만 허용한다 |
 
-자동 개선 리포트의 개선 회차는 기본으로 접혀 있으며, 펼치면 회차별 진단·기준·후보 평가와 채택 사유 및 종료 사유를 확인할 수 있다. 평가 실패나 미실행 점수는 0점으로 표시하지 않는다. 사이드바 링크는 최종 리포트 id(`src/features/improvement/constants.ts`의 `FINAL_IMPROVEMENT_ID`, 현재 `imp-1119`)가 있을 때만 보인다. 최종 JSON 반영 절차는 [자동 개선 JSON 반영 절차](docs/operations/improvement-release.md)를 따른다.
+자동 개선 리포트의 개선 회차는 기본으로 접혀 있으며, 펼치면 회차별 진단·기준·후보 평가와 채택 사유 및 종료 사유를 확인할 수 있다. 평가 실패나 미실행 점수는 0점으로 표시하지 않는다. 사이드바 링크는 최종 리포트 id(`src/features/improvement/constants.ts`의 `FINAL_IMPROVEMENT_ID`, 현재 `imp-1119b`)가 있을 때만 보인다. 최종 JSON 반영 절차는 [자동 개선 JSON 반영 절차](docs/operations/improvement-release.md)를 따른다.
 
 자동 개선 리포트의 실제 브라우저 검증 영역은 저장된 Run의 경로·단계·Issue와 유효성을 표시한다. 종료된 유효 Run의 결과·진행 및 양쪽 Run이 종료된 유효 Run인 비교 링크는 실행 서버가 연결되어 있어야 열린다.
 

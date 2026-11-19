@@ -3,7 +3,7 @@ import type { ImprovementReport, ImprovementVerification } from '../../domain/im
 import { formatScoreDelta } from '../../domain/improvementScore.ts'
 import { FINAL_IMPROVEMENT_ID, finalImprovementPath } from '../improvement/constants.ts'
 import { useImprovement } from '../improvement/useImprovement.ts'
-import { internalPath } from '../improvement/internalPath.ts'
+import { comparablePair } from '../improvement/verificationLinks.ts'
 
 const NAME = '에이전트 최종안'
 
@@ -37,7 +37,7 @@ function ResultRow({ id, report, verification }: { id: string; report: Improveme
   const improved = report.result === 'IMPROVED' && report.afterLabel !== null
   const lines = [report.main, ...report.guards]
   const reportPath = finalImprovementPath(id)
-  const pairs = verification?.status === 'COMPLETED' ? verification.pairs.filter((pair) => internalPath(pair.comparisonPath)) : []
+  const pairs = verification?.status === 'COMPLETED' ? verification.pairs.filter(comparablePair) : []
   return (
     <tr data-variant="after">
       <th scope="row"><span className="version-dot" data-variant="after" />{NAME}</th>
@@ -49,12 +49,16 @@ function ResultRow({ id, report, verification }: { id: string; report: Improveme
       <td colSpan={4}>
         {improved ? (
           <ul className="final-scores" aria-label="목표별 점수 변화">
-            {lines.map((line) => (
-              <li key={line.goalKey ?? line.name}>{line.name ?? line.goalKey ?? '목표'} {formatScoreDelta(line.delta)}</li>
+            {lines.map((line, index) => (
+              <li key={line.goalKey ?? line.name ?? index}>{line.name ?? line.goalKey ?? '목표'} {formatScoreDelta(line.delta)}</li>
             ))}
           </ul>
         ) : <span className="muted">채택한 개선안이 없어 비교할 최종안이 없습니다.</span>}
-        <small className="cell-note">Run은 자동 개선 실행이 만든 저장 결과이며, 고정 목표 환불·문의만 비교할 수 있습니다. 직접 입력한 목표에는 최종안 비교가 없습니다.</small>
+        {improved ? (
+          <small className="cell-note">
+            Run은 자동 개선 실행이 만든 저장 결과이며, {pairs.length ? `${pairs.map((pair) => pair.name ?? pair.goalKey ?? '목표').join('·')} 목표만 ` : '고정 목표만 '}비교할 수 있습니다. 직접 입력한 목표에는 최종안 비교가 없습니다.
+          </small>
+        ) : null}
       </td>
       <td className="col-action">
         {reportPath ? <Link to={reportPath}>자동 개선 리포트</Link> : null}

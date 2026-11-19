@@ -1,11 +1,6 @@
 import { Link } from 'react-router'
 import type { ImprovementVerification, VerificationPair, VerificationRun } from '../../domain/improvement.ts'
-import { isTerminalStatus } from '../../domain/runStatus.ts'
-import { internalPath } from './internalPath.ts'
-
-function canReplay(run: VerificationRun | null): run is VerificationRun {
-  return run !== null && run.validity === 'VALID' && run.status !== null && isTerminalStatus(run.status)
-}
+import { canReplay, internalPath } from './verificationLinks.ts'
 
 function outcome(run: VerificationRun): string {
   const steps = run.stepCount === null ? '단계 수 없음' : `${run.stepCount}단계`

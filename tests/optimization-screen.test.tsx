@@ -116,6 +116,48 @@ it('시작: 엔진이 READY가 아니거나 진행 중인 Optimization·Run이 �
   expect((screen.getByRole('button', { name: '후보 평가 시작' }) as HTMLButtonElement).disabled).toBe(true)
 })
 
+it('시작: 막힌 이유와 상관없이 다시 확인을 보이고, 상태가 풀리면 시작할 수 있다', async () => {
+  setMockActiveOptimization({ optimizationId: 'opt_mock_1', status: 'EVALUATING' })
+  renderStart()
+  expect(await screen.findByText('진행 중인 후보 평가가 있어 시작할 수 없습니다.')).toBeTruthy()
+  setMockActiveOptimization(null)
+  fireEvent.click(screen.getByRole('button', { name: '다시 확인' }))
+  const button = screen.getByRole('button', { name: '후보 평가 시작' }) as HTMLButtonElement
+  await waitFor(() => expect(button.disabled).toBe(false))
+  expect(screen.queryByText('진행 중인 후보 평가가 있어 시작할 수 없습니다.')).toBeNull()
+})
+
+it('시작: 409로 실패하면 엔진 상태를 다시 읽는다', async () => {
+  let healthCalls = 0
+  server.use(
+    http.get(apiUrl('/api/health'), () => {
+      healthCalls += 1
+      return HttpResponse.json({
+        status: 'READY',
+        backend: { ready: true },
+        model: { ready: true, modelVersion: 'm', endpointId: 'e' },
+        browser: { ready: true },
+        agent: { ready: true },
+        activeRun: null,
+        checkedAt: '2026-11-19T00:00:00Z',
+      })
+    }),
+    http.post(apiUrl('/api/optimizations'), () =>
+      HttpResponse.json(
+        { error: { code: 'RUN_ALREADY_ACTIVE', message: '다른 실행이 진행 중입니다.', retryable: true } },
+        { status: 409 },
+      ),
+    ),
+  )
+  renderStart()
+  const button = (await screen.findByRole('button', { name: '후보 평가 시작' })) as HTMLButtonElement
+  await waitFor(() => expect(button.disabled).toBe(false))
+  expect(healthCalls).toBe(1)
+  fireEvent.click(button)
+  await screen.findByText('다른 실행이 진행 중입니다.')
+  await waitFor(() => expect(healthCalls).toBe(2))
+})
+
 it('시작: 상태를 확인할 수 없으면 시작을 막고 다시 확인을 제공한다', async () => {
   server.use(http.get(apiUrl('/api/health'), () => HttpResponse.error()))
   renderStart()
@@ -207,6 +249,20 @@ it('추천 후보와 검증 후보가 다르면 각각 구분해 보인다', asy
   expect(card('C3').queryByText('검증 후보')).toBeNull()
   expect(card('C2').getByText('검증 후보')).toBeTruthy()
   expect(card('C2').queryByText('추천 후보')).toBeNull()
+})
+
+it('추천 후보가 없으면 추천 기준 안내를 보이고 알려진 사유 코드는 풀이를 붙인다', async () => {
+  const dto = seeded('opt_mock_evaluated')
+  dto.recommendedCandidateId = null
+  dto.recommendationStatus = 'NO_RECOMMENDATION'
+  dto.selection = { ...dto.selection!, recommendedCandidateId: null, recommendationStatus: 'NO_RECOMMENDATION', selectionReasonCode: 'TIE_BREAK' }
+  serve(dto)
+  renderOptimization('opt_mock_evaluated')
+  const panel = await screen.findByRole('region', { name: '선정 결과' })
+  expect(within(panel).getByText(/추천 기준\(\+5%p\)을 넘은 후보가 없어/)).toBeTruthy()
+  expect(within(panel).queryByText(/추천 후보와 다를 수 있습니다/)).toBeNull()
+  expect(within(panel).getByText('TIE_BREAK')).toBeTruthy()
+  expect(within(panel).getByText(/동률이라 의미 명확성 순위로 선정/)).toBeTruthy()
 })
 
 it('후보 FAILED·SKIPPED는 사유를, 제외된 후보는 이유 코드를 보인다', async () => {

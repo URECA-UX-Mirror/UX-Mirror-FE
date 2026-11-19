@@ -40,6 +40,8 @@ export function OptimizationStartPage() {
       })
       .catch((error: unknown) => {
         setSubmitting(false)
+        // 다른 작업이 끝났거나 시작됐을 수 있으므로 엔진 상태를 다시 읽는다
+        reload()
         setSubmitError(
           isApiError(error)
             ? optimizationApiErrorMessage(error.code, error.message)
@@ -78,11 +80,9 @@ export function OptimizationStartPage() {
                 {activeOptimizationLabel(active.status)} · 진행 중인 후보 평가 보기
               </Link>
             ) : null}
-            {healthError ? (
-              <button type="button" onClick={reload}>
-                다시 확인
-              </button>
-            ) : null}
+            <button type="button" onClick={reload}>
+              다시 확인
+            </button>
           </div>
         ) : null}
         {submitError ? (

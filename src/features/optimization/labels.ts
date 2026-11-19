@@ -80,6 +80,8 @@ const REASON_LABELS: Readonly<Record<string, string>> = {
   NO_VALID_CANDIDATE: '적격 후보 없음',
   EVALUATION_NOT_COMPLETED: '평가를 마치지 못함',
   GOAL_PATH_DECREASE_EXCEEDED: '목표 경로 확률 감소가 허용 범위를 넘음',
+  TIE_BREAK: '동률이라 의미 명확성 순위로 선정',
+  NO_REFERENCE_PATH: '경로 기준이 없어 계산하지 않음',
   SITE_INSTANCE_MISSING: '후보 사이트가 등록되지 않음',
 }
 

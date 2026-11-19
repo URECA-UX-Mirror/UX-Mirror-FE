@@ -62,7 +62,14 @@ export function SelectionPanel({ optimization }: { optimization: Optimization })
           <dd>{selection.reasonCode ? <ReasonCode code={selection.reasonCode} /> : '-'}</dd>
         </div>
       </dl>
-      {optimization.recommendedCandidateId !== optimization.verificationCandidateId ? (
+      {optimization.recommendedCandidateId === null ? (
+        // 적격 후보가 없어(NOT_SELECTABLE) 검증 후보도 없으면 선정 상태 줄이 이유를 말하므로 따로 안내하지 않는다
+        optimization.verificationCandidateId !== null ? (
+          <p className="muted">
+            추천 기준(+5%p)을 넘은 후보가 없어 추천 후보가 없습니다. 검증 후보는 전체 적격 후보 중 1위입니다.
+          </p>
+        ) : null
+      ) : optimization.recommendedCandidateId !== optimization.verificationCandidateId ? (
         <p className="muted">
           검증 후보는 전체 적격 후보 중 1위이고 추천 후보와 다를 수 있습니다.
         </p>

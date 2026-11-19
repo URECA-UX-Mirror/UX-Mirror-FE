@@ -91,54 +91,42 @@ export function useRunSteps(runId: string): RunStepsState {
 /** 한 Run의 경로 지표 기준. `undefined`는 아직 받지 못했거나 조회에 실패한 경우이고, `null`은 기준 없음이다 */
 export type RunBasis = Open<ReferenceBasis> | null | undefined
 
-interface BasisLoaded {
-  runId: string
+export interface RunMeta {
   basis: RunBasis
+  /** Optimizer 검증 Run이면 연결 정보. 일반 Run이거나 아직 받지 못했거나 조회에 실패하면 `null`이라 기존 표시를 유지한다 */
+  optimizationContext: OptimizationContext | null
 }
 
-/**
- * 비교 응답에는 기준(`basis`)이 없으므로 각 Run의 `GET /api/runs/{runId}`에서 읽는다.
- * 실패해도 비교 값은 계속 보이도록 `undefined`로 두고 기존 표시를 유지한다.
- */
-export function useRunBasis(runId: string): RunBasis {
-  const [loaded, setLoaded] = useState<BasisLoaded | null>(null)
-
-  useEffect(() => {
-    const controller = new AbortController()
-    getRun(runId, controller.signal)
-      .then((run) => setLoaded({ runId, basis: run.referenceBasis }))
-      .catch((error: unknown) => {
-        if (isAbortError(error)) return
-        setLoaded({ runId, basis: undefined })
-      })
-    return () => controller.abort()
-  }, [runId])
-
-  return loaded?.runId === runId ? loaded.basis : undefined
-}
-
-interface ContextLoaded {
+interface MetaLoaded {
   runId: string
-  context: OptimizationContext | null
+  meta: RunMeta
 }
 
+const UNKNOWN_META: RunMeta = { basis: undefined, optimizationContext: null }
+
 /**
- * Run의 Optimizer 연결 정보(`optimizationContext`). 일반 Run이거나 아직 받지 못했거나 조회에 실패하면 `null`이라 기존 표시를 유지한다.
- * 기준·후보 어느 라벨 사이트인지는 `variant`가 아니라 이 값으로만 알 수 있다.
+ * 비교 응답에는 경로 지표 기준(`basis`)과 Optimizer 연결 정보(`optimizationContext`)가 없으므로
+ * 각 Run의 `GET /api/runs/{runId}`를 한 번 읽어 둘을 함께 얻는다. 어느 라벨 사이트인지는 `variant`가 아니라 `optimizationContext`로만 안다.
+ * 실패해도 비교 값은 계속 보이도록 알 수 없음으로 두고 기존 표시를 유지한다.
  */
-export function useRunOptimizationContext(runId: string): OptimizationContext | null {
-  const [loaded, setLoaded] = useState<ContextLoaded | null>(null)
+export function useRunMeta(runId: string): RunMeta {
+  const [loaded, setLoaded] = useState<MetaLoaded | null>(null)
 
   useEffect(() => {
     const controller = new AbortController()
     getRun(runId, controller.signal)
-      .then((run) => setLoaded({ runId, context: run.optimizationContext }))
+      .then((run) =>
+        setLoaded({
+          runId,
+          meta: { basis: run.referenceBasis, optimizationContext: run.optimizationContext },
+        }),
+      )
       .catch((error: unknown) => {
         if (isAbortError(error)) return
-        setLoaded({ runId, context: null })
+        setLoaded({ runId, meta: UNKNOWN_META })
       })
     return () => controller.abort()
   }, [runId])
 
-  return loaded?.runId === runId ? loaded.context : null
+  return loaded?.runId === runId ? loaded.meta : UNKNOWN_META
 }

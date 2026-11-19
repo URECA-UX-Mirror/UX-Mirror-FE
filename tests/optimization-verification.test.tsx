@@ -295,6 +295,11 @@ it('Run 목록: optimizationContext가 있으면 후보 라벨과 역할을 vari
 })
 
 it('비교·결과 화면: 검증 Run은 라벨 사이트와 역할을 보이고 일반 Run은 바뀌지 않는다', async () => {
+  const runGets: Record<string, number> = {}
+  server.events.on('request:start', ({ request }) => {
+    const match = new URL(request.url).pathname.match(/^\/api\/runs\/([^/]+)$/)
+    if (match) runGets[match[1]] = (runGets[match[1]] ?? 0) + 1
+  })
   const { ComparisonPage } = await import('../src/features/comparison/ComparisonPage.tsx')
   const { RunResultPage } = await import('../src/features/run-result/RunResultPage.tsx')
   const comparison = render(
@@ -306,6 +311,10 @@ it('비교·결과 화면: 검증 Run은 라벨 사이트와 역할을 보이고
   )
   const setup = await screen.findByRole('region', { name: '비교 대상' })
   expect(await within(setup).findByText('Optimizer 검증 · 기준 C0 이용정보')).toBeTruthy()
+  // 고정 변경 문구(상단 메뉴: …)는 어느 후보인지와 충돌할 수 있어 붙이지 않는다
+  expect(within(setup).queryByText(/상단 메뉴:/)).toBeNull()
+  expect(runGets['run_opt_mock_completed_baseline']).toBe(1)
+  expect(runGets['run_opt_mock_completed_candidate']).toBe(1)
   expect(within(setup).getByText('Optimizer 검증 · 후보 C2 주문·환불')).toBeTruthy()
   comparison.unmount()
 
@@ -319,6 +328,7 @@ it('비교·결과 화면: 검증 Run은 라벨 사이트와 역할을 보이고
     )
   const optimizerRun = result('run_opt_mock_completed_candidate')
   expect(await screen.findByText('Optimizer 검증 · 후보 C2 주문·환불', {}, { timeout: 3000 })).toBeTruthy()
+  expect(screen.queryByText(/상단 메뉴:/)).toBeNull()
   optimizerRun.unmount()
   result('run_mock_done_before')
   await screen.findByText('run_mock_done_before', { selector: '.run-id' })

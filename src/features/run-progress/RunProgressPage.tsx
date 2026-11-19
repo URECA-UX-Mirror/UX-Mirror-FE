@@ -91,7 +91,7 @@ function RunProgress({ runId }: { runId: string }) {
           </div>
           <div>
             <dt>버전</dt>
-            <dd>{isScenarioRun(run) ? `시나리오 테스트 · ${site?.name ?? run.siteId ?? '-'}` : version ? `${version.name} · ${version.change}` : run.variant}</dd>
+            <dd>{isScenarioRun(run) ? `시나리오 테스트 · ${site?.name ?? run.siteId ?? '-'}` : version ? (run.optimizationContext ? version.name : `${version.name} · ${version.change}`) : run.variant}</dd>
           </div>
           {run.optimizationContext ? (
             <div>

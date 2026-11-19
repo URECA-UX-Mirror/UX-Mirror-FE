@@ -35,7 +35,7 @@ function VersionPanel({
   runId: string
   origin: string
   outcome: RunOutcome
-  /** Optimizer 검증 Run이면 연결 정보. 어느 라벨 사이트인지는 `variant`(side)가 아니라 이 값으로 안다 */
+  /** Optimizer 검증 Run이면 연결 정보. 어느 라벨 사이트인지는 `variant`(side)가 아니라 이 값으로 알므로 고정 변경 문구(`VERSIONS.change`)는 붙이지 않는다 */
   context?: OptimizationContext | null
 }) {
   const version = VERSIONS.find((item) => item.variant === side)
@@ -48,7 +48,7 @@ function VersionPanel({
         <ResultOriginBadge origin={origin} />
       </div>
       <p className="version-panel-name">
-        {version ? `${version.name} · ${version.change}` : side}
+        {version ? (context ? version.name : `${version.name} · ${version.change}`) : side}
       </p>
       {context ? (
         <p className="version-panel-optimizer">{optimizerRunText(context)}</p>

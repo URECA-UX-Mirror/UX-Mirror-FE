@@ -73,7 +73,7 @@
 - 오류 안내(`ComparisonError`)는 `error.code`로 구분한다. `RUN_NOT_FOUND`(잘못된 주소), `COMPARISON_NOT_READY`(기다리면 해결, 다시 확인 버튼), `COMPARISON_RUN_INVALID`(재분석 링크 `/?experimentKey=…`), `ANALYSIS_ERROR`(다시 시도). 그 밖의 오류는 `ErrorNotice`를 쓴다.
 - `conditionsMatched = false`이면 `matched = false`인 `conditionChecks`를 서버 순서대로 보인다. `code` 값으로 분기하지 않는다.
 - 화면별 카드는 `pageKey`마다 Before·After 스크린샷과 각 Run의 Step bbox를 따로 그린다. `beforeStepId`/`afterStepId`가 `null`이거나 Step을 못 찾으면 이미지 없이 안내를 보인다. 후보 대응 표는 `semanticKey` 순서 그대로이고 `deltaProbability`가 `null`이면 "계산 불가"로 보인다. 지표 표 펼침 여부는 카드의 화면 상태이며 기본은 접힘이다.
-- `useRunBasis`는 비교 응답에 없는 경로 기준을 각 Run의 `GET /api/runs/{runId}`에서 읽는다. 조회 실패 시 기준은 미상으로 두고 비교 값은 계속 표시한다.
+- `useRunMeta`는 비교 응답에 없는 경로 기준과 `optimizationContext`를 각 Run의 `GET /api/runs/{runId}`에서 한 번에 읽는다(Run당 1회). 조회 실패 시 기준은 미상, 연결 정보는 없음으로 두고 비교 값은 계속 표시한다.
 - Run 단위 비교(`RunComparison`)는 before/after를 나란히 보이고 증감을 만들지 않는다. 경로 지표 기준 행을 표시하며 사이트 지도 Run이 하나라도 있으면 우회 이동 행을 추가한다. 사이트 지도 Run의 기준 경로 이탈은 "사용 안 함"으로 표시한다. 양쪽이 모두 허용 경로 또는 모두 사이트 지도면 해당 기준의 지표 이름을 쓰고, 그 밖에는 중립 이름을 쓴다. Issue 유형은 "탐지됨 / 탐지되지 않음"이다.
 - 한눈에 보기의 화면별 지표 표는 양쪽 기준을 알면 목표 경로 확률에 기준별 설명을 붙인다. 기준이 다르면 Before·After 설명을 각각 표시하고, 하나라도 조회하지 못하면 설명을 붙이지 않는다.
 - 지표 표기: 엔트로피는 소수 둘째 자리(단위 없음), margin·확률은 `%`·`%p`, `null`은 "계산 불가"다(`features/comparison/format.ts`). 증감은 서버 값에 부호만 붙인다.

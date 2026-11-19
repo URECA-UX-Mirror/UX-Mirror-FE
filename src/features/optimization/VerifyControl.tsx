@@ -39,7 +39,7 @@ export function VerifyControl({ optimizationId, candidateName, onSettled }: Veri
   }
 
   return (
-    <div className="optimization-actions">
+    <div className="verify-control">
       {candidateName === null ? (
         <p className="muted">검증할 후보가 없어 검증을 시작할 수 없습니다.</p>
       ) : (

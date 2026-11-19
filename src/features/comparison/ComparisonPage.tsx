@@ -16,21 +16,14 @@ import { OriginBadges } from './OriginBadges.tsx'
 import { RunComparison } from './RunComparison.tsx'
 import { ScreenComparisonCard } from './ScreenComparisonCard.tsx'
 import { SingleScreenView } from './SingleScreenView.tsx'
-import {
-  useComparison,
-  useRunBasis,
-  useRunOptimizationContext,
-  useRunSteps,
-} from './useComparisonData.ts'
+import { useComparison, useRunMeta, useRunSteps } from './useComparisonData.ts'
 
 function ComparisonBody({ comparison }: { comparison: Comparison }) {
   // 후보 박스는 비교 응답에 없으므로 각 Run의 Step에서 가져온다. Run마다 따로 조회한다.
   const beforeSteps = useRunSteps(comparison.beforeRunId)
   const afterSteps = useRunSteps(comparison.afterRunId)
-  const beforeBasis = useRunBasis(comparison.beforeRunId)
-  const afterBasis = useRunBasis(comparison.afterRunId)
-  const beforeContext = useRunOptimizationContext(comparison.beforeRunId)
-  const afterContext = useRunOptimizationContext(comparison.afterRunId)
+  const { basis: beforeBasis, optimizationContext: beforeContext } = useRunMeta(comparison.beforeRunId)
+  const { basis: afterBasis, optimizationContext: afterContext } = useRunMeta(comparison.afterRunId)
   // 보기 방식은 화면 상태다. 기본은 한눈에 보기
   const [view, setView] = useState<'overview' | 'single'>('overview')
 

@@ -6,7 +6,7 @@ UX MIRROR 대시보드 (React + TypeScript + Vite). 백엔드·에이전트는 `
 
 ```
 npm install
-copy .env.example .env
+cp .env.example .env     # Windows는 copy .env.example .env
 npm run dev        # http://localhost:5173
 npm run build      # 배포용 빌드 (dist/)
 npm test           # 자동 테스트 1회 실행

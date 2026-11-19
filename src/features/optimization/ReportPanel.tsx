@@ -9,10 +9,10 @@ import { SectionTitle } from '../../shared/SectionTitle.tsx'
 import { optimizerRoleLabel } from '../../shared/optimizerRun.ts'
 import { CheckCircleIcon } from '../../shared/icons.tsx'
 import { usePolling } from '../../shared/polling/usePolling.ts'
+import { statusLabel } from '../run-progress/statusLabel.ts'
 import { formatCount, NOT_APPLICABLE } from '../run-result/format.ts'
 import {
   finalDecisionLabel,
-  outcomeStatusLabel,
   verificationReasonLabel,
 } from './labels.ts'
 
@@ -43,7 +43,7 @@ interface RunRow {
 }
 
 const RUN_ROWS: RunRow[] = [
-  { name: '종료 상태', value: (r) => outcomeStatusLabel(r.status) },
+  { name: '종료 상태', value: (r) => statusLabel({ status: r.status, error: null }) },
   { name: '목표 화면', value: (r) => goalText(r.goalReached) },
   { name: '단계 수', value: (r) => numberText(r.stepCount) },
   { name: '이동 비용', value: (r) => numberText(r.navigationCost) },

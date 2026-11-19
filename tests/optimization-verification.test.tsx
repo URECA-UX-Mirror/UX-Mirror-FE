@@ -208,6 +208,12 @@ it('보고서: 판단·이동 비용 변화·두 Run 요약·한계·resultOrigi
   expect(within(table).getByRole('link', { name: report.runs.baseline.runId })).toBeTruthy()
   expect(within(table).getByRole('link', { name: report.runs.candidate.runId })).toBeTruthy()
   expect(within(table).getByText(/이용정보 \(기준\)/)).toBeTruthy()
+  // 종료 상태는 Run 상태 문구(SUCCESS → 목표 화면 도달)로 보인다
+  const statusCells = within(table).getByRole('rowheader', { name: '종료 상태' }).parentElement!.querySelectorAll('td')
+  expect([...statusCells].map((cell) => cell.textContent)).toEqual([
+    '목표 화면 도달',
+    '목표 화면 도달',
+  ])
   expect(within(table).getByText(/주문·환불 \(후보\)/)).toBeTruthy()
 })
 

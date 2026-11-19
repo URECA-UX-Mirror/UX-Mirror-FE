@@ -98,12 +98,3 @@ const VERIFICATION_REASON_LABELS: Readonly<Record<string, string>> = {
 
 export const verificationReasonLabel = (code: string): string | null =>
   Object.hasOwn(VERIFICATION_REASON_LABELS, code) ? VERIFICATION_REASON_LABELS[code] : null
-
-const RUN_STATUS_LABELS: Readonly<Record<string, string>> = {
-  COMPLETED: '완료',
-  FAILED: '실패',
-  RUNNING: '실행 중',
-  PENDING: '대기 중',
-}
-
-export const outcomeStatusLabel = (status: string) => labelOf(RUN_STATUS_LABELS, status)

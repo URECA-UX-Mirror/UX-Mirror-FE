@@ -30,6 +30,7 @@ const SCENARIO_BY_SOURCE: Record<string, OptimizationScenario> = {
   'mock-opt-site-changed': 'site-changed',
   'mock-opt-interrupted': 'interrupted',
   'mock-opt-invalid-site': 'invalid-site',
+  'mock-opt-not-selectable': 'not-selectable',
 }
 
 const notFound = () =>
@@ -109,6 +110,9 @@ export const optimizationsHandlers = [
     }
     if (status !== 'EVALUATED') {
       return errorResponse(409, 'OPTIMIZATION_NOT_READY', '후보 평가가 끝난 뒤에만 검증할 수 있습니다.')
+    }
+    if (record.scenario === 'not-selectable') {
+      return errorResponse(409, 'OPTIMIZATION_NOT_READY', '검증할 후보가 선정되지 않았습니다.')
     }
     if (busy(now)) return alreadyActive()
     if (record.scenario === 'invalid-site') {

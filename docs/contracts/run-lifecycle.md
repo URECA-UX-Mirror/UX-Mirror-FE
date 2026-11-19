@@ -51,7 +51,7 @@ UX Optimizer(`GET /api/optimizations/{id}`)는 Run과 같은 폴링 엔진(`useP
 
 - 종료 상태는 `COMPLETED`, `FAILED`뿐이고 종료 판정은 `isTerminalOptimizationStatus` 한 함수에서만 한다. `EVALUATING`·`VERIFYING`·`MODEL_CALL_PENDING`과 모르는 상태값은 진행 중으로 본다.
 - `EVALUATED`는 사용자의 검증 시작을 기다리는 상태라 종료가 아니다. 폴링은 이어지고, 멈추거나 검증을 시작하는 화면 동작은 후속 화면 이슈가 정한다.
-- `FAILED`는 정상 응답이므로 폴링은 멈추고 `error.code`는 `optimizationErrorMessage`로 문구를 만든다.
+- `FAILED`는 정상 응답이므로 폴링은 멈추고 `error.code`는 `optimizationFailureMessage`로 문구를 만든다.
 
 ## 새로고침 뒤 복원
 

@@ -193,6 +193,22 @@ it('Optimizer mock: 후보 하나가 FAILED(BROWSER_ERROR)·SKIPPED(INVALID_CAND
   expect(dto.progress).toEqual({ evaluatedCount: 5, totalCount: 5 })
 })
 
+it('Optimizer mock: 선정 결과는 실서버처럼 순위·제외 이유를 담고, 후보가 모두 평가되지 않으면 NOT_SELECTABLE이다', () => {
+  const ok = buildOptimization(optRec('success'), EVALUATED_AT).selection!
+  expect(ok).toMatchObject({ selectionStatus: 'SELECTED', rankedCandidates: ['C2', 'C3', 'C4', 'C1'], selectionReasonCode: 'TOP_TARGET_PROBABILITY' })
+  const partial = buildOptimization(optRec('partial'), EVALUATED_AT).selection!
+  expect(partial.rankedCandidates).toEqual(['C2', 'C1'])
+  expect(partial.excludedCandidates).toEqual([
+    { candidateId: 'C3', reasonCodes: ['EVALUATION_NOT_COMPLETED', 'BROWSER_ERROR'] },
+    { candidateId: 'C4', reasonCodes: ['EVALUATION_NOT_COMPLETED', 'SITE_INSTANCE_MISSING'] },
+  ])
+  const none = buildOptimization(optRec('not-selectable'), EVALUATED_AT)
+  expect(none).toMatchObject({ status: 'EVALUATED', recommendedCandidateId: null, verificationCandidateId: null, recommendationStatus: 'NO_RECOMMENDATION' })
+  expect(none.selection).toMatchObject({ selectionStatus: 'NOT_SELECTABLE', rankedCandidates: [], selectionReasonCode: 'NO_VALID_CANDIDATE' })
+  expect(none.selection!.excludedCandidates.map((c) => c.candidateId)).toEqual(['C1', 'C2', 'C3', 'C4'])
+  expect(none.evaluations.map((e) => e.evaluationStatus)).toEqual(['COMPLETED', 'FAILED', 'FAILED', 'FAILED', 'FAILED'])
+})
+
 it('Optimizer mock: 평가 단계 실패(MODEL_TIMEOUT)와 서버 재시작(OPTIMIZATION_INTERRUPTED)은 FAILED로 끝난다', () => {
   const timeout = buildOptimization(optRec('eval-timeout'), 60 * OPT_SECOND)
   expect(timeout).toMatchObject({ status: 'FAILED', selection: null, error: { code: 'MODEL_TIMEOUT', failedPhase: 'EVALUATING', lastStatus: 'EVALUATING' } })
@@ -355,6 +371,23 @@ it('Optimizer mock API: 검증 시작 직후·기준 단계에는 아직 만들�
     vi.setSystemTime(t0 + RECHECK_MS + 2000)
     expect([await activeRun(), await listed()]).toEqual([baseline, [baseline]])
     expect((await fetch(apiUrl('/api/runs/run_opt_mock_evaluated_candidate'))).status).toBe(404)
+  } finally {
+    vi.useRealTimers()
+    resetMockOptimizations()
+  }
+})
+
+it('Optimizer mock API: 검증 후보가 없으면(NOT_SELECTABLE) 평가가 끝나도 검증을 시작할 수 없다', async () => {
+  vi.useFakeTimers({ toFake: ['Date'] })
+  try {
+    const t0 = Date.parse('2032-01-01T00:00:00Z')
+    vi.setSystemTime(t0)
+    const { optimizationId } = (await (await post('', { sourceRunId: 'mock-opt-not-selectable' })).json()) as { optimizationId: string }
+    vi.setSystemTime(t0 + EVALUATED_AT)
+    const opt = (await (await optApi(`/${optimizationId}`)).json()) as { status: string; verificationCandidateId: string | null }
+    expect([opt.status, opt.verificationCandidateId]).toEqual(['EVALUATED', null])
+    const response = await post(`/${optimizationId}/verify`)
+    expect([response.status, await errorCode(response)]).toEqual([409, 'OPTIMIZATION_NOT_READY'])
   } finally {
     vi.useRealTimers()
     resetMockOptimizations()

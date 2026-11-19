@@ -475,6 +475,10 @@ export interface CandidateEvaluation {
 }
 
 export interface OptimizationSelection {
+  /** `SELECTED`(검증 후보 있음) 또는 `NOT_SELECTABLE`(적격 후보 없음, 검증 불가). 모르는 값도 그대로 둔다 */
+  status: string | null
+  /** 적격 후보의 `candidateId`를 순위순으로 나열한 값 */
+  rankedCandidateIds: string[]
   recommendedCandidateId: string | null
   verificationCandidateId: string | null
   recommendationStatus: string | null

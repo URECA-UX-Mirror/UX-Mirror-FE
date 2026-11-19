@@ -19,12 +19,13 @@ import { buildRun, getTiming } from './run.ts'
 //   mock-opt-eval-timeout        eval-timeout   C2 평가에서 모델이 시간을 넘겨 평가 단계 FAILED(MODEL_TIMEOUT)
 //   mock-opt-site-changed        site-changed   평가는 성공, 검증 시작 뒤 FAILED(SITE_INSTANCE_CHANGED). 검증 Run은 만들어지지 않는다
 //   mock-opt-interrupted         interrupted    평가 도중 FAILED(OPTIMIZATION_INTERRUPTED, 서버 재시작)
+//   mock-opt-not-selectable      not-selectable 후보 C1~C4가 모두 FAILED(BROWSER_ERROR)라 selectionStatus NOT_SELECTABLE, 검증 후보 없음(`POST /verify`가 409 OPTIMIZATION_NOT_READY)
 //   mock-opt-invalid-site        invalid-site   평가는 성공, `POST /verify`가 422 INVALID_SITE_INSTANCE
 //   mock-opt-model-unavailable   생성이 503 MODEL_UNAVAILABLE
 //   mock-opt-policy-unavailable  생성이 503 OPTIMIZER_POLICY_UNAVAILABLE
 //   mock-opt-condition-mismatch  생성이 422 EXPERIMENT_CONDITION_MISMATCH
 // 처음부터 있는 시드(고정 ID): opt_mock_evaluated(검증 전), opt_mock_completed(보고서), opt_mock_partial, opt_mock_eval_timeout,
-//   opt_mock_site_changed, opt_mock_interrupted. 이유 코드·최종 판단 값 중 `TOP_TARGET_PROBABILITY`·`IMPROVEMENT_OBSERVED`·`NAVIGATION_COST`는 실서버(UX-Mirror-BE develop d318ee5) 응답에서 확인한 값이고, 제외·무효 이유(`EVALUATION_FAILED` 등)는 자리표시다.
+//   opt_mock_site_changed, opt_mock_interrupted. 이유 코드·최종 판단 값 중 `TOP_TARGET_PROBABILITY`·`IMPROVEMENT_OBSERVED`·`NAVIGATION_COST`는 실서버(UX-Mirror-BE develop d318ee5) 응답에서 확인한 값이고, 제외 이유는 정책 모듈 코드(`uxm/optimizer_policy.py`)를 따른다. 평가 실패 후보는 `EVALUATION_NOT_COMPLETED`와 오류 코드·`invalidReasons`를 이어 붙인 값이다.
 // 검증 Run은 `experimentKey = optimizationId`이고 기준은 `variant=before`, 후보는 `after`다. 이 Run들은 기록에서 만들어져
 // `GET /api/runs`·`/api/comparisons/{optimizationId}`로도 보인다. 한 시간에 Optimization 하나만 진행한다.
 
@@ -74,6 +75,8 @@ function outcomeOf(scenario: OptimizationScenario, index: number): Outcome {
     if (index === 3) return 'failed'
     if (index === 4) return 'skipped'
   }
+  // 후보 사이트가 모두 꺼져 기준 외 후보가 전부 평가되지 않는다 → 적격 후보 없음(NOT_SELECTABLE)
+  if (scenario === 'not-selectable' && index >= 1) return 'failed'
   if (scenario === 'eval-timeout' && index === 2) return 'timeout'
   return 'completed'
 }
@@ -172,21 +175,32 @@ function evaluatedCount(rec: OptimizationRecord, nowMs: number): number {
   return Math.min(evaluatedTotal(rec), Math.max(0, done))
 }
 
-/** 후보 선정 결과. 완료된 후보 중 C2가 가장 높다. 실패·건너뛴 후보는 제외 이유와 함께 남긴다 */
+/**
+ * 후보 선정 결과(실서버 `select_candidate`와 같은 모양). 완료된 후보를 대상 메뉴 확률순으로 순위를 매기고 첫 후보를 검증한다.
+ * 평가되지 않은 후보의 제외 이유는 `EVALUATION_NOT_COMPLETED`에 `invalidReasons`와 오류 코드를 이어 붙인 값이다.
+ * 적격 후보가 하나도 없으면 `NOT_SELECTABLE`이고 `verificationCandidateId`가 `null`이라 검증을 시작할 수 없다
+ */
 function selectionOf(rec: OptimizationRecord): OptimizationSelectionDto {
   const excluded: { candidateId: string; reasonCodes: string[] }[] = []
+  const ranked: CandidateSpec[] = []
   CANDIDATES.forEach((spec, index) => {
+    if (spec.role === 'BASELINE') return
     const outcome = outcomeOf(rec.scenario, index)
-    if (outcome === 'failed') excluded.push({ candidateId: spec.candidateId, reasonCodes: ['EVALUATION_FAILED'] })
-    if (outcome === 'skipped') excluded.push({ candidateId: spec.candidateId, reasonCodes: ['INVALID_CANDIDATE'] })
+    if (outcome === 'failed') excluded.push({ candidateId: spec.candidateId, reasonCodes: ['EVALUATION_NOT_COMPLETED', 'BROWSER_ERROR'] })
+    else if (outcome === 'skipped') excluded.push({ candidateId: spec.candidateId, reasonCodes: ['EVALUATION_NOT_COMPLETED', 'SITE_INSTANCE_MISSING'] })
+    else ranked.push(spec)
   })
+  ranked.sort((a, b) => b.target - a.target)
+  const top = ranked[0]
   return {
-    recommendedCandidateId: 'C2',
-    verificationCandidateId: 'C2',
-    recommendationStatus: 'RECOMMENDED',
-    selectionPolicyVersion: 'selection-v1',
-    selectionReasonCode: 'TOP_TARGET_PROBABILITY',
+    selectionStatus: top ? 'SELECTED' : 'NOT_SELECTABLE',
+    recommendationStatus: top ? 'RECOMMENDED' : 'NO_RECOMMENDATION',
+    recommendedCandidateId: top?.candidateId ?? null,
+    verificationCandidateId: top?.candidateId ?? null,
+    rankedCandidates: ranked.map((c) => c.candidateId),
+    selectionReasonCode: top ? 'TOP_TARGET_PROBABILITY' : 'NO_VALID_CANDIDATE',
     excludedCandidates: excluded,
+    selectionPolicyVersion: 'selection-v1',
   }
 }
 

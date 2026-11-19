@@ -111,6 +111,8 @@ export function toSelection(
 ): OptimizationSelection | null {
   if (!dto || typeof dto !== 'object') return null
   return {
+    status: stringOrNull(dto.selectionStatus),
+    rankedCandidateIds: stringList(dto.rankedCandidates),
     recommendedCandidateId: stringOrNull(dto.recommendedCandidateId),
     verificationCandidateId: stringOrNull(dto.verificationCandidateId),
     recommendationStatus: stringOrNull(dto.recommendationStatus),

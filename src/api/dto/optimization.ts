@@ -31,8 +31,8 @@ export interface CreateOptimizationResponseDto {
 }
 
 /**
- * POST /api/optimizations/{id}/verify 202 응답. README는 두 Run ID를 함께 적지만 서버는 검증 후보 Run을
- * 기준 Run이 끝난 뒤 만들므로 아직 없는 ID는 `null`일 수 있다.
+ * POST /api/optimizations/{id}/verify 202 응답. README는 두 Run ID를 함께 적지만 서버는 Run을 만들기 전에 응답하므로
+ * 시작 응답에서는 항상 `null`이다(UX-Mirror-BE `start_verification`). Run ID는 이후 `GET`에서 기준 Run → 후보 Run 순으로 채워진다.
  */
 export interface StartVerificationResponseDto {
   optimizationId: string
@@ -88,6 +88,10 @@ export interface CandidateEvaluationDto {
  * 모든 필드를 optional로 받고, 모르는 값은 원문을 그대로 쓴다.
  */
 export interface OptimizationSelectionDto {
+  /** 검증할 후보가 있으면 `SELECTED`, 적격 후보가 없으면 `NOT_SELECTABLE`(이때 `verificationCandidateId`는 `null`이라 검증을 시작할 수 없다) */
+  selectionStatus?: string | null
+  /** 적격 후보를 순위순으로 나열한 `candidateId` */
+  rankedCandidates?: string[] | null
   recommendedCandidateId?: string | null
   verificationCandidateId?: string | null
   recommendationStatus?: string | null

@@ -22,8 +22,9 @@ import {
   startVerification,
 } from '../src/api/optimizations.ts'
 import {
-  hasOptimizationErrorMessage,
-  optimizationErrorMessage,
+  candidateErrorMessage,
+  optimizationApiErrorMessage,
+  optimizationFailureMessage,
 } from '../src/domain/optimizationErrors.ts'
 import { isTerminalOptimizationStatus } from '../src/domain/optimizationStatus.ts'
 import { buildOptimization, buildReport } from '../src/mocks/fixtures/optimization.ts'
@@ -189,6 +190,8 @@ it('Adapter: 모르는 상태와 이유 코드는 원문 그대로이고 선정�
   expect(result.status).toBe('RE_EVALUATING')
   expect(result.verificationPhase).toBe('SOMETHING')
   expect(result.selection).toMatchObject({
+    status: null,
+    rankedCandidateIds: [],
     reasonCode: 'NEW_REASON',
     recommendedCandidateId: null,
     excludedCandidates: [{ candidateId: 'C3', reasonCodes: ['A', 'B'] }],
@@ -302,29 +305,44 @@ it('폴링 훅: 없는 Optimization(404)은 재시도 없이 멈추고 enabled=f
 
 // ---- 오류 문구 ----
 
-it('오류 문구: API 오류 코드와 실패 코드를 한 함수에서 화면 문구로 바꾼다', () => {
-  const api = ['OPTIMIZATION_NOT_FOUND', 'OPTIMIZATION_NOT_READY', 'OPTIMIZATION_ALREADY_PROCESSED', 'RUN_ALREADY_ACTIVE',
-    'INVALID_SITE_INSTANCE', 'EXPERIMENT_CONDITION_MISMATCH', 'MODEL_UNAVAILABLE', 'OPTIMIZER_POLICY_UNAVAILABLE']
-  const failure = ['BASELINE_INVALID', 'BASELINE_NOT_EVALUATED', 'MODEL_TIMEOUT', 'SITE_INSTANCE_CHANGED',
+it('오류 문구(실패 원인): FAILED Optimization의 코드마다 다른 문구를 쓰고 코드명을 그대로 보이지 않는다', () => {
+  const codes = ['BASELINE_INVALID', 'BASELINE_NOT_EVALUATED', 'MODEL_TIMEOUT', 'SITE_INSTANCE_CHANGED',
     'SITE_RECHECK_FAILED', 'RUN_TIMEOUT', 'OPTIMIZATION_INTERRUPTED', 'OPTIMIZATION_FAILED']
-  const messages = new Set<string>()
-  for (const code of [...api, ...failure, 'BROWSER_ERROR']) {
-    expect([code, hasOptimizationErrorMessage(code)]).toEqual([code, true])
-    const message = optimizationErrorMessage(code, '서버 원문')
+  const messages = codes.map((code) => optimizationFailureMessage(code, '서버 원문'))
+  expect(new Set(messages).size).toBe(codes.length)
+  for (const message of messages) {
     expect(message).not.toBe('서버 원문')
-    expect(message).not.toMatch(/[A-Z_]{8,}/) // 코드명을 그대로 보이지 않는다
-    messages.add(message)
+    expect(message).not.toMatch(/[A-Z_]{8,}/)
   }
-  expect(messages.size).toBe(api.length + failure.length + 1) // 코드마다 문구가 다르다
+  expect(optimizationFailureMessage('NEW_CODE', '  서버 안내  ')).toBe('서버 안내')
+  expect(optimizationFailureMessage('NEW_CODE')).toBe('요청을 처리하지 못했습니다.')
+  expect(optimizationFailureMessage('toString', null)).toBe('요청을 처리하지 못했습니다.')
 })
 
-it('오류 문구: 모르는 코드는 서버 메시지, 그것도 없으면 일반 안내를 쓴다', () => {
-  expect(hasOptimizationErrorMessage('NEW_CODE')).toBe(false)
-  expect(optimizationErrorMessage('NEW_CODE', '  서버 안내  ')).toBe('서버 안내')
-  expect(optimizationErrorMessage('NEW_CODE', '  ')).toBe('요청을 처리하지 못했습니다.')
-  expect(optimizationErrorMessage(null)).toBe('요청을 처리하지 못했습니다.')
-  // 객체 기본 속성 이름이 코드로 와도 문구로 오해하지 않는다
-  expect(hasOptimizationErrorMessage('toString')).toBe(false)
+it('오류 문구(후보 오류): 같은 MODEL_TIMEOUT도 후보 하나의 오류는 평가를 멈췄다고 하지 않는다', () => {
+  const candidate = candidateErrorMessage('MODEL_TIMEOUT', '서버 원문')
+  expect(candidate).not.toBe(optimizationFailureMessage('MODEL_TIMEOUT'))
+  expect(candidate).not.toMatch(/멈췄/)
+  expect(optimizationFailureMessage('MODEL_TIMEOUT')).toMatch(/멈췄/)
+  expect(candidateErrorMessage('BROWSER_ERROR')).toBe('후보 화면을 열지 못했습니다.')
+  expect(candidateErrorMessage('NEW_CODE', '서버 안내')).toBe('서버 안내')
+  expect(candidateErrorMessage(null, '')).toBe('요청을 처리하지 못했습니다.')
+})
+
+it('오류 문구(API 오류): 서버 메시지가 있으면 코드와 상관없이 그대로 쓰고 비어 있을 때만 대체 문구를 쓴다', () => {
+  // 코드가 같아도 상황마다 서버 메시지가 다르다
+  expect(optimizationApiErrorMessage('OPTIMIZATION_NOT_READY', '검증할 후보가 선정되지 않았습니다.')).toBe('검증할 후보가 선정되지 않았습니다.')
+  // `503 BROWSER_ERROR`는 검증 시작 전 실행 환경 점검이라 후보 화면 문구로 덮어쓰지 않는다
+  expect(optimizationApiErrorMessage('BROWSER_ERROR', '실행 환경이 준비되지 않았습니다: browser')).toBe('실행 환경이 준비되지 않았습니다: browser')
+  for (const code of ['OPTIMIZATION_NOT_FOUND', 'OPTIMIZATION_NOT_READY', 'OPTIMIZATION_ALREADY_PROCESSED', 'RUN_ALREADY_ACTIVE',
+    'INVALID_SITE_INSTANCE', 'EXPERIMENT_CONDITION_MISMATCH', 'MODEL_UNAVAILABLE', 'OPTIMIZER_POLICY_UNAVAILABLE']) {
+    const fallback = optimizationApiErrorMessage(code, '  ')
+    expect([code, fallback]).not.toEqual([code, '요청을 처리하지 못했습니다.'])
+    expect(fallback).not.toMatch(/[A-Z_]{8,}/)
+  }
+  expect(optimizationApiErrorMessage('NEW_CODE')).toBe('요청을 처리하지 못했습니다.')
+  expect(optimizationApiErrorMessage(null, '서버에 연결할 수 없습니다')).toBe('서버에 연결할 수 없습니다')
+  expect(optimizationApiErrorMessage('toString')).toBe('요청을 처리하지 못했습니다.')
 })
 
 it('도메인 타입 변환 결과에 내부 주소(baseUrl)가 없다', () => {

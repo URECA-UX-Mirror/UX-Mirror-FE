@@ -54,6 +54,7 @@ export type OptimizationScenario =
   | 'site-changed'
   | 'interrupted'
   | 'invalid-site'
+  | 'not-selectable'
 
 /** 상태는 이 기록과 현재 시각으로만 정한다(`buildOptimization`). 검증 Run은 `verifyAtMs`가 있는 기록에서 만든다 */
 export interface OptimizationRecord {

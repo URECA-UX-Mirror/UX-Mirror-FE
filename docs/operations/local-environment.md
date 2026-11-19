@@ -48,6 +48,6 @@
 
 ## 실제 서버로 Run을 확인할 때
 
-- 백엔드는 Python 3.10 이상이 필요하다(`dict | None` 문법). `playwright install chromium`으로 브라우저를 받아야 Run이 실행된다.
+- 백엔드는 Python 3.11을 쓴다(`UX-Mirror-BE` README 기준, 3.10 미만은 문법 오류로 실행되지 않는다). `playwright install chromium`으로 브라우저를 받아야 Run이 실행된다.
 - 모델 서버는 백엔드 `.env`의 `ZORO_BACKEND=http`, `ZORO_BASE_URL`, `ZORO_ENDPOINT_ID`로 정한다. 주소는 백엔드 담당에게 받으며 이 저장소 문서·`.env.example`에 적지 않는다.
 - 시나리오 테스트(`/scenario`)는 외부 사이트(`cafe24-ons`)만 열면 된다. 버전 비교의 직접 입력 Run은 MORO MARKET Before·After(8001·8002)도 떠 있어야 한다. 각 `shop/moro-*` 폴더에서 `server.py`를 실행한다.

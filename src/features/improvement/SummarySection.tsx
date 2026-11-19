@@ -1,5 +1,6 @@
 import type { ImprovementReport, ImprovementScoreLine } from '../../domain/improvement.ts'
 import { formatScore, formatScoreDelta, SCORE_NULL_TEXT } from '../../domain/improvementScore.ts'
+import { describeReason } from './reasons.ts'
 
 interface SummarySectionProps {
   report: ImprovementReport
@@ -21,6 +22,9 @@ export function SummarySection({ report, maxGuardLoss }: SummarySectionProps) {
   const improved = report.result === 'IMPROVED'
   const rejected = report.result === 'NO_IMPROVEMENT'
   const headline = report.headline
+  const goalNames = Object.fromEntries(
+    [report.main, ...report.guards].flatMap((line) => (line.goalKey && line.name ? [[line.goalKey, line.name]] : [])),
+  )
   const scoreSource = report.scoreSource
     ? (SCORE_SOURCE_LABELS[report.scoreSource] ?? report.scoreSource)
     : null
@@ -36,6 +40,15 @@ export function SummarySection({ report, maxGuardLoss }: SummarySectionProps) {
             {/* 모르는 result 값은 원문으로 보이고, 후 값은 `NO_IMPROVEMENT`처럼 숨긴다 */}
             {rejected ? '개선안 미채택' : `알 수 없는 결과: ${report.result}`}
             <span className="summary-muted"> · 현재 이름: {report.beforeLabel}</span>
+            {report.officialRejected ? (
+              <span className="summary-muted">
+                {' '}
+                · 공식 평가(B)에서 {report.officialRejected.label ?? '후보'} 탈락
+                {report.officialRejected.reason
+                  ? ` (${describeReason(report.officialRejected.reason, goalNames)})`
+                  : ''}
+              </span>
+            ) : null}
           </p>
         ) : (
           <p>

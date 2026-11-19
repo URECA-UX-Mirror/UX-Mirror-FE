@@ -1,5 +1,6 @@
 import type { ImprovementOfficial } from '../../domain/improvement.ts'
 import { formatScore, formatScoreMagnitude } from '../../domain/improvementScore.ts'
+import { describeReason } from './reasons.ts'
 
 interface OfficialSectionProps {
   /** `null`이면 공식 평가 전이다 */
@@ -20,12 +21,28 @@ export function OfficialSection({ official, goalNames = {} }: OfficialSectionPro
   const guardKeys = Object.keys(scores.guardScores)
   const nameOf = (key: string) => (goalNames[key] ? `${key} ${goalNames[key]}` : key)
 
+  // `decision`이 없으면 옛 형식이라 확정으로 본다. `REJECTED`는 B 평가에서 탈락한 이름이다
+  const rejected = official.decision === 'REJECTED'
+  const unknownDecision =
+    official.decision !== null && official.decision !== 'CONFIRMED' && !rejected
+      ? official.decision
+      : null
+
   return (
     <div className="official-section">
       <p>
-        공식 평가 최종안 <strong>{official.label}</strong>
+        {rejected ? '공식 평가에서 탈락한 이름 ' : '공식 평가 최종안 '}
+        <strong>{official.label}</strong>
         {official.method ? <span className="summary-muted"> (방식 {official.method})</span> : null}
+        {unknownDecision ? <span className="summary-muted"> (판정 {unknownDecision})</span> : null}
       </p>
+      {rejected ? (
+        <p className="summary-rejected">
+          {official.rejectedReason
+            ? `탈락 사유: ${describeReason(official.rejectedReason, goalNames)} (${official.rejectedReason})`
+            : '탈락 사유를 알 수 없음'}
+        </p>
+      ) : null}
       <ul className="summary-lines">
         <li className="summary-score-line">
           <span className="summary-score-name">주 목표 점수</span>

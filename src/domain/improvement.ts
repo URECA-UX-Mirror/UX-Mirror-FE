@@ -58,6 +58,8 @@ export interface ImprovementReport {
   guards: ImprovementScoreLine[]
   scoreSource: string | null
   headline: string | null
+  /** B 공식 평가에서 탈락해 최종 요약이 `NO_IMPROVEMENT`로 바뀐 경우의 이름과 사유. 아니면 `null` */
+  officialRejected: { label: string | null; reason: string | null } | null
 }
 
 /** 영역 2: 공식 평가(official). 공식 평가 전이면 영역 값이 `null`이다 */
@@ -66,16 +68,24 @@ export interface ImprovementScores {
   guardScores: GuardScores
 }
 
+/** B 공식 평가 점수. 점수를 모으지 못했으면 `null`이며 0으로 바꾸지 않는다 */
+export interface ImprovementOfficialScores {
+  mainScore: Score
+  guardScores: Record<string, Score>
+}
+
 export interface ImprovementOfficial {
   method: string | null
   label: string
+  /** B 평가 판정(`CONFIRMED` 최종안 확정, `REJECTED` 탈락). 없으면 `null`이고 확정으로 본다 */
+  decision: string | null
+  /** 탈락 사유 코드(예: `GUARD_LOSS_EXCEEDED:S4`). 탈락이 아니거나 사유가 없으면 `null` */
+  rejectedReason: string | null
   siteLabel: string | null
   buildCheck: string | null
-  scores: ImprovementScores
+  scores: ImprovementOfficialScores
   scoresA: ImprovementScores | null
   maxDiffAvsB: Score
-  chosen: string | null
-  rejected: string[]
 }
 
 export interface ImprovementCandidate {

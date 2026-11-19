@@ -108,13 +108,22 @@ it('완료된 빈 후보는 유효성과 무효성을 구분한다', () => {
   expect(screen.queryByText('0건 탐지됨')).toBeNull()
 })
 
-it('화면 이름을 변환하고 목표 미도달을 실행 전체 결과로 표시한다', () => {
+it('목표 미도달은 화면 대신 실행 전체 결과로 표시한다', () => {
   const issues = { ...issueList, items: [{ ...issueList.items[0], issueType: 'GOAL_NOT_REACHED' }] }
   render(<IssuePanel runId="run_test" steps={[]} stepsFailed={false} onRetrySteps={() => {}}
     issues={issues} pollingStatus="success" error={null} retrying={false} onRetry={() => {}}
     labelPage={() => '마이페이지'} validity="VALID" />)
   fireEvent.click(screen.getByRole('button', { name: /메뉴 선택 확률 분산/ }))
-  expect(screen.getByText(/실행 전체 결과.*화면: 마이페이지/)).toBeTruthy()
+  expect(screen.getByText(/실행 전체 결과/)).toBeTruthy()
+  expect(screen.queryByText(/화면: 마이페이지/)).toBeNull()
+})
+
+it('화면 검토 후보의 화면 이름은 label로 표시한다', () => {
+  render(<IssuePanel runId="run_test" steps={[]} stepsFailed={false} onRetrySteps={() => {}}
+    issues={issueList} pollingStatus="success" error={null} retrying={false} onRetry={() => {}}
+    labelPage={() => '마이페이지'} validity="VALID" />)
+  fireEvent.click(screen.getByRole('button', { name: /메뉴 선택 확률 분산/ }))
+  expect(screen.getByText(/화면: 마이페이지/)).toBeTruthy()
 })
 
 it('대기 조회가 끝나도 대기를 유지하고 실패는 별도로 표시한다', () => {

@@ -81,7 +81,7 @@ it('지도가 있는 사이트는 안내하지 않고, 일반 Run은 사이트 �
 })
 
 it('진행 화면에서 현재 화면을 변환하고 무효 및 실행 오류를 각각 표시한다', async () => {
-  const invalid: Run = { ...run(), validity: 'INVALID', invalidReason: '누출 검사 실패',
+  const invalid: Run = { ...run(), validity: 'INVALID', invalidReason: 'LEAK_CHECK_FAILED',
     error: { code: 'LEAK_CHECK_FAILED', message: '모델 요청에 실험 정보가 섞여 호출하지 않았습니다.', retryable: false, occurredAt: null },
     progress: { ...run().progress, currentPageKey: 'home' } }
   vi.mocked(runs.getRun).mockResolvedValue(invalid)
@@ -89,14 +89,15 @@ it('진행 화면에서 현재 화면을 변환하고 무효 및 실행 오류�
   expect(await screen.findByText('시나리오 테스트 · 지도 없는 데모 사이트')).toBeTruthy()
   const info = screen.getByRole('region', { name: '실행 정보' })
   expect(within(info).getByText('홈')).toBeTruthy()
-  expect(within(info).getByText(/무효 처리된 실행 · 누출 검사 실패/)).toBeTruthy()
+  expect(within(info).getByText(/무효 처리된 실행 · LEAK_CHECK_FAILED/)).toBeTruthy()
   expect(within(info).getByText(/실행 오류: 모델 요청에 실험 정보가 섞여 호출하지 않았습니다/)).toBeTruthy()
 })
 
 it('무효 실행의 빈 후보는 건수 대신 무효 상태로 표시한다', async () => {
-  vi.mocked(runs.getRun).mockResolvedValue({ ...run(), validity: 'INVALID', invalidReason: '누출 검사 실패' })
+  vi.mocked(runs.getRun).mockResolvedValue({ ...run(), validity: 'INVALID', invalidReason: 'LEAK_CHECK_FAILED' })
   display('result')
   expect(await screen.findByText('무효 처리된 실행의 검토 후보가 없습니다')).toBeTruthy()
   expect(screen.getByRole('region', { name: '요약' }).textContent).toContain('무효 실행')
+  expect(screen.getByRole('region', { name: '요약' }).textContent).toContain('LEAK_CHECK_FAILED')
   expect(screen.getByRole('region', { name: '검토 후보' }).textContent).not.toContain('0건 탐지됨')
 })

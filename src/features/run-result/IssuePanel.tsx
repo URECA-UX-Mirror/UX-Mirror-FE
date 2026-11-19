@@ -103,7 +103,7 @@ export function IssuePanel({
                   <p>{issue.description}</p>
                   <p>
                     유형: {issue.issueType}{issue.issueType === 'GOAL_NOT_REACHED' ? ' · 실행 전체 결과' : ''}
-                    {issue.pageKey ? ` · 화면: ${labelPage(issue.pageKey)}` : ''}
+                    {issue.issueType !== 'GOAL_NOT_REACHED' && issue.pageKey ? ` · 화면: ${labelPage(issue.pageKey)}` : ''}
                     {issue.stepId === null ? '' : ` · Step ${issue.stepId}`}
                     {` · 발생 ${issue.occurrenceCount}회`}
                   </p>

@@ -1,8 +1,8 @@
-import { isScenarioRun } from '../../domain/site.ts'
 import { Link } from 'react-router'
 import { isApiError } from '../../api/client.ts'
-import type { RunListItem } from '../../domain/types.ts'
 import { isTerminalStatus } from '../../domain/runStatus.ts'
+import { isScenarioRun } from '../../domain/site.ts'
+import type { RunListItem } from '../../domain/types.ts'
 
 interface OtherRunsProps {
   currentRunId: string

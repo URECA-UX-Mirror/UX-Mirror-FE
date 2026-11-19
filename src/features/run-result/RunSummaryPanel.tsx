@@ -106,7 +106,7 @@ export function RunSummaryPanel({ run, issues, siteMapUnavailable = false }: Run
             <StatCard
               label="UX 검토 후보"
               value={issueCountText(issues, run.validity)}
-              note="AI 탐색 기록 기반의 선별 항목이며 실제 결함 확정이 아닙니다"
+              note="AI 탐색 기록 기반의 검토 후보이며 실제 문제가 확정된 것이 아니라 검토가 필요한 단서입니다"
             />
           </div>
           <button

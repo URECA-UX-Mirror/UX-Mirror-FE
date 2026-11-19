@@ -124,11 +124,11 @@ src/
   styles/tokens.css        # 디자인 토큰(CSS 변수), 글꼴 로딩, 포커스·모션 기본값
   api/
     client.ts              # fetch 래퍼, ApiError(ErrorDetail 변환), apiUrl
-    runs.ts, presets.ts, comparisons.ts, health.ts   # endpoint 함수, screenshotUrl
+    runs.ts, presets.ts, sites.ts, comparisons.ts, health.ts   # endpoint 함수, screenshotUrl
     dto/                   # 서버 응답 타입 (계약서 그대로)
   adapters/                # dto -> domain 변환
-  domain/                  # types.ts(도메인 모델), runStatus.ts(isTerminalStatus)
-  mocks/                   # MSW. browser.ts, store.ts, errors.ts, fixtures/(run, scenario, runResult, comparison), handlers/(endpoint별)
+  domain/                  # types.ts(도메인 모델), runStatus.ts(isTerminalStatus), site.ts(isScenarioRun, pageLabel)
+  mocks/                   # MSW. browser.ts, store.ts, errors.ts, fixtures/(run, scenario, runResult, comparison, sites), handlers/(endpoint별)
   features/
     new-analysis/, run-progress/, run-result/, comparison/, replay/   # 화면별. 라우트는 App.tsx
   shared/                  # Layout(상단 바·접이식 사이드바), SectionTitle(카드 제목 줄), RunGauge(탐색 진행 게이지), icons, ProbabilityGauge, SelectedAction, stepLabel, EngineStatus, ErrorNotice, ResultOriginBadge, useHealth

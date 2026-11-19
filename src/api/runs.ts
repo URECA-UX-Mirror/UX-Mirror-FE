@@ -21,7 +21,7 @@ import type {
 
 const runPath = (runId: string) => `/api/runs/${encodeURIComponent(runId)}`
 
-/** POST /api/runs (계약 §17.2). `startPath`·`viewport`·`promptVersion`은 보내지 않는다. */
+/** POST /api/runs (계약 §17.2). `startPath`·`viewport`·`promptVersion`은 보내지 않는다. `siteId`(임시, OI-11)는 있을 때만 싣는다. */
 export async function createRun(
   input: CreateRunInput,
   signal?: AbortSignal,
@@ -32,6 +32,7 @@ export async function createRun(
     ...input.goal,
     ...input.persona,
     ...(input.maxSteps === undefined ? {} : { maxSteps: input.maxSteps }),
+    ...(input.siteId === undefined ? {} : { siteId: input.siteId }),
   }
   return toCreatedRun(
     await request<CreateRunResponseDto>('/api/runs', {

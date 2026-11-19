@@ -44,6 +44,10 @@ export interface RunDto {
   validity: 'VALID' | 'INVALID' | null
   invalidReason: string | null
   replacementRunId: string | null
+  /** 임시(OI-11). 시나리오 Run의 사이트. 버전 비교 Run은 `null`이거나 필드가 없다 */
+  siteId?: string | null
+  /** 임시(OI-11). `SCENARIO`면 시나리오 Run. `null`이거나 필드가 없으면 버전 비교 Run */
+  mode?: string | null
 }
 
 export interface RunProgressDto {
@@ -106,6 +110,9 @@ export interface RunListItemDto {
   goalReached: boolean | null
   createdAt: string
   finishedAt: string | null
+  /** 임시(OI-11). `RunDto`와 같다 */
+  siteId?: string | null
+  mode?: string | null
 }
 
 export interface RunListDto {
@@ -170,6 +177,8 @@ export interface CreateRunRequestDto {
   personaId?: string
   persona?: string
   maxSteps?: number
+  /** 임시(OI-11). 시나리오 Run을 만들 때만 보낸다 */
+  siteId?: string
 }
 
 /** POST /api/runs 201 응답 (계약 §17.2) */

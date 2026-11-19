@@ -1,4 +1,5 @@
-import type { SiteMapConfigDto } from '../../api/dto/index.ts'
+import type { SiteDto, SiteMapConfigDto } from '../../api/dto/index.ts'
+import { SITE_MAPS } from './sites.ts'
 import { PAGES, type PageKey } from './scenario.ts'
 
 // SITE_MAP 기준 mock. 실제 서버가 계산하는 값을 흉내 내는 용도이며 FE 코드는 이 계산을 하지 않는다.
@@ -88,4 +89,40 @@ export function movesCloser(
   const before = distances[from]
   const after = distances[to]
   return before != null && after != null && after < before
+}
+
+/**
+ * 시나리오 사이트의 사이트 지도 기준(`SITE_MAP`). 지도가 없는 사이트면 `null`(기준 없음).
+ * 거리는 지도의 링크를 거꾸로 따라간 목표까지의 최소 클릭 수이고, 목표에 닿을 수 없는 화면은 `null`이다.
+ * 서버 계산의 근사이며 FE 코드는 이 계산을 하지 않는다(OI-11).
+ */
+export function siteMapConfigForSite(
+  site: SiteDto,
+  goalPageKey: string,
+): SiteMapConfigDto | null {
+  const map = SITE_MAPS[site.siteId]
+  if (!site.siteMap.available || !map) return null
+  const distances: Record<string, number | null> = Object.fromEntries(
+    site.pages.map((page) => [page.pageKey, null]),
+  )
+  distances[goalPageKey] = 0
+  const queue = [goalPageKey]
+  while (queue.length > 0) {
+    const current = queue.shift()!
+    for (const [page, links] of Object.entries(map.links)) {
+      if (distances[page] === null && links.includes(current)) {
+        distances[page] = (distances[current] ?? 0) + 1
+        queue.push(page)
+      }
+    }
+  }
+  return {
+    basis: 'SITE_MAP',
+    siteMapVersion: map.siteMapVersion,
+    siteMapHash: map.siteMapHash,
+    startPageKey: site.startPage,
+    goalPageKey,
+    shortestSteps: distances[site.startPage] ?? 0,
+    distances,
+  }
 }

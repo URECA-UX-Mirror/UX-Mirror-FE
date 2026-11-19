@@ -143,6 +143,10 @@ export interface Run {
   validity: 'VALID' | 'INVALID' | null
   invalidReason: string | null
   replacementRunId: string | null
+  /** 시나리오 Run의 사이트. 버전 비교 Run은 `null`. 사이트 이름은 `listSites()`의 `name`으로 찾는다 */
+  siteId: string | null
+  /** 임시(OI-11). `SCENARIO`일 때만 시나리오 Run이다(`isScenarioRun`) */
+  mode: Open<'SCENARIO'> | null
 }
 
 /** Run 목록의 한 줄 (`GET /api/runs`). 전체 Run은 `getRun`으로 조회한다 */
@@ -159,6 +163,8 @@ export interface RunListItem {
   goalReached: boolean | null
   createdAt: string
   finishedAt: string | null
+  siteId: string | null
+  mode: Open<'SCENARIO'> | null
 }
 
 export interface CreatedRun {
@@ -196,6 +202,8 @@ export interface CreateRunInput {
   goal: GoalInput
   persona: PersonaInput
   maxSteps?: number
+  /** 시나리오 Run을 만들 때만 넣는다. 없으면 요청 본문은 버전 비교와 같다 */
+  siteId?: string
 }
 
 // ---- Step ----
@@ -372,4 +380,32 @@ export interface Comparison {
   /** 두 출처가 다르면 `null` */
   resultOrigin: Open<ResultOrigin> | null
   createdAt: string
+}
+
+// ---- 시나리오 테스트 사이트 (임시, OI-11) ----
+
+export interface SitePage {
+  pageKey: string
+  path: string
+  label: string
+  goalText: string | null
+  /** 도착 화면으로 고를 수 있는지. 서버가 알려 주지 않으면 Adapter가 채운다 */
+  goalSelectable: boolean
+  /** 고를 수 없는 이유. 고를 수 있거나 서버가 알려 주지 않으면 `null` */
+  goalUnavailableReason: Open<
+    'START_PAGE' | 'NO_GOAL_TEXT' | 'UNREACHABLE_ON_SITE_MAP'
+  > | null
+}
+
+export interface Site {
+  siteId: string
+  name: string
+  mode: Open<'SCENARIO'>
+  startPage: string
+  pages: SitePage[]
+  /** `false`면 사이트 지도가 없다 */
+  siteMapAvailable: boolean
+  siteMapVersion: string | null
+  /** 시작 화면의 링크로 닿지 않는 화면의 `pageKey`. 지도가 없거나 서버가 알려 주지 않으면 `null` */
+  unreachablePages: string[] | null
 }

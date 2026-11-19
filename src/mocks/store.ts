@@ -24,6 +24,8 @@ export interface RunRecord {
    * `legacy` `basis` 없는 과거 허용 경로 설정
    */
   reference?: 'site-map' | 'none' | 'legacy'
+  /** 시나리오 Run의 사이트(임시, OI-11). 있으면 `mode: SCENARIO`인 시나리오 Run이다 */
+  siteId?: string
   maxSteps: number
   /** 생성 시각(ms). 이 시각부터 경과 시간으로 상태가 전이한다 */
   createdAtMs: number

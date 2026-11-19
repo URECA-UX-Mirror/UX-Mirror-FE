@@ -34,7 +34,7 @@ export const PAGES: Record<PageKey, PageDef> = {
   refund: { path: '/shop/refund', title: '환불 / 반품 신청' },
 }
 
-export const pageSignature = (pageKey: PageKey) => `${pageKey}_default`
+export const pageSignature = (pageKey: string) => `${pageKey}_default`
 
 export interface CandidateDef {
   optionId: string

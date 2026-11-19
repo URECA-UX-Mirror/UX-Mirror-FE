@@ -27,9 +27,9 @@
 | --- | --- | --- | --- |
 | GET | `/api/presets` | - (화면에서 호출 안 함) | `계약 §17.9` |
 | GET | `/api/health` | 전체 | `계약 §17.8` |
-| GET | `/api/sites` | - (화면에서 아직 호출 안 함) | `임시` ([OI-11](../operations/open_issue.md#oi-11)) |
+| GET | `/api/sites` | 시나리오 테스트 | `임시` ([OI-11](../operations/open_issue.md#oi-11)) |
 | GET | `/api/runs` | 1, 3 | `계약 §17.10` |
-| POST | `/api/runs` | 1 | `계약 §17.2`, `§5.1` |
+| POST | `/api/runs` | 1, 시나리오 테스트 | `계약 §17.2`, `§5.1` |
 | GET | `/api/runs/{runId}` | 2, 3, 4 | `계약 §17.3` |
 | GET | `/api/runs/{runId}/steps` | 2, 3, 4 | `계약 §17.4` |
 | GET | `/api/runs/{runId}/issues` | 3 | `계약 §17.5` |

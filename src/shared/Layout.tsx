@@ -3,7 +3,7 @@ import { Link, NavLink, Outlet, useLocation } from 'react-router'
 import { useMock } from '../config/env.ts'
 import { mockRuntime } from '../config/runtime.ts'
 import { EngineStatus } from './EngineStatus.tsx'
-import { HistoryIcon, MenuIcon, PlusCircleIcon } from './icons.tsx'
+import { GlobeIcon, HistoryIcon, MenuIcon, PlusCircleIcon } from './icons.tsx'
 
 const SIDEBAR_KEY = 'um.sidebar.open'
 const WIDTH_KEY = 'um.sidebar.width'
@@ -144,6 +144,10 @@ export function Layout() {
             <NavLink to="/" end onClick={closeOnMobile} tabIndex={open ? 0 : -1}>
               <PlusCircleIcon />
               새 UX 분석
+            </NavLink>
+            <NavLink to="/scenario" onClick={closeOnMobile} tabIndex={open ? 0 : -1}>
+              <GlobeIcon />
+              시나리오 테스트
             </NavLink>
             <NavLink to="/replay" onClick={closeOnMobile} tabIndex={open ? 0 : -1}>
               <HistoryIcon />

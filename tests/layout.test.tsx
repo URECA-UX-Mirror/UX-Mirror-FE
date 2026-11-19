@@ -53,3 +53,13 @@ it('손잡이를 두 번 누르면 기본 너비로 돌아간다', () => {
   fireEvent.doubleClick(handle)
   expect(handle.getAttribute('aria-valuenow')).toBe('256')
 })
+
+it('사이드바에 새 UX 분석·시나리오 테스트·저장된 결과 재생 메뉴가 있다', () => {
+  renderLayout()
+  const nav = screen.getByRole('navigation', { name: '주요 메뉴' })
+  expect(Array.from(nav.querySelectorAll('a')).map((a) => [a.textContent, a.getAttribute('href')])).toEqual([
+    ['새 UX 분석', '/'],
+    ['시나리오 테스트', '/scenario'],
+    ['저장된 결과 재생', '/replay'],
+  ])
+})

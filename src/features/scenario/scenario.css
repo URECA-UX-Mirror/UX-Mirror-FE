@@ -1,0 +1,58 @@
+.scenario {
+  display: flex;
+  flex-direction: column;
+  gap: var(--um-space-6);
+  max-width: 1040px;
+  margin: 0 auto;
+}
+
+.scenario fieldset.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--um-space-4);
+  min-width: 0;
+}
+
+.scenario .field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--um-space-2);
+}
+
+.scenario .field-head {
+  display: flex;
+  justify-content: space-between;
+}
+
+.scenario .field input,
+.scenario .field select {
+  width: 100%;
+}
+
+.scenario .over,
+.scenario .field-error {
+  color: var(--um-danger, #c0392b);
+}
+
+.scenario .steps-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--um-space-4);
+}
+
+.scenario .stepper {
+  display: flex;
+  align-items: center;
+  gap: var(--um-space-2);
+}
+
+.scenario .stepper input {
+  width: 64px;
+  text-align: center;
+}
+
+.scenario-actions {
+  display: flex;
+  justify-content: flex-end;
+}

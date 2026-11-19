@@ -54,6 +54,7 @@
 - 준비 성공이 탐색 성공을 보장하지 않는다(`계약 §17.8`). "엔진 준비 완료"로만 표시하고 "분석 성공 가능"으로 표시하지 않는다.
 - `status`가 `READY`가 아니면 분석 시작을 막고 다시 확인할 수 있게 한다. 상태 조회가 실패한 경우에는 분석 시작을 막고 확인 불가를 안내한다.
 - `activeRun`은 실행 중인 Run의 `runId` 문자열이고(없으면 `null`), 값이 있으면 다른 Run이 실행 중이므로 새 분석 시작을 막고 해당 Run으로 이동하는 링크를 보인다.
+- `activeOptimization`(`{optimizationId, status}` 또는 `null`)은 UX Optimizer가 후보를 평가·검증하는 동안 값이 있다(계약 v1.3.8 §17.8, 이 저장소의 나머지 문서는 v1.3.5 기준이며 반영은 [#43](https://github.com/UX-Mirror/UX-Mirror-FE/issues/43)에서 한다). 필드가 없는 응답은 `null`로 읽고 모르는 `status`는 "진행 중"으로 보인다. 이 동안 `POST /api/runs`는 `409 RUN_ALREADY_ACTIVE`이고 `activeRun`은 비어 있을 수 있다. 엔진 상태에 "Optimizer ○○ 중"을 표시하고, 새 UX 분석·시나리오 테스트는 시작 버튼을 막지 않고 안내만 보인다(막는 판단은 서버의 `409`에 맡긴다). `409`의 `message`가 있으면 그대로 보인다.
 - 호출이 실패하면 엔진 상태를 "확인 불가"로 표시하고 나머지 화면은 계속 쓸 수 있다.
 
 ### POST /api/runs

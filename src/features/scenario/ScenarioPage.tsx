@@ -5,6 +5,7 @@ import { createRun } from '../../api/runs.ts'
 import { listSites } from '../../api/sites.ts'
 import type { Site } from '../../domain/types.ts'
 import { ErrorNotice } from '../../shared/ErrorNotice.tsx'
+import { activeOptimizationLabel } from '../../shared/optimizationStatus.ts'
 import { useHealth } from '../../shared/useHealth.ts'
 import { createExperimentKey, INPUT_LIMITS, STEPS } from '../new-analysis/constants.ts'
 import { GOAL_EXAMPLES, NO_SITE_MAP_NOTICE, PERSONA_EXAMPLE } from './constants.ts'
@@ -47,6 +48,7 @@ export function ScenarioPage() {
   const page = goalPages.find((p) => p.pageKey === pageKey) ?? null
   const validSteps = typeof maxSteps === 'number' && Number.isInteger(maxSteps) && maxSteps >= STEPS.min && maxSteps <= STEPS.max
   const activeRun = health.health?.activeRunId
+  const activeOptimization = health.health?.activeOptimization
   const engineNotReady = health.health !== null && health.health.status !== 'READY'
   const ready = !!site && !!page?.goalText && isSentence(goalText) && isSentence(personaText) && validSteps
     && !submitting && !health.loading && health.health?.status === 'READY' && !activeRun
@@ -135,13 +137,14 @@ export function ScenarioPage() {
 
       {engineNotReady && !health.loading && <p role="alert">엔진이 준비되지 않아 시작할 수 없습니다. <button type="button" onClick={health.reload}>다시 확인</button></p>}
       {activeRun && <p role="alert">다른 분석이 실행 중입니다. <Link to={`/runs/${encodeURIComponent(activeRun)}`}>진행 중인 Run 보기</Link></p>}
+      {activeOptimization && <p role="status">Optimizer가 {activeOptimizationLabel(activeOptimization.status)}입니다. 끝난 뒤에 시나리오를 시작할 수 있습니다.</p>}
       {!!health.error && <p role="status">엔진 상태를 확인할 수 없습니다. <button type="button" onClick={health.reload}>다시 확인</button></p>}
       {submitError ? (
         code === 'CONTRACT_VALIDATION_ERROR' && isApiError(submitError)
           ? <div role="alert"><p>{submitError.message || '입력한 시나리오 조건을 확인해 주세요.'}</p><p>입력을 고친 뒤 다시 시작해 주세요.</p></div>
           : code === 'RUN_ALREADY_ACTIVE'
             // 진행 중인 Run 링크는 엔진 상태를 다시 읽은 뒤 위의 `activeRun` 안내가 맡는다
-            ? (activeRun ? null : <p role="alert">다른 분석이 실행 중입니다.</p>)
+            ? (activeRun ? null : <p role="alert">{isApiError(submitError) && submitError.message.trim() ? submitError.message : '다른 분석이 실행 중입니다.'}</p>)
             : isApiError(submitError) && submitError.status === 503
               ? <div role="alert"><p>{submitError.message.trim() || '실행 환경을 준비하지 못했습니다.'}</p>{code === 'BROWSER_ERROR' && <p>Run은 생성되지 않았습니다.</p>}{submitError.retryable && <button type="button" disabled={!ready} onClick={() => void start()}>다시 시도</button>}</div>
               : <ErrorNotice error={submitError} onRetry={ready ? () => void start() : undefined} />

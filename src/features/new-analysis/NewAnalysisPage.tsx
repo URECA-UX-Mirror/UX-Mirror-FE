@@ -5,6 +5,7 @@ import { createRun, getRun, listRuns } from '../../api/runs.ts'
 import { isTerminalStatus } from '../../domain/runStatus.ts'
 import type { GoalInput, PersonaInput, Run, RunListItem, Variant } from '../../domain/types.ts'
 import { ErrorNotice } from '../../shared/ErrorNotice.tsx'
+import { activeOptimizationLabel } from '../../shared/optimizationStatus.ts'
 import { ResultOriginBadge } from '../../shared/ResultOriginBadge.tsx'
 import { useHealth } from '../../shared/useHealth.ts'
 import { SectionTitle } from '../../shared/SectionTitle.tsx'
@@ -112,6 +113,7 @@ function NewAnalysisContent() {
   const anyLoading = listState.before === 'loading' || listState.after === 'loading'
   const listFailed = listState.before === 'error' || listState.after === 'error'
   const activeRun = health.health?.activeRunId
+  const activeOptimization = health.health?.activeOptimization
   const engineNotReady = health.health !== null && health.health.status !== 'READY'
   const firstPending = !!firstId && firstRunState !== 'ready'
   const anyRunning = Object.values(results).some((runs) => runs.some((run) => !isTerminalStatus(run.status)))
@@ -174,8 +176,9 @@ function NewAnalysisContent() {
       {firstRunState === 'error' && <p role="alert">기존 분석 조건을 확인할 수 없습니다. 실험 키를 다시 입력해 주세요.</p>}
       {engineNotReady && !health.loading && <p role="alert">엔진이 준비되지 않아 분석을 시작할 수 없습니다. <button type="button" onClick={health.reload}>다시 확인</button></p>}
       {activeRun && <p role="alert">다른 분석이 실행 중입니다. <Link to={`/runs/${encodeURIComponent(activeRun)}`}>진행 중인 Run 보기</Link></p>}
+      {activeOptimization && <p role="status">Optimizer가 {activeOptimizationLabel(activeOptimization.status)}입니다. 끝난 뒤에 새 분석을 시작할 수 있습니다.</p>}
       {!!health.error && <p role="status">엔진 상태를 확인할 수 없습니다. <button type="button" onClick={health.reload}>다시 확인</button></p>}
-      {submitError ? <div role="alert">{code === 'RUN_ALREADY_ACTIVE' ? <p>다른 분석이 실행 중입니다. {activeRun && <Link to={`/runs/${encodeURIComponent(activeRun)}`}>진행 중인 Run 보기</Link>}</p> : code === 'EXPERIMENT_RUN_EXISTS' ? <p>같은 버전의 실행이 이미 있습니다. {Object.values(results).flat().filter((r) => r.validity === 'VALID').map((r) => <Link key={r.runId} to={`/runs/${encodeURIComponent(r.runId)}/result`}>{r.runId} 결과 보기 </Link>)}</p> : code === 'CONTRACT_VALIDATION_ERROR' ? <><p>{isApiError(submitError) && submitError.message ? submitError.message : '입력한 분석 조건을 확인해 주세요.'}</p><p>입력을 고친 뒤 다시 시작해 주세요.</p></> : code === 'BROWSER_ERROR' && isApiError(submitError) ? <><p>{submitError.message.trim() || '도착 화면을 확인하지 못했습니다'}</p><p>Run은 생성되지 않았습니다.</p>{submitError.retryable && attemptedVariant && <button type="button" disabled={!ready} onClick={() => void start(attemptedVariant)}>다시 시도</button>}</> : isApiError(submitError) && submitError.status === 503 ? <><p>{submitError.message.trim() || '실행 환경을 준비하지 못했습니다.'}</p>{submitError.retryable && attemptedVariant && <button type="button" disabled={!ready} onClick={() => void start(attemptedVariant)}>다시 시도</button>}</> : <ErrorNotice error={submitError} />}</div> : null}
+      {submitError ? <div role="alert">{code === 'RUN_ALREADY_ACTIVE' ? <p>{activeRun || !isApiError(submitError) || !submitError.message.trim() ? '다른 분석이 실행 중입니다.' : submitError.message} {activeRun && <Link to={`/runs/${encodeURIComponent(activeRun)}`}>진행 중인 Run 보기</Link>}</p> : code === 'EXPERIMENT_RUN_EXISTS' ? <p>같은 버전의 실행이 이미 있습니다. {Object.values(results).flat().filter((r) => r.validity === 'VALID').map((r) => <Link key={r.runId} to={`/runs/${encodeURIComponent(r.runId)}/result`}>{r.runId} 결과 보기 </Link>)}</p> : code === 'CONTRACT_VALIDATION_ERROR' ? <><p>{isApiError(submitError) && submitError.message ? submitError.message : '입력한 분석 조건을 확인해 주세요.'}</p><p>입력을 고친 뒤 다시 시작해 주세요.</p></> : code === 'BROWSER_ERROR' && isApiError(submitError) ? <><p>{submitError.message.trim() || '도착 화면을 확인하지 못했습니다'}</p><p>Run은 생성되지 않았습니다.</p>{submitError.retryable && attemptedVariant && <button type="button" disabled={!ready} onClick={() => void start(attemptedVariant)}>다시 시도</button>}</> : isApiError(submitError) && submitError.status === 503 ? <><p>{submitError.message.trim() || '실행 환경을 준비하지 못했습니다.'}</p>{submitError.retryable && attemptedVariant && <button type="button" disabled={!ready} onClick={() => void start(attemptedVariant)}>다시 시도</button>}</> : <ErrorNotice error={submitError} />}</div> : null}
     </>
   )
 

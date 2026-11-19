@@ -25,6 +25,7 @@ import {
   findExperimentRuns,
   findRun,
   firstExperimentRun,
+  getMockActiveOptimization,
 } from '../store.ts'
 import type { RunRecord } from '../store.ts'
 
@@ -45,6 +46,7 @@ import type { RunRecord } from '../store.ts'
 //   경로는 사이트의 시작 화면 → 선택한 도착 화면(클릭 1번)이고 도착 화면에서 끝나 목표 달성이다(fixtures/run.ts `siteSpecs`). 화면 이미지만 기존 쇼핑몰 mock을 재사용한다(MOCK 배지가 붙는다)
 //   경로 지표 기준은 사이트의 siteMap.available가 true면 SITE_MAP(`siteMapConfigForSite`), false면 `referencePathConfig: null`
 //   시나리오 Run은 비교 대상이 아니라서 GET /api/comparisons/{experimentKey}가 404 RUN_NOT_FOUND다
+// UX Optimizer 진행 중(FE #67): `setMockActiveOptimization()`을 켜면 health의 `activeOptimization`이 채워지고 POST /api/runs는 409 RUN_ALREADY_ACTIVE
 // 직접 입력 검사(UX-Mirror-BE #42와 같은 규칙): 빈 값·200자 초과·누출 금지 문자열·성공 조건 오류·첫 Run과 다른 입력은 422
 
 const ERROR_RUN_ID = 'run_mock_error'
@@ -197,6 +199,16 @@ export const runsHandlers = [
     }
 
     const now = Date.now()
+    // UX Optimizer가 평가·검증 중이면 일반 Run도 409다(BE 메시지 형식). 진행 중인 Run은 없으므로 health의 `activeRun`은 `null`이다
+    const optimization = getMockActiveOptimization()
+    if (optimization) {
+      return errorResponse(
+        409,
+        'RUN_ALREADY_ACTIVE',
+        `Optimization ${optimization.optimizationId} ${optimization.status === 'VERIFYING' ? '후보 검증 실행이' : '후보 평가가'} 진행 중입니다.`,
+        true,
+      )
+    }
     const active = allRuns().find((run) => !getTiming(run, now).terminal)
     if (active) {
       return errorResponse(

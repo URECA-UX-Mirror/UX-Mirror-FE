@@ -3,7 +3,7 @@ import type { HealthDto, PresetsDto } from '../../api/dto/index.ts'
 import { apiUrl } from '../../api/client.ts'
 import { GOAL, PERSONAS } from '../fixtures/scenario.ts'
 import { getTiming } from '../fixtures/run.ts'
-import { allRuns } from '../store.ts'
+import { allRuns, getMockActiveOptimization } from '../store.ts'
 
 export const presetsHandlers = [
   // `?includeTest=true`와 `testOnly` 목표는 화면에서 쓰지 않으므로 mock에 두지 않는다.
@@ -25,6 +25,7 @@ export const presetsHandlers = [
       browser: { ready: true },
       agent: { ready: true },
       activeRun: active?.runId ?? null,
+      activeOptimization: getMockActiveOptimization(),
       checkedAt: new Date(now).toISOString(),
     }
     return HttpResponse.json(body)

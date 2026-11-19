@@ -41,7 +41,7 @@ import type { RunRecord } from '../store.ts'
 // 시나리오 Run(임시, OI-11, FE #53): POST /api/runs 에 siteId가 있으면 등록 사이트에서 만든다.
 //   variant는 `before`만 받고 목표는 goal+verification만 받는다. verification.path는 사이트 화면의 path, text는 goalText의 일부여야 하며
 //   goalSelectable: false인 화면, 등록되지 않은 siteId, 같은 experimentKey의 버전 비교 Run과 섞는 요청은 422(메시지에 Before/After를 붙이지 않는다)
-//   단계·이미지는 기존 쇼핑몰 mock 시나리오를 재사용하므로 화면 이름은 사이트와 맞지 않는다(MOCK 배지가 붙는다)
+//   경로는 사이트의 시작 화면 → 선택한 도착 화면(클릭 1번)이고 도착 화면에서 끝나 목표 달성이다(fixtures/run.ts `specsOf`). 화면 이미지만 기존 쇼핑몰 mock을 재사용한다(MOCK 배지가 붙는다)
 //   시나리오 Run은 비교 대상이 아니라서 GET /api/comparisons/{experimentKey}가 404 RUN_NOT_FOUND다
 // 직접 입력 검사(UX-Mirror-BE #42와 같은 규칙): 빈 값·200자 초과·누출 금지 문자열·성공 조건 오류·첫 Run과 다른 입력은 422
 
@@ -161,7 +161,7 @@ export const runsHandlers = [
     const inputs = resolveInputs(body, site)
     if (typeof inputs === 'string') return validationError(inputs)
     // 직접 입력한 목표는 성공 조건의 도착 화면에서 끝나는 시나리오로 진행한다(환불 화면으로 가서 성공 처리하지 않음)
-    // 시나리오 Run은 사이트 화면의 단계를 만들지 않고 가장 짧은 기존 시나리오(홈 → 마이페이지)를 재사용한다
+    // 시나리오 Run은 기존 시나리오 중 가장 짧은 것(홈 → 마이페이지, 1단계)의 틀을 쓰고, 경로 출력만 사이트 화면으로 바꾼다
     const scenario = scenarioRun
       ? 'to-mypage'
       : inputs.verification ? scenarioForGoal(body.variant, inputs.verification.path) : undefined

@@ -8,6 +8,7 @@ import type {
   StepDto,
 } from '../../api/dto/index.ts'
 import type { RunRecord } from '../store.ts'
+import { findSite } from './sites.ts'
 import {
   GOAL,
   GOAL_VERIFICATION,
@@ -64,17 +65,61 @@ function referencePathConfig(rec: RunRecord): RunDto['referencePathConfig'] {
 export const scenarioOf = (rec: RunRecord): ScenarioName =>
   rec.scenario ?? rec.variant
 
+// ---- 시나리오 Run(임시, OI-11): 경로를 등록 사이트의 화면으로 만든다 ----
+// Step·이동 계산은 쇼핑몰 `PageKey`(home → mypage 1단계)를 그대로 쓰고, 출력 단계에서만 사이트 화면으로 바꾼다.
+// `home`은 사이트의 시작 화면, `mypage`는 성공 조건(`verification.path`)의 도착 화면이다. 이미지는 `spec.pageKey`로 고르므로 기존 mock 이미지를 재사용한다.
+
+interface PageView {
+  pageKey: string
+  path: string
+  title: string
+}
+
+function pageView(rec: RunRecord, key: PageKey): PageView {
+  const site = rec.siteId ? findSite(rec.siteId) : undefined
+  if (!site) return { pageKey: key, path: PAGES[key].path, title: PAGES[key].title }
+  const page = key === 'home'
+    ? site.pages.find((item) => item.pageKey === site.startPage)
+    : site.pages.find((item) => item.path === rec.verification?.path)
+  if (!page) throw new Error(`mock 사이트 화면을 찾을 수 없습니다: ${rec.siteId} ${key}`)
+  return { pageKey: page.pageKey, path: page.path, title: page.label }
+}
+
+/** 이 Run의 Step 목록. 시나리오 Run은 시작 화면에서 도착 화면으로 가는 클릭 1번이고 후보는 도착 화면 하나다. */
+function specsOf(rec: RunRecord): StepSpec[] {
+  const specs = stepSpecs(scenarioOf(rec))
+  if (!rec.siteId) return specs
+  const [home] = specs
+  const target = pageView(rec, 'mypage')
+  const chosen = home.choices.candidates.find((c) => c.optionId === home.selected)!
+  return [{
+    ...home,
+    choices: {
+      candidates: [{
+        ...chosen,
+        label: target.title,
+        href: target.path,
+        semanticKey: `상단 메뉴>${target.path}#1`,
+        probability: 1,
+        onGoalPath: true,
+      }],
+      backOptionId: null,
+      goBackProbability: null,
+    },
+  }]
+}
+
 /** 이 Run에서 실제로 실행되는 Step 수. 시나리오 단계 수와 `maxSteps` 중 작은 값이다. */
 export function stepLimit(rec: RunRecord): number {
   return Math.min(
-    stepSpecs(scenarioOf(rec)).length,
+    specsOf(rec).length,
     Math.max(1, rec.maxSteps),
   )
 }
 
 /** `maxSteps`에 먼저 도달해 목표 화면에 도착하지 못하고 끝나는 Run인지 */
 export function isMaxStepsStopped(rec: RunRecord): boolean {
-  return rec.maxSteps < stepSpecs(scenarioOf(rec)).length
+  return rec.maxSteps < specsOf(rec).length
 }
 
 export interface Timing {
@@ -152,7 +197,7 @@ function simulate(specs: StepSpec[], count: number): Move[] {
 // ---- Step ----
 
 export function buildSteps(rec: RunRecord, count: number): StepDto[] {
-  const specs = stepSpecs(scenarioOf(rec)).slice(0, stepLimit(rec))
+  const specs = specsOf(rec).slice(0, stepLimit(rec))
   const moves = simulate(specs, specs.length)
   const stopped = isMaxStepsStopped(rec)
   const steps: StepDto[] = []
@@ -187,10 +232,10 @@ export function buildSteps(rec: RunRecord, count: number): StepDto[] {
       stepId,
       timestamp: iso(startedMs + STEP_MS),
       page: {
-        pageKey,
-        pageSignature: pageSignature(pageKey),
-        path: PAGES[pageKey].path,
-        title: PAGES[pageKey].title,
+        pageKey: pageView(rec, pageKey).pageKey,
+        pageSignature: `${pageView(rec, pageKey).pageKey}_default`,
+        path: pageView(rec, pageKey).path,
+        title: pageView(rec, pageKey).title,
         viewport: VIEWPORT,
         screenshotSize: VIEWPORT,
         scroll: { x: 0, y: 0 },
@@ -243,8 +288,8 @@ export function buildSteps(rec: RunRecord, count: number): StepDto[] {
         result: 'NAVIGATED',
         reason: null,
         executed: true,
-        fromPath: PAGES[pageKey].path,
-        toPath: PAGES[move.to].path,
+        fromPath: pageView(rec, pageKey).path,
+        toPath: pageView(rec, move.to).path,
         startedAt: iso(startedMs + 1200),
         finishedAt: iso(startedMs + STEP_MS),
         error: null,
@@ -261,14 +306,14 @@ export function buildSteps(rec: RunRecord, count: number): StepDto[] {
 
 /** 실제 방문 경로. `stepId`는 그 방문을 만든 Step이다(시작 화면은 null, 계약 §6.4). */
 function buildPath(rec: RunRecord): PathVisitDto[] {
-  const specs = stepSpecs(scenarioOf(rec)).slice(0, stepLimit(rec))
+  const specs = specsOf(rec).slice(0, stepLimit(rec))
   const moves = simulate(specs, specs.length)
   const visits: PathVisitDto[] = [
     {
       sequence: 0,
-      pageKey: 'home',
-      pageSignature: pageSignature('home'),
-      path: PAGES.home.path,
+      pageKey: pageView(rec, 'home').pageKey,
+      pageSignature: `${pageView(rec, 'home').pageKey}_default`,
+      path: pageView(rec, 'home').path,
       enteredBy: null,
       visitCause: 'RUN_START',
       stepId: null,
@@ -277,9 +322,9 @@ function buildPath(rec: RunRecord): PathVisitDto[] {
   moves.forEach((move, index) => {
     visits.push({
       sequence: index + 1,
-      pageKey: move.to,
-      pageSignature: pageSignature(move.to),
-      path: PAGES[move.to].path,
+      pageKey: pageView(rec, move.to).pageKey,
+      pageSignature: `${pageView(rec, move.to).pageKey}_default`,
+      path: pageView(rec, move.to).path,
       enteredBy: move.back ? 'GO_BACK' : 'CLICK',
       visitCause: move.back ? 'MODEL_BACK' : 'MODEL_NAVIGATION',
       stepId: index + 1,
@@ -289,7 +334,7 @@ function buildPath(rec: RunRecord): PathVisitDto[] {
 }
 
 export function buildSummary(rec: RunRecord): RunSummaryDto {
-  const specs = stepSpecs(scenarioOf(rec)).slice(0, stepLimit(rec))
+  const specs = specsOf(rec).slice(0, stepLimit(rec))
   const stopped = isMaxStepsStopped(rec)
   const noReference = hasNoReference(rec)
   const path = buildPath(rec)
@@ -349,7 +394,7 @@ export function buildRun(rec: RunRecord, nowMs: number): RunDto {
   const timing = getTiming(rec, nowMs)
   const persona =
     PERSONAS.find((p) => p.personaId === rec.personaId) ?? PERSONAS[0]
-  const specs = stepSpecs(scenarioOf(rec))
+  const specs = specsOf(rec)
   const stopped = isMaxStepsStopped(rec)
   const status = timing.terminal
     ? stopped
@@ -360,7 +405,7 @@ export function buildRun(rec: RunRecord, nowMs: number): RunDto {
       : 'READY'
   const moves = simulate(specs, timing.doneSteps)
   const currentPageKey = timing.started
-    ? (moves[moves.length - 1]?.to ?? 'home')
+    ? pageView(rec, moves[moves.length - 1]?.to ?? 'home').pageKey
     : null
 
   return {
@@ -380,7 +425,7 @@ export function buildRun(rec: RunRecord, nowMs: number): RunDto {
     verification: rec.verification ?? GOAL_VERIFICATION,
     // 직접 입력한 목표는 허용 경로가 없다 → 경로 기반 지표 null
     referencePathConfig: referencePathConfig(rec),
-    startPath: PAGES.home.path,
+    startPath: pageView(rec, 'home').path,
     viewport: VIEWPORT,
     limits: {
       maxSteps: rec.maxSteps,
@@ -427,7 +472,7 @@ const ISSUE_ORDER: IssueType[] = [
 
 function issueItems(rec: RunRecord, createdAt: string): IssueDto[] {
   if (rec.invalid) return []
-  const specs = stepSpecs(scenarioOf(rec)).slice(0, stepLimit(rec))
+  const specs = specsOf(rec).slice(0, stepLimit(rec))
   const summary = {
     ...buildSummaryCounts(rec),
   }
@@ -537,7 +582,7 @@ function issueItems(rec: RunRecord, createdAt: string): IssueDto[] {
 
 /** buildSummary와 순환하지 않도록 이슈 계산에 필요한 카운터만 계산한다. */
 function buildSummaryCounts(rec: RunRecord) {
-  const specs = stepSpecs(scenarioOf(rec)).slice(0, stepLimit(rec))
+  const specs = specsOf(rec).slice(0, stepLimit(rec))
   const clickCount = specs.filter((s) => s.selected !== 'BACK').length
   return {
     clickCount,

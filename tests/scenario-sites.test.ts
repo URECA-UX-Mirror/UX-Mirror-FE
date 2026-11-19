@@ -7,8 +7,9 @@ import { listSites } from '../src/api/sites.ts'
 import { toRun, toRunList } from '../src/adapters/run.ts'
 import { toSite } from '../src/adapters/site.ts'
 import { isScenarioRun, pageLabel } from '../src/domain/site.ts'
-import { buildRun } from '../src/mocks/fixtures/run.ts'
-import { addRun, allRuns } from '../src/mocks/store.ts'
+import { buildRun, buildSteps } from '../src/mocks/fixtures/run.ts'
+import { SITES } from '../src/mocks/fixtures/sites.ts'
+import { addRun, allRuns, type RunRecord } from '../src/mocks/store.ts'
 import type { CreateRunInput } from '../src/domain/types.ts'
 import type { SiteDto } from '../src/api/dto/index.ts'
 
@@ -169,6 +170,10 @@ describe('시나리오 Run mock', () => {
     expect([run.siteId, run.mode, run.variant, run.resultOrigin]).toEqual(['cafe24-ons', 'SCENARIO', 'before', 'MOCK'])
     expect(isScenarioRun(run)).toBe(true)
     expect(run.verification?.path).toBe('/board/review/4/')
+    // 끝난 뒤의 경로도 사이트 화면이고 성공 조건의 도착 화면에서 끝난다
+    const finished = buildRun(allRuns().find((rec) => rec.runId === created.runId)!, FAR_FUTURE)
+    expect(finished.summary!.path.map((visit) => visit.path)).toEqual(['/', '/board/review/4/'])
+    expect(finished.summary!.goalReached).toBe(true)
     const listed = (await listRuns({ experimentKey: input.experimentKey }))[0]
     expect([listed.siteId, listed.mode]).toEqual(['cafe24-ons', 'SCENARIO'])
   })
@@ -214,5 +219,44 @@ describe('시나리오 Run mock', () => {
   it('버전 비교 Run과 시나리오 Run은 같은 experimentKey를 쓸 수 없다', async () => {
     const error = await rejection(scenarioInput({ experimentKey: 'mock-done' }))
     expect([error.status, error.code]).toEqual([422, 'CONTRACT_VALIDATION_ERROR'])
+  })
+})
+
+describe('시나리오 Run의 경로와 목표 달성 판정', () => {
+  const cases = SITES.flatMap((site) =>
+    site.pages.filter((page) => page.goalSelectable).map((page) => ({ site, page })),
+  )
+
+  it('선택 가능한 도착 화면이 사이트마다 있다', () => {
+    expect(cases.length).toBeGreaterThan(0)
+  })
+
+  it.each(cases)('$site.siteId → $page.pageKey: 시작·마지막 방문 경로가 사이트 화면이고 성공 조건과 일치한다', ({ site, page }) => {
+    const start = site.pages.find((item) => item.pageKey === site.startPage)!
+    const rec: RunRecord = {
+      runId: `run_test_path_${site.siteId}_${page.pageKey}`, experimentKey: 'scn_path', variant: 'before', scenario: 'to-mypage',
+      siteId: site.siteId, goalId: null, goal: '테스트 목표', personaId: null, persona: '테스트 사용자', maxSteps: 8, createdAtMs: 0,
+      verification: { type: 'PATH_AND_VISIBLE_TEXT', path: page.path, text: page.goalText!, exact: false, scope: 'page' },
+    }
+    const run = buildRun(rec, FAR_FUTURE)
+    const visits = run.summary!.path
+    expect(run.startPath).toBe(start.path)
+    expect(visits.map((visit) => visit.path)).toEqual([start.path, page.path])
+    expect(visits.map((visit) => visit.pageKey)).toEqual([start.pageKey, page.pageKey])
+    expect(visits.at(-1)!.path).toBe(run.verification!.path)
+    expect([run.status, run.terminationReason, run.summary!.goalReached]).toEqual(['SUCCESS', 'GOAL_VERIFIED', true])
+    // 모든 방문 화면은 사이트에 등록된 화면이다
+    expect(visits.every((visit) => site.pages.some((item) => item.path === visit.path))).toBe(true)
+    // Step도 같은 경로를 보여 준다: 시작 화면에서 도착 화면으로 클릭 1번
+    const [step] = buildSteps(rec, 1)
+    expect([step.page.path, step.page.pageKey, step.action.fromPath, step.action.toPath]).toEqual([start.path, start.pageKey, start.path, page.path])
+    expect(step.candidateSet.candidates.map((c) => [c.href, c.selected])).toEqual([[page.path, true]])
+    expect(run.progress.currentPageKey).toBe(page.pageKey)
+  })
+
+  it('버전 비교 Run의 경로는 기존 쇼핑몰 화면 그대로다', () => {
+    const run = buildRun(allRuns().find((rec) => rec.runId === 'run_mock_done_before')!, FAR_FUTURE)
+    expect(run.startPath).toBe('/shop/home')
+    expect(run.summary!.path.at(-1)!.path).toBe(run.verification!.path)
   })
 })

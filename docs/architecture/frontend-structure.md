@@ -110,12 +110,12 @@
 `임시`([OI-13](../operations/open_issue.md#oi-13), FE #78). 경로 `/improvements/:improvementId`, 구현은 `features/improvement/`다. `useImprovement`가 `/improvements/<improvementId>.json`을 한 번 읽어 `toImprovementView`로 변환한다(폴링 없음, 백엔드 API 없음).
 
 - 상태: 로딩, 성공, 파일 없음, JSON 파싱 오류, 기타 오류를 구분해 안내한다. `improvementId`가 영숫자·`_`·`-`가 아니면 요청하지 않고 "찾을 수 없음"이다. 응답이 404이거나 `content-type`에 `json`이 없으면(개발 서버의 SPA fallback `index.html`) 파일 없음이다.
-- 헤더: "자동 개선 리포트", `improvementId`, 생성 시각, "추가 실험"(E 공식 비교 결과와 구분). `sample: true`이면 "샘플 데이터" 배지를 항상 보인다. `status`가 `COMPLETED`가 아니면 원문 상태와 함께 안내하고 영역은 그대로 보인다.
-- ① 개선 효과(`SummarySection`, FE #79)는 "에이전트 예측" 태그를 달아 ② 실제 검증과 구분한다. `summary`의 대상 위치·`beforeLabel → afterLabel`(+`afterSource`), 주 목표 전후 점수·변화량, 지킬 목표별 전후 점수·변화량을 보이고 `plan.rules.maxGuardLoss`(없으면 옛 샘플 키 `guardMaxDrop`, 둘 다 있으면 `maxGuardLoss` 우선) 이내인지 함께 표시한다(범위를 넘어도 숨기지 않는다). `NO_IMPROVEMENT`이면 "개선안 미채택"과 현재 점수만 보이고 후 값·변화량은 숨긴다. `sample: true`이면 headline 끝의 `(샘플)`을 떼어 배지와 겹치지 않게 한다. 점수는 `improvementScore.ts`로 `%`·`%p`로 바꾸고 `null`은 "값 없음"이다.
+- 헤더: "자동 개선 리포트", `improvementId`, 생성 시각, "추가 실험"(E 공식 비교 결과와 구분). `status`가 `COMPLETED`가 아니면 원문 상태와 함께 안내하고 영역은 그대로 보인다.
+- ① 개선 효과(`SummarySection`, FE #79)는 "에이전트 예측" 태그를 달아 ② 실제 검증과 구분한다. `summary`의 대상 위치·`beforeLabel → afterLabel`(+`afterSource`), 주 목표 전후 점수·변화량, 지킬 목표별 전후 점수·변화량을 보이고 `plan.rules.maxGuardLoss` 이내인지 함께 표시한다(범위를 넘어도 숨기지 않는다). `NO_IMPROVEMENT`이면 "개선안 미채택"과 현재 점수만 보이고 후 값·변화량은 숨긴다. 점수는 `improvementScore.ts`로 `%`·`%p`로 바꾸고 `null`은 "값 없음"이다.
 - ② 실제 브라우저 검증: `VerificationSection`이 검증 상태와 목표별 저장 Run 요약을 표시한다. 종료된 유효 Run에만 재생 링크를, 양쪽 Run이 모두 종료된 유효 Run인 경우 비교 링크와 요약을 표시한다.
-- 보조 정보(`OfficialSection`)는 `official`의 최종안 이름·점수·`buildCheck`(`ONLY_LABEL_DIFF`는 "이름 외 차이 없음", 모르는 값은 원문)·`maxDiffAvsB`를 보이고 `official=null`이면 "공식 평가 결과 없음"이다. 한 영역이 오류이면 그 영역에만 "데이터 오류"와 사유를 보이고 다른 영역은 막지 않는다. `limitations` 문구는 항상 하단에 보이고, JSON에 없거나 비어 있으면 기본 안내(`DEFAULT_LIMITATIONS`)를 보인다.
+- 보조 정보(`OfficialSection`)는 `official`의 이름·점수·`buildCheck`(`ONLY_LABEL_DIFF`는 "이름 외 차이 없음", 모르는 값은 원문)·`maxDiffAvsB`를 보이고 `official=null`이면 "공식 평가 결과 없음"이다. `decision`이 `REJECTED`(B 평가 탈락)이면 "공식 평가 최종안"이 아니라 "공식 평가에서 탈락한 이름"과 `choose.rejected[0]`의 사유(`reason`에 `guardGoals`를 `:S4`로 붙임)를 보이고, 개선 효과 영역에도 `summary.officialRejected`의 B 탈락 이력을 보인다. `decision`이 없으면 확정으로 본다. B 점수를 모으지 못해 `null`이면 0이나 영역 오류가 아니라 "값 없음"이고, 점수 키가 없거나 숫자·`null`이 아니면 이 영역만 오류다. 한 영역이 오류이면 그 영역에만 "데이터 오류"와 사유를 보이고 다른 영역은 막지 않는다. `limitations` 문구는 항상 하단에 보이고, JSON에 없거나 비어 있으면 기본 안내(`DEFAULT_LIMITATIONS`)를 보인다.
 
-- 진입: 사이드바의 "자동 개선 리포트" 링크는 `features/improvement/constants.ts`의 `FINAL_IMPROVEMENT_ID`가 있을 때만 보이고 그 id의 화면을 연다. 값이 `null`이면(최종 JSON 반영 전) 링크를 보이지 않으며 샘플 id로는 연결하지 않는다. 샘플은 `/improvements/imp_SAMPLE_0001`을 직접 입력해 연다. 반영 절차는 [자동 개선 JSON 반영 절차](../operations/improvement-release.md)다.
+- 진입: 사이드바의 "자동 개선 리포트" 링크는 `features/improvement/constants.ts`의 `FINAL_IMPROVEMENT_ID`가 있을 때만 보이고 그 id의 화면을 연다. 값은 공식 실행 결과 `imp-1119`이고 `null`이면 링크를 보이지 않는다. 반영 절차는 [자동 개선 JSON 반영 절차](../operations/improvement-release.md)다.
 
 ### 저장된 실측 결과 재생
 
@@ -178,7 +178,7 @@ src/
     polling/               # poller.ts(간격·backoff 규칙), usePolling(범용 폴링 훅)
 public/
   mock/screens/            # 목업 쇼핑몰을 찍은 mock 스크린샷 PNG({before,after}/{home,mypage,orders,support,refund}.png)
-  improvements/            # 자동 개선 결과 정적 JSON(imp_SAMPLE_0001.json, OI-13)
+  improvements/            # 자동 개선 결과 정적 JSON(공식 결과 imp-1119.json, OI-13)
   mockServiceWorker.js     # MSW 생성 파일
 ```
 

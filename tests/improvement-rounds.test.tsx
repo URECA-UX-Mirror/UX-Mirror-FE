@@ -6,10 +6,10 @@ import { RoundsSection } from '../src/features/improvement/RoundsSection.tsx'
 import { describeReason } from '../src/features/improvement/reasons.ts'
 
 function setup() {
-  const sample = JSON.parse(readFileSync('public/improvements/imp_SAMPLE_0001.json', 'utf8'))
-  sample.rounds[2].candidates[0].reason = 'UNKNOWN_REASON'
-  sample.rounds[2].proposal.filtered[0].rejectedReason = 'UNKNOWN_FILTER'
-  const view = toImprovementView(sample)
+  const improved = JSON.parse(readFileSync('tests/fixtures/improvement.improved.json', 'utf8'))
+  improved.rounds[2].candidates[0].reason = 'UNKNOWN_REASON'
+  improved.rounds[2].proposal.filtered[0].rejectedReason = 'UNKNOWN_FILTER'
+  const view = toImprovementView(improved)
   if (!view.rounds.ok) throw new Error(view.rounds.reason)
   render(<RoundsSection rounds={view.rounds.data} stop={view.stop} goals={view.plan?.guardGoals ?? []} />)
 }

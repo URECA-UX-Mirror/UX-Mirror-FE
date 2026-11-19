@@ -48,8 +48,8 @@ function ImprovementView({ improvementId }: { improvementId: string }) {
   }
 
   const { view } = state
-  // `report` 영역이 오류여도 헤더 메타(샘플 배지·생성 시각·상태)는 보인다.
-  const { sample, status, createdAt } = view.meta
+  // `report` 영역이 오류여도 헤더 메타(생성 시각·상태)는 보인다.
+  const { status, createdAt } = view.meta
 
   return (
     <section className="improvement-page">
@@ -58,7 +58,6 @@ function ImprovementView({ improvementId }: { improvementId: string }) {
           <h1>자동 개선 리포트</h1>
           {/* E(공식 비교) 결과와 구분한다 */}
           <span className="experiment-tag">추가 실험</span>
-          {sample ? <span className="sample-badge">샘플 데이터</span> : null}
         </div>
         <dl className="meta-row">
           <div>
@@ -86,7 +85,7 @@ function ImprovementView({ improvementId }: { improvementId: string }) {
         {view.report.ok ? (
           <SummarySection
             report={view.report.data}
-            guardMaxDrop={guardMaxDropOf(view.plan?.rules ?? null)}
+            maxGuardLoss={maxGuardLossOf(view.plan?.rules ?? null)}
           />
         ) : null}
       </AreaSlot>
@@ -124,16 +123,10 @@ function statusMessage(status: string): string {
   }
 }
 
-/**
- * 지킬 목표 허용 감소 범위. 백엔드 키 `plan.rules.maxGuardLoss`를 먼저 읽고, 없으면 옛 샘플 키
- * `guardMaxDrop`을 읽는다. 둘 다 있으면 `maxGuardLoss`가 우선이다. 숫자가 아니면 건너뛰고 없으면 `null`.
- */
-function guardMaxDropOf(rules: Record<string, unknown> | null): number | null {
-  for (const key of ['maxGuardLoss', 'guardMaxDrop']) {
-    const value = rules?.[key]
-    if (typeof value === 'number' && Number.isFinite(value)) return value
-  }
-  return null
+/** 지킬 목표 허용 감소 범위 `plan.rules.maxGuardLoss`. 숫자가 아니거나 없으면 `null` */
+function maxGuardLossOf(rules: Record<string, unknown> | null): number | null {
+  const value = rules?.maxGuardLoss
+  return typeof value === 'number' && Number.isFinite(value) ? value : null
 }
 
 function goalNamesOf(report: ImprovementReport | null): Record<string, string> {

@@ -1,0 +1,553 @@
+{
+  "schemaVersion": "improvement-v1",
+  "improvementId": "imp-1119",
+  "sample": false,
+  "status": "COMPLETED",
+  "createdAt": "2026-11-19T23:34:57+09:00",
+  "finishedAt": "2026-11-19T23:36:05+09:00",
+  "plan": {
+    "improvementPlanId": "improve-plan-1119",
+    "site": {
+      "siteId": "moro-market",
+      "variant": "before",
+      "siteVersion": "shop-v1",
+      "layoutVersion": "shop-layout-v1"
+    },
+    "persona": "온라인 쇼핑몰 이용 경험이 적은 사용자",
+    "mainGoal": {
+      "goalKey": "S1",
+      "goal": "지난주에 산 운동화가 발에 안 맞아서 돌려보내고 돈을 돌려받고 싶다",
+      "goalPage": "refund",
+      "situation": "환불하려는",
+      "name": "환불",
+      "verification": {
+        "type": "PATH_AND_VISIBLE_TEXT",
+        "path": "/shop/refund",
+        "text": "환불 / 반품 신청",
+        "exact": false,
+        "scope": "page"
+      }
+    },
+    "guardGoals": [
+      {
+        "goalKey": "S2",
+        "goal": "어제 산 물건이 지금 어디쯤 오고 있는지 알고 싶다",
+        "goalPage": "orders",
+        "name": "배송",
+        "verification": {
+          "type": "PATH_AND_VISIBLE_TEXT",
+          "path": "/shop/orders",
+          "text": "주문 / 배송 조회",
+          "exact": false,
+          "scope": "page"
+        }
+      },
+      {
+        "goalKey": "S3",
+        "goal": "내가 가진 할인 쿠폰이 몇 장 남았는지 보고 싶다",
+        "goalPage": "mypage",
+        "name": "쿠폰",
+        "verification": {
+          "type": "PATH_AND_VISIBLE_TEXT",
+          "path": "/shop/mypage",
+          "text": "사용 가능 쿠폰",
+          "exact": false,
+          "scope": "page"
+        }
+      },
+      {
+        "goalKey": "S4",
+        "goal": "받은 상품에 문제가 있어서 직원에게 직접 물어보고 싶다",
+        "goalPage": "support",
+        "name": "문의",
+        "verification": {
+          "type": "PATH_AND_VISIBLE_TEXT",
+          "path": "/shop/support",
+          "text": "자주 묻는 질문",
+          "exact": false,
+          "scope": "page"
+        }
+      }
+    ],
+    "rules": {
+      "mainBaseline": "CURRENT",
+      "guardBaseline": "ORIGINAL_V1",
+      "tieGrouping": "LEADER_RELATIVE",
+      "tieBreak": [
+        "GUARD_MEAN",
+        "SHORTER_LABEL",
+        "HUMAN_FIRST",
+        "ORDER"
+      ],
+      "targetScore": 0.8,
+      "maxRounds": 3,
+      "stopAfterRoundsWithoutAdoption": 2,
+      "maxCandidatesPerRound": 10,
+      "minMainGain": 0.05,
+      "maxGuardLoss": 0.02,
+      "tieTolerance": 0.01,
+      "_keyNote": "키 이름은 PR #105 choose()와 같게 (minMainGain·maxGuardLoss·tieTolerance). 없으면 루프가 오류를 낸다"
+    },
+    "model": {
+      "modelVersion": "trillionlabs/Zoro-1",
+      "modelEndpointId": "brev-l40s-bf16",
+      "promptVersion": "v2",
+      "temperature": 1.52,
+      "goalJudgmentMode": "DOM_ONLY"
+    }
+  },
+  "summary": {
+    "result": "NO_IMPROVEMENT",
+    "target": {
+      "pageKey": "home",
+      "semanticKey": "상단 메뉴>/shop/orders#1",
+      "region": "상단 메뉴"
+    },
+    "beforeLabel": "이용정보",
+    "afterLabel": null,
+    "afterSource": null,
+    "roundsRun": 2,
+    "main": {
+      "goalKey": "S1",
+      "name": "환불",
+      "before": 0.401647,
+      "after": null,
+      "delta": null
+    },
+    "guards": [
+      {
+        "goalKey": "S2",
+        "name": "배송",
+        "before": 0.653635,
+        "after": null,
+        "delta": null
+      },
+      {
+        "goalKey": "S3",
+        "name": "쿠폰",
+        "before": 0.7624,
+        "after": null,
+        "delta": null
+      },
+      {
+        "goalKey": "S4",
+        "name": "문의",
+        "before": 0.766923,
+        "after": null,
+        "delta": null
+      }
+    ],
+    "scoreSource": null
+  },
+  "rounds": [
+    {
+      "round": 1,
+      "diagnosis": {
+        "start": "home",
+        "goal": "refund",
+        "bottleneckPage": "home",
+        "blockScore": 0.4634,
+        "blockScores": {
+          "home": 0.4634,
+          "mypage": 0.131339,
+          "orders": 0.01728,
+          "support": 0.0
+        },
+        "correctProbability": 0.5366,
+        "targetButton": {
+          "semanticKey": "상단 메뉴>/shop/orders#1",
+          "label": "이용정보",
+          "region": "상단 메뉴",
+          "probability": 0.2046
+        },
+        "rivalButton": {
+          "semanticKey": "상단 메뉴>/shop/support#1",
+          "label": "고객센터",
+          "region": "상단 메뉴",
+          "probability": 0.3406
+        },
+        "reason": null,
+        "text": "'이용정보' 메뉴를 누르면 주문 내역 화면(주문·배송 조회와 환불·반품 신청을 하는 곳)으로 간다. 환불하려는 사용자가 '이용정보' 메뉴를 잘 고르지 않고 '고객센터' 쪽으로 간다."
+      },
+      "baseline": {
+        "label": "이용정보",
+        "mainScore": 0.401647,
+        "guardScores": {
+          "S2": 0.653635,
+          "S3": 0.7624,
+          "S4": 0.766923
+        }
+      },
+      "proposal": {
+        "filtered": [
+          {
+            "label": "주문·환불",
+            "accepted": false,
+            "rejectedReason": "EXISTING_LABEL",
+            "attempt": 1
+          },
+          {
+            "label": "주문·환불",
+            "accepted": false,
+            "rejectedReason": "EXISTING_LABEL",
+            "attempt": 2
+          },
+          {
+            "label": "주문 관리",
+            "accepted": false,
+            "rejectedReason": "EXISTING_LABEL",
+            "attempt": 2
+          },
+          {
+            "label": "배송 조회",
+            "accepted": true,
+            "rejectedReason": null,
+            "attempt": 2
+          },
+          {
+            "label": "주문 내역",
+            "accepted": true,
+            "rejectedReason": null,
+            "attempt": 2
+          },
+          {
+            "label": "주문 상태",
+            "accepted": true,
+            "rejectedReason": null,
+            "attempt": 2
+          },
+          {
+            "label": "주문/배송/환불",
+            "accepted": false,
+            "rejectedReason": "LABEL_TOO_LONG",
+            "attempt": 2
+          }
+        ],
+        "attempts": 2
+      },
+      "candidates": [
+        {
+          "candidateId": "R1-H1",
+          "label": "주문·배송",
+          "source": "HUMAN",
+          "order": 0,
+          "method": "A",
+          "evaluationStatus": "COMPLETED",
+          "layout": {
+            "valid": true,
+            "reasons": []
+          },
+          "mainScore": 0.249332,
+          "guardScores": {
+            "S2": 0.8383,
+            "S3": 0.923692,
+            "S4": 0.636536
+          },
+          "decision": "REJECTED",
+          "reason": "GUARD_LOSS_EXCEEDED:S4"
+        },
+        {
+          "candidateId": "R1-H2",
+          "label": "주문·환불",
+          "source": "HUMAN",
+          "order": 1,
+          "method": "A",
+          "evaluationStatus": "COMPLETED",
+          "layout": {
+            "valid": true,
+            "reasons": []
+          },
+          "mainScore": 0.655477,
+          "guardScores": {
+            "S2": 0.770677,
+            "S3": 0.9348,
+            "S4": 0.6265
+          },
+          "decision": "REJECTED",
+          "reason": "GUARD_LOSS_EXCEEDED:S4"
+        },
+        {
+          "candidateId": "R1-H3",
+          "label": "주문·반품",
+          "source": "HUMAN",
+          "order": 2,
+          "method": "A",
+          "evaluationStatus": "COMPLETED",
+          "layout": {
+            "valid": true,
+            "reasons": []
+          },
+          "mainScore": 0.639503,
+          "guardScores": {
+            "S2": 0.7335,
+            "S3": 0.922008,
+            "S4": 0.633963
+          },
+          "decision": "REJECTED",
+          "reason": "GUARD_LOSS_EXCEEDED:S4"
+        },
+        {
+          "candidateId": "R1-H4",
+          "label": "주문 관리",
+          "source": "HUMAN",
+          "order": 3,
+          "method": "A",
+          "evaluationStatus": "COMPLETED",
+          "layout": {
+            "valid": true,
+            "reasons": []
+          },
+          "mainScore": 0.521584,
+          "guardScores": {
+            "S2": 0.873087,
+            "S3": 0.8825,
+            "S4": 0.5223
+          },
+          "decision": "REJECTED",
+          "reason": "GUARD_LOSS_EXCEEDED:S4"
+        },
+        {
+          "candidateId": "R1-A1",
+          "label": "배송 조회",
+          "source": "AI",
+          "order": 4,
+          "method": "A",
+          "evaluationStatus": "COMPLETED",
+          "layout": {
+            "valid": true,
+            "reasons": []
+          },
+          "mainScore": 0.285039,
+          "guardScores": {
+            "S2": 0.7497,
+            "S3": 0.9536,
+            "S4": 0.8108
+          },
+          "decision": "REJECTED",
+          "reason": "MAIN_GAIN_INSUFFICIENT"
+        },
+        {
+          "candidateId": "R1-A2",
+          "label": "주문 내역",
+          "source": "AI",
+          "order": 5,
+          "method": "A",
+          "evaluationStatus": "COMPLETED",
+          "layout": {
+            "valid": true,
+            "reasons": []
+          },
+          "mainScore": 0.475646,
+          "guardScores": {
+            "S2": 0.8389,
+            "S3": 0.906109,
+            "S4": 0.5232
+          },
+          "decision": "REJECTED",
+          "reason": "GUARD_LOSS_EXCEEDED:S4"
+        },
+        {
+          "candidateId": "R1-A3",
+          "label": "주문 상태",
+          "source": "AI",
+          "order": 6,
+          "method": "A",
+          "evaluationStatus": "COMPLETED",
+          "layout": {
+            "valid": true,
+            "reasons": []
+          },
+          "mainScore": 0.376004,
+          "guardScores": {
+            "S2": 0.79572,
+            "S3": 0.8759,
+            "S4": 0.624062
+          },
+          "decision": "REJECTED",
+          "reason": "GUARD_LOSS_EXCEEDED:S4"
+        }
+      ],
+      "adopted": null
+    },
+    {
+      "round": 2,
+      "diagnosis": {
+        "start": "home",
+        "goal": "refund",
+        "bottleneckPage": "home",
+        "blockScore": 0.4634,
+        "blockScores": {
+          "home": 0.4634,
+          "mypage": 0.131339,
+          "orders": 0.01728,
+          "support": 0.0
+        },
+        "correctProbability": 0.5366,
+        "targetButton": {
+          "semanticKey": "상단 메뉴>/shop/orders#1",
+          "label": "이용정보",
+          "region": "상단 메뉴",
+          "probability": 0.2046
+        },
+        "rivalButton": {
+          "semanticKey": "상단 메뉴>/shop/support#1",
+          "label": "고객센터",
+          "region": "상단 메뉴",
+          "probability": 0.3406
+        },
+        "reason": null,
+        "text": "'이용정보' 메뉴를 누르면 주문 내역 화면(주문·배송 조회와 환불·반품 신청을 하는 곳)으로 간다. 환불하려는 사용자가 '이용정보' 메뉴를 잘 고르지 않고 '고객센터' 쪽으로 간다."
+      },
+      "baseline": {
+        "label": "이용정보",
+        "mainScore": 0.401647,
+        "guardScores": {
+          "S2": 0.653635,
+          "S3": 0.7624,
+          "S4": 0.766923
+        }
+      },
+      "proposal": {
+        "filtered": [
+          {
+            "label": "주문 조회",
+            "accepted": true,
+            "rejectedReason": null,
+            "attempt": 1
+          },
+          {
+            "label": "배송 추적",
+            "accepted": true,
+            "rejectedReason": null,
+            "attempt": 1
+          },
+          {
+            "label": "주문 내역",
+            "accepted": false,
+            "rejectedReason": "EXISTING_LABEL",
+            "attempt": 1
+          },
+          {
+            "label": "배송 확인",
+            "accepted": true,
+            "rejectedReason": null,
+            "attempt": 1
+          },
+          {
+            "label": "주문 확인",
+            "accepted": true,
+            "rejectedReason": null,
+            "attempt": 1
+          },
+          {
+            "label": "주문 관리",
+            "accepted": false,
+            "rejectedReason": "EXISTING_LABEL",
+            "attempt": 1
+          }
+        ],
+        "attempts": 1
+      },
+      "candidates": [
+        {
+          "candidateId": "R2-A1",
+          "label": "주문 조회",
+          "source": "AI",
+          "order": 0,
+          "method": "A",
+          "evaluationStatus": "COMPLETED",
+          "layout": {
+            "valid": true,
+            "reasons": []
+          },
+          "mainScore": 0.425267,
+          "guardScores": {
+            "S2": 0.846285,
+            "S3": 0.9013,
+            "S4": 0.5469
+          },
+          "decision": "REJECTED",
+          "reason": "GUARD_LOSS_EXCEEDED:S4"
+        },
+        {
+          "candidateId": "R2-A2",
+          "label": "배송 추적",
+          "source": "AI",
+          "order": 1,
+          "method": "A",
+          "evaluationStatus": "COMPLETED",
+          "layout": {
+            "valid": true,
+            "reasons": []
+          },
+          "mainScore": 0.211279,
+          "guardScores": {
+            "S2": 0.7366,
+            "S3": 0.950695,
+            "S4": 0.847085
+          },
+          "decision": "REJECTED",
+          "reason": "MAIN_GAIN_INSUFFICIENT"
+        },
+        {
+          "candidateId": "R2-A3",
+          "label": "배송 확인",
+          "source": "AI",
+          "order": 2,
+          "method": "A",
+          "evaluationStatus": "COMPLETED",
+          "layout": {
+            "valid": true,
+            "reasons": []
+          },
+          "mainScore": 0.269657,
+          "guardScores": {
+            "S2": 0.759324,
+            "S3": 0.949695,
+            "S4": 0.7582
+          },
+          "decision": "REJECTED",
+          "reason": "MAIN_GAIN_INSUFFICIENT"
+        },
+        {
+          "candidateId": "R2-A4",
+          "label": "주문 확인",
+          "source": "AI",
+          "order": 3,
+          "method": "A",
+          "evaluationStatus": "COMPLETED",
+          "layout": {
+            "valid": true,
+            "reasons": []
+          },
+          "mainScore": 0.391089,
+          "guardScores": {
+            "S2": 0.846315,
+            "S3": 0.8591,
+            "S4": 0.577285
+          },
+          "decision": "REJECTED",
+          "reason": "GUARD_LOSS_EXCEEDED:S4"
+        }
+      ],
+      "adopted": null
+    }
+  ],
+  "stop": {
+    "reason": "NO_ADOPTION_STREAK",
+    "detail": "2회차 연속 채택 없음"
+  },
+  "official": null,
+  "verification": {
+    "status": "NOT_RUN",
+    "error": null,
+    "reason": "NO_IMPROVEMENT",
+    "method": "run_verification",
+    "pairs": []
+  },
+  "artifacts": {
+    "report": "report.md",
+    "raw": "raw/"
+  },
+  "limitations": "Zoro-1의 선택 분포 기준 추정이며 실제 사람 클릭률이 아니다. 사람 사용성 테스트에 올릴 후보로 사용한다."
+}

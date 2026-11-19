@@ -1,10 +1,11 @@
 import type { ImprovementReport, ImprovementScoreLine } from '../../domain/improvement.ts'
 import { formatScore, formatScoreDelta, SCORE_NULL_TEXT } from '../../domain/improvementScore.ts'
+import { describeReason } from './reasons.ts'
 
 interface SummarySectionProps {
   report: ImprovementReport
-  /** `plan.rules.guardMaxDrop`(0~1). 없으면 허용 범위 판정을 하지 않는다 */
-  guardMaxDrop: number | null
+  /** `plan.rules.maxGuardLoss`(0~1). 없으면 허용 범위 판정을 하지 않는다 */
+  maxGuardLoss: number | null
 }
 
 /** 점수 출처. 모르는 값은 원문으로 보인다 */
@@ -17,16 +18,13 @@ const SOURCE_LABELS: Record<string, string> = { AI: 'AI 제안', HUMAN: '사람 
 /** 부동소수점 오차로 정확히 경계인 값(−2.0%p)이 범위 밖이 되지 않게 한다 */
 const EPSILON = 1e-9
 
-/** 샘플 배지와 겹치지 않도록 headline 끝의 `(샘플)`을 뗀다 */
-function headlineText(headline: string | null, sample: boolean): string | null {
-  if (headline === null) return null
-  return sample ? headline.replace(/\s*\(샘플\)\s*$/, '') : headline
-}
-
-export function SummarySection({ report, guardMaxDrop }: SummarySectionProps) {
+export function SummarySection({ report, maxGuardLoss }: SummarySectionProps) {
   const improved = report.result === 'IMPROVED'
   const rejected = report.result === 'NO_IMPROVEMENT'
-  const headline = headlineText(report.headline, report.sample)
+  const headline = report.headline
+  const goalNames = Object.fromEntries(
+    [report.main, ...report.guards].flatMap((line) => (line.goalKey && line.name ? [[line.goalKey, line.name]] : [])),
+  )
   const scoreSource = report.scoreSource
     ? (SCORE_SOURCE_LABELS[report.scoreSource] ?? report.scoreSource)
     : null
@@ -42,6 +40,15 @@ export function SummarySection({ report, guardMaxDrop }: SummarySectionProps) {
             {/* 모르는 result 값은 원문으로 보이고, 후 값은 `NO_IMPROVEMENT`처럼 숨긴다 */}
             {rejected ? '개선안 미채택' : `알 수 없는 결과: ${report.result}`}
             <span className="summary-muted"> · 현재 이름: {report.beforeLabel}</span>
+            {report.officialRejected ? (
+              <span className="summary-muted">
+                {' '}
+                · 공식 평가(B)에서 {report.officialRejected.label ?? '후보'} 탈락
+                {report.officialRejected.reason
+                  ? ` (${describeReason(report.officialRejected.reason, goalNames)})`
+                  : ''}
+              </span>
+            ) : null}
           </p>
         ) : (
           <p>
@@ -73,9 +80,9 @@ export function SummarySection({ report, guardMaxDrop }: SummarySectionProps) {
 
       <div className="summary-block">
         <h3>다른 목표는 유지됐나</h3>
-        {guardMaxDrop !== null ? (
+        {maxGuardLoss !== null ? (
           <p className="summary-muted">
-            허용 감소 범위: 최초 v1 대비 {formatScoreDelta(-guardMaxDrop)} 이내
+            허용 감소 범위: 최초 v1 대비 {formatScoreDelta(-maxGuardLoss)} 이내
           </p>
         ) : null}
         {report.guards.length === 0 ? (
@@ -88,7 +95,7 @@ export function SummarySection({ report, guardMaxDrop }: SummarySectionProps) {
                   line={guard}
                   improved={improved}
                   kind="guard"
-                  guardMaxDrop={guardMaxDrop}
+                  maxGuardLoss={maxGuardLoss}
                 />
               </li>
             ))}
@@ -103,19 +110,19 @@ interface ScoreLineProps {
   line: ImprovementScoreLine
   improved: boolean
   kind: 'main' | 'guard'
-  guardMaxDrop?: number | null
+  maxGuardLoss?: number | null
 }
 
-function ScoreLine({ line, improved, kind, guardMaxDrop = null }: ScoreLineProps) {
+function ScoreLine({ line, improved, kind, maxGuardLoss = null }: ScoreLineProps) {
   const name = [line.goalKey, line.name].filter(Boolean).join(' ')
   // 개선안이 없으면 후 점수·변화량은 보이지 않는다(`NO_IMPROVEMENT`)
   const showAfter = improved
   const outOfRange =
     kind === 'guard' &&
     showAfter &&
-    guardMaxDrop !== null &&
+    maxGuardLoss !== null &&
     line.delta !== null &&
-    line.delta < -guardMaxDrop - EPSILON
+    line.delta < -maxGuardLoss - EPSILON
   return (
     <div className="summary-score-line">
       <span className="summary-score-name">{name || '목표'}</span>
@@ -131,7 +138,7 @@ function ScoreLine({ line, improved, kind, guardMaxDrop = null }: ScoreLineProps
           </>
         ) : null}
       </span>
-      {kind === 'guard' && showAfter && guardMaxDrop !== null && line.delta !== null ? (
+      {kind === 'guard' && showAfter && maxGuardLoss !== null && line.delta !== null ? (
         <span className={outOfRange ? 'summary-range-out' : 'summary-range-ok'}>
           {outOfRange ? '허용 범위 초과' : '허용 범위 이내'}
         </span>

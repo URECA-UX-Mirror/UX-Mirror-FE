@@ -3,18 +3,18 @@ import { describe, expect, it } from 'vitest'
 import { toImprovementView } from '../src/adapters/improvement.ts'
 import { formatScore, formatScoreDelta, formatScoreMagnitude } from '../src/domain/improvementScore.ts'
 
-// 자동 개선 데이터 타입·검증기 (FE #77). 형식 정본은 public/improvements/imp_SAMPLE_0001.json(`_required` 규칙)
+// 자동 개선 데이터 타입·검증기 (FE #77). 형식 정본은 공식 결과 public/improvements/imp-1119.json과 개선 채택 픽스처 tests/fixtures/improvement.improved.json
 
 type Json = Record<string, any> // eslint-disable-line @typescript-eslint/no-explicit-any
 
 const read = (path: string): Json =>
   JSON.parse(readFileSync(new URL(path, import.meta.url), 'utf-8'))
 
-const loadSample = () => read('../public/improvements/imp_SAMPLE_0001.json')
-const noImprovement = () => read('./fixtures/improvement.no-improvement.json')
+const loadImproved = () => read('./fixtures/improvement.improved.json')
+const noImprovement = () => read('../public/improvements/imp-1119.json')
 
 /** 점 경로(`a.b[0].c`)의 값을 지운 사본. 마지막 키를 `delete`한다 */
-function without(path: string, source: Json = loadSample()): Json {
+function without(path: string, source: Json = loadImproved()): Json {
   const keys = path.split('.')
   let node: any = source // eslint-disable-line @typescript-eslint/no-explicit-any
   for (const key of keys.slice(0, -1)) {
@@ -31,9 +31,9 @@ function okAreas(view: ReturnType<typeof toImprovementView>) {
   return AREAS.filter((name) => view[name].ok)
 }
 
-describe('샘플 통과', () => {
-  it('샘플 JSON 전체가 네 영역 모두 ok다', () => {
-    const view = toImprovementView(loadSample())
+describe('개선 채택 데이터 통과', () => {
+  it('개선 채택 JSON 전체가 네 영역 모두 ok다', () => {
+    const view = toImprovementView(loadImproved())
     expect(okAreas(view)).toEqual([...AREAS])
     expect(view.plan?.mainGoal?.goalKey).toBe('S1')
     expect(view.stop?.reason).toBe('MAX_ROUNDS')
@@ -41,28 +41,27 @@ describe('샘플 통과', () => {
   })
 
   it('IMPROVED 요약은 개선 전후·변화량을 그대로 읽는다', () => {
-    const report = toImprovementView(loadSample()).report
+    const report = toImprovementView(loadImproved()).report
     if (!report.ok) throw new Error(report.reason)
     expect(report.data.result).toBe('IMPROVED')
-    expect(report.data.sample).toBe(true)
     expect(report.data.afterLabel).toBe('주문내역')
     expect(report.data.main).toMatchObject({ goalKey: 'S1', before: 0.385, after: 0.701, delta: 0.316 })
     expect(report.data.guards.map((guard) => guard.delta)).toEqual([0.132, 0.132, -0.008])
   })
 
-  it('verification NOT_RUN·FAILED 샘플은 상태 그대로 ok이고 summary·official은 그대로다', () => {
+  it('verification NOT_RUN·FAILED는 상태 그대로 ok이고 summary·official은 그대로다', () => {
     for (const name of ['not-run', 'failed']) {
-      const sample = loadSample()
-      sample.verification = read(`./fixtures/improvement.verification-${name}.json`)
-      const view = toImprovementView(sample)
+      const improved = loadImproved()
+      improved.verification = read(`./fixtures/improvement.verification-${name}.json`)
+      const view = toImprovementView(improved)
       expect(okAreas(view)).toEqual([...AREAS])
     }
-    const notRun = loadSample()
+    const notRun = loadImproved()
     notRun.verification = read('./fixtures/improvement.verification-not-run.json')
     const verification = toImprovementView(notRun).verification
     expect(verification.ok && verification.data).toMatchObject({ status: 'NOT_RUN', error: null, pairs: [] })
 
-    const failed = loadSample()
+    const failed = loadImproved()
     failed.verification = read('./fixtures/improvement.verification-failed.json')
     const failedView = toImprovementView(failed).verification
     if (!failedView.ok) throw new Error(failedView.reason)
@@ -76,11 +75,11 @@ describe('샘플 통과', () => {
 
 describe('NO_IMPROVEMENT', () => {
   it('after·delta가 null로 유지되고 오류가 되지 않는다', () => {
-    const sample = loadSample()
+    const improved = loadImproved()
     const { summary, official } = noImprovement()
-    sample.summary = summary
-    sample.official = official
-    const view = toImprovementView(sample)
+    improved.summary = summary
+    improved.official = official
+    const view = toImprovementView(improved)
     expect(okAreas(view)).toEqual([...AREAS])
 
     const report = view.report
@@ -88,7 +87,7 @@ describe('NO_IMPROVEMENT', () => {
     expect(report.data.result).toBe('NO_IMPROVEMENT')
     expect(report.data.afterLabel).toBeNull()
     expect(report.data.afterSource).toBeNull()
-    expect(report.data.main).toMatchObject({ before: 0.385, after: null, delta: null })
+    expect(report.data.main).toMatchObject({ before: 0.401647, after: null, delta: null })
     for (const guard of report.data.guards) {
       expect(guard.after).toBeNull()
       expect(guard.delta).toBeNull()
@@ -139,11 +138,11 @@ describe('필수 필드를 하나씩 빼면 해당 영역만 오류', () => {
   })
 
   it('`_required`에 없는 goalKey가 빠져도 영역은 ok이고 null로 읽는다', () => {
-    const sample = loadSample()
-    delete sample.summary.main.goalKey
-    delete sample.summary.guards[0].goalKey
-    delete sample.verification.pairs[0].goalKey
-    const view = toImprovementView(sample)
+    const improved = loadImproved()
+    delete improved.summary.main.goalKey
+    delete improved.summary.guards[0].goalKey
+    delete improved.verification.pairs[0].goalKey
+    const view = toImprovementView(improved)
     expect(okAreas(view)).toEqual([...AREAS])
     expect(view.report.ok && view.report.data.main.goalKey).toBeNull()
     expect(view.verification.ok && view.verification.data.pairs[0].goalKey).toBeNull()
@@ -156,11 +155,11 @@ describe('필수 필드를 하나씩 빼면 해당 영역만 오류', () => {
   })
 
   it('형식이 다르면 오류다(숫자 자리에 문자열, 지원하지 않는 schemaVersion)', () => {
-    const sample = loadSample()
-    sample.summary.main.before = '0.385'
-    expect(toImprovementView(sample).report.ok).toBe(false)
+    const improved = loadImproved()
+    improved.summary.main.before = '0.385'
+    expect(toImprovementView(improved).report.ok).toBe(false)
 
-    const other = loadSample()
+    const other = loadImproved()
     other.schemaVersion = 'improvement-v2'
     expect(toImprovementView(other).report.ok).toBe(false)
     expect(okAreas(toImprovementView(other))).toEqual(['official', 'rounds', 'verification'])
@@ -168,9 +167,9 @@ describe('필수 필드를 하나씩 빼면 해당 영역만 오류', () => {
 
   it('official 키가 아예 없으면 오류이고 null이면 값 없음이다', () => {
     expect(toImprovementView(without('official')).official.ok).toBe(false)
-    const sample = loadSample()
-    sample.official = null
-    expect(toImprovementView(sample).official).toEqual({ ok: true, data: null })
+    const improved = loadImproved()
+    improved.official = null
+    expect(toImprovementView(improved).official).toEqual({ ok: true, data: null })
   })
 
   it('JSON이 객체가 아니면 네 영역이 모두 오류다', () => {
@@ -182,7 +181,7 @@ describe('필수 필드를 하나씩 빼면 해당 영역만 오류', () => {
 
 describe('null 보존·모르는 값', () => {
   it('candidates[].mainScore=null이 0점으로 바뀌지 않는다', () => {
-    const rounds = toImprovementView(loadSample()).rounds
+    const rounds = toImprovementView(loadImproved()).rounds
     if (!rounds.ok) throw new Error(rounds.reason)
     const skipped = rounds.data[0].candidates.find((c) => c.candidateId === 'R1-A3')!
     const failed = rounds.data[0].candidates.find((c) => c.candidateId === 'R1-A4')!
@@ -197,29 +196,29 @@ describe('null 보존·모르는 값', () => {
   })
 
   it('mainScore가 숫자가 아니면 0이 아니라 null이다', () => {
-    const sample = loadSample()
-    sample.rounds[0].candidates[0].mainScore = 'oops'
-    const rounds = toImprovementView(sample).rounds
+    const improved = loadImproved()
+    improved.rounds[0].candidates[0].mainScore = 'oops'
+    const rounds = toImprovementView(improved).rounds
     expect(rounds.ok && rounds.data[0].candidates[0].mainScore).toBeNull()
   })
 
   it('verification.pairs[].before·after가 null이면 null로 읽는다', () => {
-    const sample = loadSample()
-    sample.verification.pairs[0].before = null
-    delete sample.verification.pairs[0].after
-    const verification = toImprovementView(sample).verification
+    const improved = loadImproved()
+    improved.verification.pairs[0].before = null
+    delete improved.verification.pairs[0].after
+    const verification = toImprovementView(improved).verification
     expect(verification.ok && verification.data.pairs[0]).toMatchObject({ before: null, after: null })
   })
 
   it('모르는 enum 값은 오류가 아니라 원문으로 남는다', () => {
-    const sample = loadSample()
-    sample.summary.result = 'PARTIAL'
-    sample.summary.afterSource = 'ROBOT'
-    sample.verification.status = 'QUEUED'
-    sample.rounds[0].candidates[0].evaluationStatus = 'PAUSED'
-    sample.rounds[0].candidates[0].decision = 'DEFERRED'
-    sample.rounds[0].candidates[0].source = 'COACH'
-    const view = toImprovementView(sample)
+    const improved = loadImproved()
+    improved.summary.result = 'PARTIAL'
+    improved.summary.afterSource = 'ROBOT'
+    improved.verification.status = 'QUEUED'
+    improved.rounds[0].candidates[0].evaluationStatus = 'PAUSED'
+    improved.rounds[0].candidates[0].decision = 'DEFERRED'
+    improved.rounds[0].candidates[0].source = 'COACH'
+    const view = toImprovementView(improved)
     expect(okAreas(view)).toEqual([...AREAS])
 
     const report = view.report

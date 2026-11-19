@@ -99,7 +99,7 @@ it('/scenario에서 상단 바에 화면 이름을 보인다', () => {
   expect(screen.getByLabelText('현재 위치').textContent).toContain('시나리오 테스트')
 })
 
-it('최종 리포트 id가 없으면 자동 개선 리포트 메뉴를 보이지 않는다(샘플로 연결하지 않는다)', async () => {
+it('최종 리포트 id가 없으면 자동 개선 리포트 메뉴를 보이지 않는다', async () => {
   await renderLayoutWithFinalId(null)
   expect(screen.queryByRole('link', { name: '자동 개선 리포트' })).toBeNull()
 })

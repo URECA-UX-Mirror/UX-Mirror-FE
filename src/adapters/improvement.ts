@@ -6,6 +6,7 @@ import {
   type ImprovementDiagnosis,
   type ImprovementGoal,
   type ImprovementOfficial,
+  type ImprovementOfficialScores,
   type ImprovementPlan,
   type ImprovementReport,
   type ImprovementRound,
@@ -18,7 +19,7 @@ import {
   type VerificationRun,
 } from '../domain/improvement.ts'
 
-// `improvement-v1` JSON을 영역별로 검증·변환한다(필수 필드 규칙은 샘플의 `_required`). 정적 파일이라 `src/api/dto`는 없고
+// `improvement-v1` JSON을 영역별로 검증·변환한다(필수 필드 규칙은 이 파일의 검증기가 정본이다). 정적 파일이라 `src/api/dto`는 없고
 // 입력은 `unknown`이다. 한 영역이 오류여도 다른 영역은 정상 변환한다. `null`은 "값 없음"이라 0으로 바꾸지 않고,
 // 모르는 enum 값은 오류가 아니라 원문 문자열로 둔다.
 
@@ -128,7 +129,6 @@ export function toImprovementReport(json: unknown): ImprovementReport {
     schemaVersion,
     improvementId: reqString(root.improvementId, 'improvementId'),
     status: reqString(root.status, 'status'),
-    sample: root.sample === true,
     createdAt: stringOrNull(root.createdAt),
     finishedAt: stringOrNull(root.finishedAt),
     result,
@@ -149,6 +149,12 @@ export function toImprovementReport(json: unknown): ImprovementReport {
     ),
     scoreSource: stringOrNull(summary.scoreSource),
     headline: stringOrNull(summary.headline),
+    officialRejected: isObject(summary.officialRejected)
+      ? {
+          label: stringOrNull(summary.officialRejected.label),
+          reason: stringOrNull(summary.officialRejected.reason),
+        }
+      : null,
   }
 }
 
@@ -167,6 +173,33 @@ function scoresOrNull(value: unknown): ImprovementScores | null {
   return result.ok ? result.data : null
 }
 
+/** 점수 또는 `null`. BE는 B 점수를 모으지 못하면 `null`을 저장하므로 `null`은 값 없음이고, 숫자·`null`이 아니면 형식 오류다 */
+function reqScoreOrNull(value: unknown, path: string): number | null {
+  return value === null ? null : reqNumber(value, path)
+}
+
+function toOfficialScores(value: unknown): ImprovementOfficialScores {
+  const scores = reqObject(value, 'official.scores')
+  const guards = reqObject(scores.guardScores, 'official.scores.guardScores')
+  return {
+    mainScore: reqScoreOrNull(scores.mainScore, 'official.scores.mainScore'),
+    guardScores: Object.fromEntries(
+      Object.entries(guards).map(([key, score]) => [
+        key,
+        reqScoreOrNull(score, `official.scores.guardScores.${key}`),
+      ]),
+    ),
+  }
+}
+
+/** B 평가에서 탈락한 사유. BE `choose.rejected[0]`의 `reason`에 탈락한 지킬 목표를 `:S4`로 붙인다 */
+function officialRejectedReason(choose: Record<string, unknown> | null): string | null {
+  const first = choose && Array.isArray(choose.rejected) ? choose.rejected[0] : null
+  if (!isObject(first) || typeof first.reason !== 'string') return null
+  const goals = Array.isArray(first.guardGoals) ? stringList(first.guardGoals) : []
+  return goals.length > 0 ? `${first.reason}:${goals.join(',')}` : first.reason
+}
+
 /** `official`이 `null`이면 공식 평가 전이다. 키가 아예 없으면 형식 오류다 */
 export function toImprovementOfficial(value: unknown): ImprovementOfficial | null {
   if (value === null) return null
@@ -178,12 +211,12 @@ export function toImprovementOfficial(value: unknown): ImprovementOfficial | nul
     label: reqString(official.label, 'official.label'),
     siteLabel: site ? stringOrNull(site.siteLabel) : null,
     buildCheck: site ? stringOrNull(site.buildCheck) : null,
-    scores: toScores(official.scores, 'official.scores'),
+    scores: toOfficialScores(official.scores),
     // 참고용 A 방식 점수라 형식이 다르면 영역 오류 대신 `null`로 둔다
     scoresA: isObject(official.scoresA) ? scoresOrNull(official.scoresA) : null,
     maxDiffAvsB: numberOrNull(official.maxDiffAvsB),
-    chosen: choose ? stringOrNull(choose.adopted) : null,
-    rejected: choose ? stringList(choose.rejected) : [],
+    decision: stringOrNull(official.decision),
+    rejectedReason: officialRejectedReason(choose),
   }
 }
 
@@ -341,7 +374,7 @@ function toPlan(value: unknown): ImprovementPlan | null {
   if (!isObject(value)) return null
   const site = isObject(value.site) ? value.site : null
   return {
-    planId: stringOrNull(value.planId),
+    improvementPlanId: stringOrNull(value.improvementPlanId),
     persona: stringOrNull(value.persona),
     mainGoal: toGoal(value.mainGoal),
     guardGoals: Array.isArray(value.guardGoals)
@@ -376,7 +409,6 @@ export function toImprovementView(json: unknown): ImprovementView {
     plan: root ? toPlan(root.plan) : null,
     limitations: root ? stringOrNull(root.limitations) : null,
     meta: {
-      sample: root?.sample === true,
       status: root ? stringOrNull(root.status) : null,
       createdAt: root ? stringOrNull(root.createdAt) : null,
     },

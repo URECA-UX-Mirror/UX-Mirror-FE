@@ -50,3 +50,11 @@ mock 모드에서 ③ 결과 화면(`/runs/:runId/result`)은 시드 Run으로 �
 ## 브랜치
 
 `main`(제출용) ← `develop`(통합) ← `유형/이슈번호-간단한 내용`(각자 작업). PR은 1명 승인 후 머지. 브랜치·커밋·Issue·PR 규칙은 [AGENTS.md](AGENTS.md)를 따른다.
+
+## 배포 (Vercel)
+
+- `vercel.json`이 모든 경로를 `/index.html`로 보낸다. `BrowserRouter`를 쓰므로 `/scenario`, `/runs/:runId` 같은 경로에서 새로고침해도 404가 나지 않는다.
+- Production Branch는 `main`이다. `develop`에 push하면 Preview 배포가 만들어진다. 개발 중에는 `develop`의 Preview 주소(`<프로젝트>-git-develop-<팀>.vercel.app`)를 쓰고, 제출·심사 전에 `develop`을 `main`에 병합해 Production 주소를 쓴다.
+- Vercel의 Environment Variables에 `VITE_USE_MOCK=false`와 `VITE_API_BASE_URL`을 Production과 Preview 모두 넣는다. `VITE_` 변수는 빌드 때 번들에 들어가므로 값을 바꾸면 다시 배포해야 한다. 값이 없으면 기본값 `http://127.0.0.1:8000`으로 빌드된다.
+- 프론트는 HTTPS이므로 백엔드도 HTTPS여야 한다. 단, `http://127.0.0.1`은 브라우저가 예외로 허용하는 경우가 있어 백엔드를 띄운 PC의 브라우저에서만 동작한다. 다른 PC에서 쓰려면 백엔드를 HTTPS 주소로 공개한다.
+- 백엔드 `.env`의 `UXM_CORS_ORIGINS`에 Vercel 주소(Production, `develop` Preview)를 추가한다. 환경변수 규칙은 [로컬 환경](docs/operations/local-environment.md)을 따른다.

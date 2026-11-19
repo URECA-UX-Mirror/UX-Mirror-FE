@@ -95,3 +95,23 @@ it('관련 Step 로딩 중·누락을 구분하고 Run 전체 Issue에는 Step�
   rerender(<IssuePanel runId="run_test" steps={[]} stepsFailed={false} onRetrySteps={() => {}} issues={runIssue} pollingStatus="success" error={null} retrying={false} onRetry={() => {}} />)
   expect(within(screen.getByRole('region', { name: '검토 후보' })).queryByText('관련 Step')).toBeNull()
 })
+
+
+it('완료된 빈 후보는 유효성과 무효성을 구분한다', () => {
+  const empty = { ...issueList, items: [] }
+  const props = { runId: 'run_test', steps: [], stepsFailed: false, onRetrySteps: () => {},
+    issues: empty, pollingStatus: 'success' as const, error: null, retrying: false, onRetry: () => {} }
+  const view = render(<IssuePanel {...props} validity="VALID" />)
+  expect(screen.getByText('검토 후보 없음')).toBeTruthy()
+  view.rerender(<IssuePanel {...props} validity="INVALID" />)
+  expect(screen.getByText('무효 처리된 실행은 검토 후보를 분석하지 않았습니다')).toBeTruthy()
+})
+
+it('화면 이름을 변환하고 목표 미도달을 실행 전체 결과로 표시한다', () => {
+  const issues = { ...issueList, items: [{ ...issueList.items[0], issueType: 'GOAL_NOT_REACHED' }] }
+  render(<IssuePanel runId="run_test" steps={[]} stepsFailed={false} onRetrySteps={() => {}}
+    issues={issues} pollingStatus="success" error={null} retrying={false} onRetry={() => {}}
+    labelPage={() => '마이페이지'} validity="VALID" />)
+  fireEvent.click(screen.getByRole('button', { name: /메뉴 선택 확률 분산/ }))
+  expect(screen.getByText(/실행 전체 결과.*화면: 마이페이지/)).toBeTruthy()
+})

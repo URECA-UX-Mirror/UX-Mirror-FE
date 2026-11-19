@@ -12,6 +12,7 @@ import { StepMetricsPanel } from './StepMetricsPanel.tsx'
 
 interface PathPanelProps {
   runId: string
+  labelPage: (key: string) => string
   /** 경로 지표 기준(`Run.referenceBasis`) */
   basis: Open<ReferenceBasis> | null
   path: PathVisit[]
@@ -56,6 +57,7 @@ function edgeLabel(next: PathVisit, steps: Step[] | null): string {
 
 export function PathPanel({
   runId,
+  labelPage,
   basis,
   path,
   steps,
@@ -111,7 +113,7 @@ export function PathPanel({
                     <span className="num">{node.sequence}.</span>
                     {tag ? <span className="flow-node-tag">{tag}</span> : null}
                   </span>
-                  <strong>{node.pageKey}</strong>
+                  <strong>{labelPage(node.pageKey)}</strong>
                   <span className="mono">{node.path}</span>
                 </button>
                 {i < path.length - 1 ? (
@@ -133,7 +135,7 @@ export function PathPanel({
         <SectionTitle
           icon={<ColumnsIcon />}
           title="단계별 탐색 상세"
-          aside={`선택된 노드: ${visit.pageKey} (${visit.path})`}
+          aside={`선택된 노드: ${labelPage(visit.pageKey)} (${visit.path})`}
         />
         {visit.enteredBy === 'GO_BACK' && visit.visitCause === 'MODEL_BACK' ? (
           <p>이전 화면 복귀: 모델이 GO_BACK을 선택해 돌아온 화면입니다.</p>

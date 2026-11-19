@@ -5,7 +5,7 @@
 ## 반영 절차
 
 1. 정자비에게 전달받은 JSON을 아래 "공개 전 검사"로 확인한다.
-2. `public/improvements/<id>.json`에 넣는다. 샘플(`imp_SAMPLE_0001.json`)은 지우지 않는다.
+2. `public/improvements/<id>.json`에 넣는다. 샘플(`imp_SAMPLE_0001.json`)은 지우지 않는다. 현재 최종본은 `imp-1119.json`(`NO_IMPROVEMENT`)이다.
 3. 사이드바 링크가 최종본을 열도록 `src/features/improvement/constants.ts`의 `FINAL_IMPROVEMENT_ID`를 `<id>`로 채운다. 값이 `null`이면 링크는 보이지 않는다.
 4. `npm test`, `npm run lint`, `npm run build`, `git diff --check`를 실행하고 PR을 만든다(대상 `develop`).
 5. 머지 뒤 Vercel이 `develop`을 다시 배포하면 Preview 주소에서 확인한다. 제출·심사용 Production은 `develop`을 `main`에 병합한 뒤 확인한다([README](../../README.md)의 "배포").

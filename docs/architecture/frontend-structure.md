@@ -115,7 +115,7 @@
 - ② 실제 브라우저 검증: `VerificationSection`이 검증 상태와 목표별 저장 Run 요약을 표시한다. 종료된 유효 Run에만 재생 링크를, 양쪽 Run이 모두 종료된 유효 Run인 경우 비교 링크와 요약을 표시한다.
 - 보조 정보(`OfficialSection`)는 `official`의 최종안 이름·점수·`buildCheck`(`ONLY_LABEL_DIFF`는 "이름 외 차이 없음", 모르는 값은 원문)·`maxDiffAvsB`를 보이고 `official=null`이면 "공식 평가 결과 없음"이다. 한 영역이 오류이면 그 영역에만 "데이터 오류"와 사유를 보이고 다른 영역은 막지 않는다. `limitations` 문구는 항상 하단에 보이고, JSON에 없거나 비어 있으면 기본 안내(`DEFAULT_LIMITATIONS`)를 보인다.
 
-- 진입: 사이드바의 "자동 개선 리포트" 링크는 `features/improvement/constants.ts`의 `FINAL_IMPROVEMENT_ID`가 있을 때만 보이고 그 id의 화면을 연다. 값이 `null`이면(최종 JSON 반영 전) 링크를 보이지 않으며 샘플 id로는 연결하지 않는다. 샘플은 `/improvements/imp_SAMPLE_0001`을 직접 입력해 연다. 반영 절차는 [자동 개선 JSON 반영 절차](../operations/improvement-release.md)다.
+- 진입: 사이드바의 "자동 개선 리포트" 링크는 `features/improvement/constants.ts`의 `FINAL_IMPROVEMENT_ID`가 있을 때만 보이고 그 id의 화면을 연다. 값은 공식 실행 결과 `imp-1119`이고 `null`이면 링크를 보이지 않으며 샘플 id로는 연결하지 않는다. 샘플은 `/improvements/imp_SAMPLE_0001`을 직접 입력해 연다. 반영 절차는 [자동 개선 JSON 반영 절차](../operations/improvement-release.md)다.
 
 ### 저장된 실측 결과 재생
 
@@ -178,7 +178,7 @@ src/
     polling/               # poller.ts(간격·backoff 규칙), usePolling(범용 폴링 훅)
 public/
   mock/screens/            # 목업 쇼핑몰을 찍은 mock 스크린샷 PNG({before,after}/{home,mypage,orders,support,refund}.png)
-  improvements/            # 자동 개선 결과 정적 JSON(imp_SAMPLE_0001.json, OI-13)
+  improvements/            # 자동 개선 결과 정적 JSON(공식 imp-1119.json, 형식 샘플 imp_SAMPLE_0001.json, OI-13)
   mockServiceWorker.js     # MSW 생성 파일
 ```
 

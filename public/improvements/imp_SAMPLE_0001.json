@@ -80,7 +80,7 @@
         "rawResponseRef": "raw/round1_proposal_response.json",
         "filtered": [
           {"label": "주문·조회", "accepted": true, "rejectedReason": null},
-          {"label": "주문·환", "accepted": false, "rejectedReason": "TRUNCATED_WORD"},
+          {"label": "주문·환", "accepted": false, "rejectedReason": "TRUNCATED_LABEL"},
           {"label": "주문·관리", "accepted": true, "rejectedReason": null},
           {"label": "주문·서비스", "accepted": true, "rejectedReason": null},
           {"label": "주문·지원", "accepted": true, "rejectedReason": null}
@@ -88,8 +88,8 @@
       },
       "candidates": [
         {"candidateId": "R1-H1", "label": "주문·배송", "source": "HUMAN", "order": 1, "method": "A", "evaluationStatus": "COMPLETED", "layout": {"valid": true, "reasons": []}, "mainScore": 0.512, "guardScores": {"S2": 0.840, "S3": 0.880, "S4": 0.761}, "decision": "REJECTED", "reason": "NOT_BEST"},
-        {"candidateId": "R1-H2", "label": "주문·환불", "source": "HUMAN", "order": 2, "method": "A", "evaluationStatus": "COMPLETED", "layout": {"valid": true, "reasons": []}, "mainScore": 0.616, "guardScores": {"S2": 0.793, "S3": 0.921, "S4": 0.633}, "decision": "REJECTED", "reason": "GUARD_DROP:S4"},
-        {"candidateId": "R1-H3", "label": "주문·반품", "source": "HUMAN", "order": 3, "method": "A", "evaluationStatus": "COMPLETED", "layout": {"valid": true, "reasons": []}, "mainScore": 0.598, "guardScores": {"S2": 0.770, "S3": 0.905, "S4": 0.700}, "decision": "REJECTED", "reason": "GUARD_DROP:S4"},
+        {"candidateId": "R1-H2", "label": "주문·환불", "source": "HUMAN", "order": 2, "method": "A", "evaluationStatus": "COMPLETED", "layout": {"valid": true, "reasons": []}, "mainScore": 0.616, "guardScores": {"S2": 0.793, "S3": 0.921, "S4": 0.633}, "decision": "REJECTED", "reason": "GUARD_LOSS_EXCEEDED:S4"},
+        {"candidateId": "R1-H3", "label": "주문·반품", "source": "HUMAN", "order": 3, "method": "A", "evaluationStatus": "COMPLETED", "layout": {"valid": true, "reasons": []}, "mainScore": 0.598, "guardScores": {"S2": 0.770, "S3": 0.905, "S4": 0.700}, "decision": "REJECTED", "reason": "GUARD_LOSS_EXCEEDED:S4"},
         {"candidateId": "R1-H4", "label": "주문 관리", "source": "HUMAN", "order": 4, "method": "A", "evaluationStatus": "COMPLETED", "layout": {"valid": true, "reasons": []}, "mainScore": 0.540, "guardScores": {"S2": 0.802, "S3": 0.890, "S4": 0.758}, "decision": "ADOPTED", "reason": null},
         {"candidateId": "R1-A1", "label": "주문·조회", "source": "AI", "order": 5, "method": "A", "evaluationStatus": "COMPLETED", "layout": {"valid": true, "reasons": []}, "mainScore": 0.531, "guardScores": {"S2": 0.790, "S3": 0.880, "S4": 0.752}, "decision": "REJECTED", "reason": "TIE_LOST"},
         {"candidateId": "R1-A2", "label": "주문·관리", "source": "AI", "order": 6, "method": "A", "evaluationStatus": "COMPLETED", "layout": {"valid": true, "reasons": []}, "mainScore": 0.537, "guardScores": {"S2": 0.800, "S3": 0.889, "S4": 0.757}, "decision": "REJECTED", "reason": "TIE_LOST"},
@@ -113,7 +113,7 @@
         "filtered": [
           {"label": "주문내역", "accepted": true, "rejectedReason": null},
           {"label": "구매내역", "accepted": true, "rejectedReason": null},
-          {"label": "주문 관리", "accepted": false, "rejectedReason": "ALREADY_TRIED"}
+          {"label": "주문 관리", "accepted": false, "rejectedReason": "EXISTING_LABEL"}
         ]
       },
       "candidates": [
@@ -136,15 +136,15 @@
       "proposal": {
         "rawResponseRef": "raw/round3_proposal_response.json",
         "filtered": [
-          {"label": "주문·반품내역", "accepted": false, "rejectedReason": "TOO_LONG"},
+          {"label": "주문·반품내역", "accepted": false, "rejectedReason": "LABEL_TOO_LONG"},
           {"label": "내 주문", "accepted": true, "rejectedReason": null},
-          {"label": "구매내역", "accepted": false, "rejectedReason": "ALREADY_TRIED"},
+          {"label": "구매내역", "accepted": false, "rejectedReason": "EXISTING_LABEL"},
           {"label": "주문정보", "accepted": true, "rejectedReason": null}
         ]
       },
       "candidates": [
-        {"candidateId": "R3-A1", "label": "내 주문", "source": "AI", "order": 1, "method": "A", "evaluationStatus": "COMPLETED", "layout": {"valid": true, "reasons": []}, "mainScore": 0.721, "guardScores": {"S2": 0.815, "S3": 0.884, "S4": 0.759}, "decision": "REJECTED", "reason": "MAIN_GAIN_BELOW_MIN"},
-        {"candidateId": "R3-A2", "label": "주문정보", "source": "AI", "order": 2, "method": "A", "evaluationStatus": "COMPLETED", "layout": {"valid": true, "reasons": []}, "mainScore": 0.668, "guardScores": {"S2": 0.790, "S3": 0.872, "S4": 0.761}, "decision": "REJECTED", "reason": "MAIN_GAIN_BELOW_MIN"}
+        {"candidateId": "R3-A1", "label": "내 주문", "source": "AI", "order": 1, "method": "A", "evaluationStatus": "COMPLETED", "layout": {"valid": true, "reasons": []}, "mainScore": 0.721, "guardScores": {"S2": 0.815, "S3": 0.884, "S4": 0.759}, "decision": "REJECTED", "reason": "MAIN_GAIN_INSUFFICIENT"},
+        {"candidateId": "R3-A2", "label": "주문정보", "source": "AI", "order": 2, "method": "A", "evaluationStatus": "COMPLETED", "layout": {"valid": true, "reasons": []}, "mainScore": 0.668, "guardScores": {"S2": 0.790, "S3": 0.872, "S4": 0.761}, "decision": "REJECTED", "reason": "MAIN_GAIN_INSUFFICIENT"}
       ],
       "adopted": null
     }

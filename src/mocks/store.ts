@@ -186,12 +186,17 @@ function persist() {
   }
 }
 
-/** 생성 시각이 최근인 Run이 먼저 온다(`GET /api/runs`와 같은 순서). UX Optimizer 검증 Run도 포함한다 */
-export function allRuns(): RunRecord[] {
+/**
+ * 생성 시각이 최근인 Run이 먼저 온다(`GET /api/runs`와 같은 순서). UX Optimizer 검증 Run도 포함하되,
+ * 서버가 아직 만들지 않은 Run(`createdAtMs`가 `nowMs`보다 뒤)은 빼서 목록·health의 `activeRun`에 보이지 않게 한다
+ */
+export function allRuns(nowMs: number = Date.now()): RunRecord[] {
   return [
     ...SEEDS,
     ...Object.values(created),
-    ...allOptimizations().flatMap(verificationRuns),
+    ...allOptimizations()
+      .flatMap(verificationRuns)
+      .filter((run) => run.createdAtMs <= nowMs),
   ].sort(
     (a, b) => b.createdAtMs - a.createdAtMs,
   )
@@ -266,6 +271,13 @@ export function allOptimizations(): OptimizationRecord[] {
 
 export function findOptimization(optimizationId: string): OptimizationRecord | undefined {
   return allOptimizations().find((rec) => rec.optimizationId === optimizationId)
+}
+
+/** 테스트용: 만든 Optimization 기록과 검증 시작 시각을 지우고 시드 상태로 되돌린다 */
+export function resetMockOptimizations(): void {
+  optimizations.created = {}
+  optimizations.verifyAt = {}
+  persistOptimizations()
 }
 
 export function addOptimization(rec: OptimizationRecord): void {

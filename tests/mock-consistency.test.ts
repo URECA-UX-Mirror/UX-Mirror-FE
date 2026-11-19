@@ -4,8 +4,9 @@ import { buildIssues, buildRun, buildSteps, siteMapGoalProbability, specsOf } fr
 import * as siteMap from '../src/mocks/fixtures/siteMap.ts'
 import { scenarioForGoal, textVisibleOn, VISIBLE_TEXTS } from '../src/mocks/fixtures/scenario.ts'
 import { GOAL_PAGES } from '../src/features/new-analysis/constants.ts'
-import { buildOptimization, buildReport, EVAL_START_MS, EVAL_STEP_MS, verificationRuns } from '../src/mocks/fixtures/optimization.ts'
+import { buildOptimization, buildReport, EVAL_START_MS, EVAL_STEP_MS, RECHECK_MS, verificationRuns } from '../src/mocks/fixtures/optimization.ts'
 import { allRuns, findRun } from '../src/mocks/store.ts'
+import { resetMockOptimizations } from '../src/mocks/store.ts'
 import type { OptimizationRecord, OptimizationScenario, RunRecord } from '../src/mocks/store.ts'
 
 // MOCK의 goalReached는 시나리오가 끝났는지로 정해진다. 저장된 성공 조건(verification)과 어긋나지 않게,
@@ -295,6 +296,7 @@ it('Optimizer mock API: 생성 → 진행 조회 → (평가 뒤) 검증 시작�
     expect([invalid.status, await errorCode(invalid)]).toEqual([422, 'INVALID_SITE_INSTANCE'])
   } finally {
     vi.useRealTimers()
+    resetMockOptimizations()   // 미래 시각(2030)에 만든 기록이 뒤 테스트에서 진행 중으로 보이지 않게 한다
   }
 })
 
@@ -331,5 +333,30 @@ it('Optimizer mock API: 평가가 끝난 시드를 검증하면 202와 Run ID를
     expect(candidate.optimizationContext.executionRole).toBe('CANDIDATE')
   } finally {
     vi.useRealTimers()
+    resetMockOptimizations()   // 미래 시각(2030)에 만든 기록이 뒤 테스트에서 진행 중으로 보이지 않게 한다
+  }
+})
+
+it('Optimizer mock API: 검증 시작 직후·기준 단계에는 아직 만들지 않은 후보 Run이 health·목록에 보이지 않는다', async () => {
+  vi.useFakeTimers({ toFake: ['Date'] })
+  try {
+    const t0 = Date.parse('2031-01-01T00:00:00Z')
+    vi.setSystemTime(t0)
+    expect((await post('/opt_mock_evaluated/verify')).status).toBe(202)
+    const baseline = 'run_opt_mock_evaluated_baseline'
+    const activeRun = async () => ((await (await fetch(apiUrl('/api/health'))).json()) as { activeRun: string | null }).activeRun
+    const listed = async () => ((await (await fetch(apiUrl('/api/runs?experimentKey=opt_mock_evaluated'))).json()) as { items: { runId: string }[] }).items.map((r) => r.runId)
+
+    // 사이트 재확인 중: Run이 아직 없다
+    vi.setSystemTime(t0 + RECHECK_MS - 1)
+    expect([await activeRun(), await listed()]).toEqual([null, []])
+    expect((await fetch(apiUrl(`/api/runs/${baseline}`))).status).toBe(404)
+    // 기준 Run 실행 중: 기준 Run만 있고 activeRun도 기준 Run이다
+    vi.setSystemTime(t0 + RECHECK_MS + 2000)
+    expect([await activeRun(), await listed()]).toEqual([baseline, [baseline]])
+    expect((await fetch(apiUrl('/api/runs/run_opt_mock_evaluated_candidate'))).status).toBe(404)
+  } finally {
+    vi.useRealTimers()
+    resetMockOptimizations()
   }
 })

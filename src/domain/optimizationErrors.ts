@@ -9,7 +9,7 @@ const MESSAGES: Readonly<Record<string, string>> = {
   OPTIMIZATION_ALREADY_PROCESSED: '이미 검증 중이거나 완료된 후보 평가입니다.',
   RUN_ALREADY_ACTIVE: '다른 실행이나 후보 평가가 진행 중입니다. 끝난 뒤 다시 시도해 주세요.',
   INVALID_SITE_INSTANCE: '후보 사이트가 서버에 등록되어 있지 않아 검증할 수 없습니다.',
-  EXPERIMENT_CONDITION_MISMATCH: '후보 평가를 만든 뒤 목표·모델 설정이 바뀌어 검증할 수 없습니다. 후보 평가를 새로 시작해 주세요.',
+  EXPERIMENT_CONDITION_MISMATCH: '목표·사용자 유형·모델 설정이 후보 평가를 만들 때와 달라 진행할 수 없습니다. 설정을 확인한 뒤 후보 평가를 새로 시작해 주세요.',
   MODEL_UNAVAILABLE: '모델을 사용할 수 없습니다. 잠시 뒤 다시 시도해 주세요.',
   OPTIMIZER_POLICY_UNAVAILABLE: '후보 선정·판단 모듈을 사용할 수 없습니다. 서버 설정을 확인해 주세요.',
   // 실패한 Optimization의 원인 (`error.failedPhase`가 단계를 알려 준다)

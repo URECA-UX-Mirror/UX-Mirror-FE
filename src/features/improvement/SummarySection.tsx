@@ -6,6 +6,11 @@ interface SummarySectionProps {
   report: ImprovementReport
   /** `plan.rules.maxGuardLoss`(0~1). 없으면 허용 범위 판정을 하지 않는다 */
   maxGuardLoss: number | null
+  /**
+   * `final`: 끝난 결과. `pending`: 공식 평가 중(루프 후보, 탈락하거나 점수가 바뀔 수 있음).
+   * `unfinished`: 평가를 끝내지 못함(실패·중단). 확정 안 된 후보는 "바꿔 보세요"라고 권하지 않는다.
+   */
+  stage?: 'final' | 'pending' | 'unfinished'
 }
 
 /** 점수 출처. 모르는 값은 원문으로 보인다 */
@@ -18,7 +23,8 @@ const SOURCE_LABELS: Record<string, string> = { AI: 'AI 제안', HUMAN: '사람 
 /** 부동소수점 오차로 정확히 경계인 값(−2.0%p)이 범위 밖이 되지 않게 한다 */
 const EPSILON = 1e-9
 
-export function SummarySection({ report, maxGuardLoss }: SummarySectionProps) {
+export function SummarySection({ report, maxGuardLoss, stage = 'final' }: SummarySectionProps) {
+  const final = stage === 'final'
   const improved = report.result === 'IMPROVED'
   const rejected = report.result === 'NO_IMPROVEMENT'
   const headline = report.headline
@@ -34,7 +40,7 @@ export function SummarySection({ report, maxGuardLoss }: SummarySectionProps) {
       {headline ? <p className="summary-headline">{headline}</p> : null}
 
       <div className="summary-block">
-        <h3>무엇을 바꾸면 되나</h3>
+        <h3>{final ? '무엇을 바꾸면 되나' : '지금까지 찾은 후보'}</h3>
         {!improved ? (
           <p className="summary-rejected">
             {/* 모르는 result 값도 사용자 말로 보이고, 후 값은 `NO_IMPROVEMENT`처럼 숨긴다 */}
@@ -55,7 +61,7 @@ export function SummarySection({ report, maxGuardLoss }: SummarySectionProps) {
             {report.target?.region ? <span className="summary-region">{report.target.region} </span> : null}
             "<span>{report.beforeLabel}</span>"
             <span aria-hidden="true"> → </span>
-            "<strong>{report.afterLabel ?? SCORE_NULL_TEXT}</strong>"(으)로 바꿔 보세요
+            "<strong>{report.afterLabel ?? SCORE_NULL_TEXT}</strong>"{final ? '(으)로 바꿔 보세요' : ' 후보'}
             {report.afterSource ? (
               <span className="summary-source">
                 {SOURCE_LABELS[report.afterSource] ?? '제안'}
@@ -63,7 +69,12 @@ export function SummarySection({ report, maxGuardLoss }: SummarySectionProps) {
             ) : null}
           </p>
         )}
-
+        {stage === 'pending' && improved ? (
+          <p role="status" className="summary-provisional">아직 확정이 아니에요. 개선안 화면에서 공식 평가 중이라 탈락하거나 점수가 바뀔 수 있어요.</p>
+        ) : null}
+        {stage === 'unfinished' && improved ? (
+          <p role="status" className="summary-provisional">평가를 끝내지 못해 확정되지 않은 후보예요. 이 이름으로 바꾸라고 권하지 않아요.</p>
+        ) : null}
       </div>
 
       <div className="summary-block">

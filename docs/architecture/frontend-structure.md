@@ -45,7 +45,7 @@
 
 ### 3. 진단 결과
 
-- 화면 맨 위는 진단서(`DiagnosisCard`)다: 결론 한 줄("n번 만에 OO 화면에 도착했어요" / "OO 화면을 찾지 못했어요"), 멈춘 이유(`stopReasonLabel`), 첫 화면에서 이 고객이 누를 가능성 상위 4개 막대(AI 개선이 바꿀 수 있는 메뉴는 강조), 다음 할 일 버튼("AI에게 고쳐 달라고 하기" → `POST /api/improvements {sourceRunId}`). 버튼은 서버가 받는 진단에만 보인다: 끝났고(`isTerminalStatus`, 목표에 못 간 `BLOCKED`·`MAX_STEPS`도 포함) `validity`가 `VALID`이며 `variant=before`, `siteId`·`optimizationContext`·`improvementContext`가 없는 MORO MARKET 진단(그 밖은 서버가 `422`). 개선안(`variant=after`) 진단 버튼은 없다. 서버의 고정 개선안 사이트는 AI가 방금 고른 이름과 다를 수 있어서이고, AI 개선 결과 화면이 고른 이름으로 다시 확인한 뒤 "나란히 비교하기"로 잇는다([OI-14](../operations/open_issue.md#oi-14)).
+- 화면 맨 위는 진단서(`DiagnosisCard`)다: 결론 한 줄("n번 만에 OO 화면에 도착했어요" / "OO 화면을 찾지 못했어요" / 무효·오류·도달 여부 없음이면 "진단을 끝내지 못했어요"와 다시 진단 안내), 멈춘 이유(`stopReasonLabel`), 첫 화면에서 이 고객이 누를 가능성 상위 4개 막대(AI 개선이 바꿀 수 있는 메뉴는 강조), 다음 할 일 버튼("AI에게 고쳐 달라고 하기" → `POST /api/improvements {sourceRunId}`). 버튼은 서버가 받는 진단에만 보인다: 끝났고(`isTerminalStatus`, 목표에 못 간 `BLOCKED`·`MAX_STEPS`도 포함) `validity`가 `VALID`이며 `variant=before`, `siteId`·`optimizationContext`·`improvementContext`가 없는 MORO MARKET 진단(그 밖은 서버가 `422`). 개선안(`variant=after`) 진단 버튼은 없다. 서버의 고정 개선안 사이트는 AI가 방금 고른 이름과 다를 수 있어서이고, AI 개선 결과 화면이 고른 이름으로 다시 확인한 뒤 "나란히 비교하기"로 잇는다([OI-14](../operations/open_issue.md#oi-14)).
 - 그 아래로 진단 정보 카드(상태, 일시, 고객 유형, 하려는 일), 요약 카드 3개(목표 달성, 클릭 수, 살펴볼 점)와 접힌 전체 요약, AI 탐색 경로(노드 사이에 그 이동을 만든 행동), 단계별 탐색 상세(스크린샷과 의사결정 2단), UX 검토 후보 카드, 다른 실행 보기다.
 - 요약(끝난 이유, 목표 달성, 클릭 수, 누른·뒤로 가기 횟수, 살펴볼 점 수)은 `Run.summary`를 그대로 쓰고, 코드값은 `shared/runLabels.ts`로 바꿔 보인다.
 - 탐색 경로의 노드는 `summary.path`(`PathVisit`)다. `PathVisit.stepId`는 그 노드에 **들어오게 만든** Step이다(시작 화면과 시스템 BACK은 `null`, `계약 §6.4`). 한 노드의 화면에서 모델이 판단한 Step은 **다음 노드의 `stepId`**(노드 사이 화살표의 `CLICK [후보 이름]`도 이 Step에서 가져온다)이므로, 노드를 고르면 다음 노드의 `stepId`로 Step·스크린샷·확률·지표를 찾는다. 다음 노드가 없거나(도착 화면) 그 `stepId`가 `null`이면 Step 이미지가 없다. 이때 마지막 노드이고 `Run.terminationReason`이 `GOAL_VERIFIED`이면 `GET /api/runs/{runId}/screenshots/goal`로 도착 화면 이미지를 bbox 없이 표시하고, `404`·로드 실패면 "도착 화면 이미지 없음", 다른 종료 사유면 "마지막 화면 이미지 없음"을 표시한다. [OI-3](../operations/open_issue.md#oi-3)
@@ -109,6 +109,8 @@
 
 - 시작: `/improvements`에서 진단하기와 같은 세 칸을 채워 `POST /api/improvements`(`{goal, persona, goalPage}`)를 보내거나, 진단 결과 화면의 "AI에게 고쳐 달라고 하기"가 `{sourceRunId}`로 보낸다. `409`(다른 진단 중)·`503`(꺼져 있음)·`422`(입력)는 사용자 말로 안내한다(`startErrorMessage`).
 - 결과: `useImprovement`가 `GET /api/improvements/{id}`를 읽고, 진행 중(`ACTIVE_JOB_STATUSES`)이면 3초마다 다시 읽는다. 상태는 로딩·성공·찾을 수 없음·오류다. 진행 중이면 단계(`phase`: 이름 후보 시험 → 개선안 화면 만들기 → 다시 확인)를 체크 목록으로, 실패·중단이면 안내를 보인다. 보고서(`improvement`)가 있으면 `toImprovementView`로 바꿔 영역별로 보인다.
+- 조회가 실패해도 멈추지 않는다: 받은 내용이 있으면 그대로 보이며 "서버에 잠시 연결하지 못해…" 안내와 함께 5초마다 다시 읽고, 처음부터 실패하면 "지금 다시 불러오기" 버튼과 자동 재시도로 복구한다.
+- 보고서가 확정인지 구분한다: 진행 중(공식 평가 전)이면 "개선 효과 (확정 전)"·"지금까지 찾은 후보"로 보이고 탈락하거나 점수가 바뀔 수 있다고 알린다. 실패·중단이면 "확정되지 않은 후보"로만 보인다. 끝난 결과만 "(으)로 바꿔 보세요"라고 권한다.
 - 맨 위에는 입력 한 줄("OO 고객이 OO 때, OO 화면까지 잘 찾아오도록")과 결과 출처(`kind`) 태그가 있다(`kindLabel`: `OFFICIAL` "사전 등록 공식 결과", `LIVE` "심사위원 실행 (공식 기록 아님)", `UNKNOWN`·모르는 값 "출처 확인 안 된 결과").
 - 개선 효과(`SummarySection`)는 "'이용정보' → 'OO'(으)로 바꿔 보세요"와 주 목표·다른 고객(지킬 목표)의 전후 점수를 보인다. 바꾸지 못했으면 이유를 사용자 말로 보인다. 개선안에서 다시 확인한 결과(`VerificationSection`)는 지금 화면/개선안 각각 도착했는지와 "나란히 비교하기" 링크를 보인다. 회차 기록은 접혀 있고, 점수 계산(`OfficialSection`)은 "점수 계산 자세히 보기"에 접어 둔다. 한 영역이 오류여도 그 영역에만 안내를 보인다. 결과 아래에는 "AI 고객 기준 결과" 안내를 항상 보인다.
 

@@ -42,7 +42,8 @@ function ImprovementDetail({ improvementId }: { improvementId: string }) {
     return (
       <Page>
         <p role="alert" className="error-notice">
-          {state.phase === 'notFound' ? 'AI 개선 결과를 찾을 수 없어요.' : 'AI 개선 결과를 불러오지 못했어요. 잠시 뒤 다시 열어 주세요.'}
+          {state.phase === 'notFound' ? 'AI 개선 결과를 찾을 수 없어요.' : 'AI 개선 결과를 불러오지 못했어요. 자동으로 다시 시도하고 있어요.'}
+          {state.phase === 'error' ? <> <button type="button" onClick={state.retry}>지금 다시 불러오기</button></> : null}
         </p>
         <Link to="/improvements">{PAGE_NAMES.improvement} 목록 보기</Link>
       </Page>
@@ -52,10 +53,16 @@ function ImprovementDetail({ improvementId }: { improvementId: string }) {
   const { job, view } = state
   return (
     <Page kind={job.kind}>
+      {state.stale ? (
+        <p role="status" className="busy-notice">
+          서버에 잠시 연결하지 못해 마지막으로 받은 내용을 보여 주고 있어요. 자동으로 다시 시도하고 있어요.{' '}
+          <button type="button" onClick={state.retry}>지금 다시 불러오기</button>
+        </p>
+      ) : null}
       <InputLine job={job} />
       {isActiveJob(job) ? <Progress job={job} /> : null}
       {job.status === 'FAILED' || job.status === 'INTERRUPTED' ? <Failed job={job} /> : null}
-      {view ? <Report view={view} running={isActiveJob(job)} /> : job.status === 'COMPLETED' ? (
+      {view ? <Report view={view} running={isActiveJob(job)} stage={stageOf(job)} /> : job.status === 'COMPLETED' ? (
         <p role="status" className="card">결과를 아직 보여줄 수 없어요. 잠시 뒤 다시 열어 주세요.</p>
       ) : null}
     </Page>
@@ -115,12 +122,18 @@ function Failed({ job }: { job: ImprovementJobDto }) {
   )
 }
 
-function Report({ view, running }: { view: ReportView; running: boolean }) {
+/** 리포트가 확정인지: 끝남 → final, 진행 중 → pending(공식 평가 전), 실패·중단 → unfinished */
+function stageOf(job: ImprovementJobDto): 'final' | 'pending' | 'unfinished' {
+  if (isActiveJob(job)) return 'pending'
+  return job.status === 'COMPLETED' ? 'final' : 'unfinished'
+}
+
+function Report({ view, running, stage }: { view: ReportView; running: boolean; stage: 'final' | 'pending' | 'unfinished' }) {
   return (
     <>
-      <AreaSlot title="개선 효과" area={view.report}>
+      <AreaSlot title={stage === 'final' ? '개선 효과' : '개선 효과 (확정 전)'} area={view.report}>
         {view.report.ok ? (
-          <SummarySection report={view.report.data} maxGuardLoss={maxGuardLossOf(view.plan?.rules ?? null)} />
+          <SummarySection report={view.report.data} maxGuardLoss={maxGuardLossOf(view.plan?.rules ?? null)} stage={stage} />
         ) : null}
       </AreaSlot>
       {running ? null : (

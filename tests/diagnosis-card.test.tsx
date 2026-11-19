@@ -147,3 +147,26 @@ it('목표에 못 가고 멈춘(MAX_STEPS·BLOCKED) 유효한 진단도 AI 개�
     view.unmount()
   }
 })
+
+it.each<[string, Partial<Run>]>([
+  ['무효 처리된 진단', { validity: 'INVALID', status: 'ERROR', terminationReason: 'BROWSER_ERROR' }],
+  ['오류로 끝난 진단', { status: 'ERROR', terminationReason: 'PAGE_LOAD_FAILED' }],
+  ['도달 여부가 없는 진단', { summary: null }],
+])('%s은 "찾지 못했어요"가 아니라 진단을 끝내지 못했다고 보인다', (_name, over) => {
+  const base = runOf('run_mock_maxsteps')
+  const run = { ...base, ...over } as Run
+  const { container } = renderCard(run, null)
+  const card = screen.getByRole('region', { name: '진단 요약' })
+  expect(card.textContent).toContain('진단을 끝내지 못했어요.')
+  expect(card.textContent).toContain('같은 조건으로 다시 진단해 주세요.')
+  expect(card.querySelector('.diagnosis-headline')?.textContent).toBe('진단을 끝내지 못했어요.')
+  expect(container.querySelector('[data-reached="unfinished"]')).toBeTruthy()
+  expect(screen.queryByRole('button', { name: 'AI에게 고쳐 달라고 하기' })).toBeNull()
+})
+
+it('정상으로 탐색했지만 목표에 못 간 진단만 "찾지 못했어요"라고 보인다', () => {
+  renderCard(runOf('run_mock_maxsteps'), null)
+  const card = screen.getByRole('region', { name: '진단 요약' })
+  expect(card.textContent).toContain('화면을 찾지 못했어요.')
+  expect(card.textContent).not.toContain('진단을 끝내지 못했어요')
+})

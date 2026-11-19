@@ -37,13 +37,16 @@ export function DiagnosisCard({ run, steps }: { run: Run; steps: Step[] | null }
   const [pending, setPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const reached = run.summary?.goalReached === true
+  // 무효(브라우저 오류 등)·오류로 끝났거나 도달 여부가 없으면 "못 찾음"이 아니라 "진단을 끝내지 못함"이다
+  const unfinished = run.validity === 'INVALID' || run.status === 'ERROR' || (isTerminalStatus(run.status) && typeof run.summary?.goalReached !== 'boolean')
+  const outcome = reached ? 'yes' : unfinished ? 'unfinished' : 'no'
   const screen = GOAL_SCREENS.find((s) => s.path === run.verification?.path)
   const goalName = screen?.label ?? (run.verification?.text ? `'${run.verification.text}'` : '목표')
   const clicks = run.summary?.stepCount ?? null
   const first = steps?.[0]
   const ranked = first ? [...first.candidates].sort((a, b) => b.probability - a.probability).slice(0, TOP) : []
   const editable = first?.candidates.find((c) => c.href === EDITABLE_HREF) ?? null
-  const improvable = canStartImprovement(run)
+  const improvable = canStartImprovement(run) && outcome !== 'unfinished'
 
   async function improve() {
     setPending(true)
@@ -59,13 +62,23 @@ export function DiagnosisCard({ run, steps }: { run: Run; steps: Step[] | null }
   }
 
   return (
-    <section className="card diagnosis-card" aria-label="진단 요약" data-reached={reached ? 'yes' : 'no'}>
+    <section className="card diagnosis-card" aria-label="진단 요약" data-reached={outcome}>
       <p className="diagnosis-headline">
-        {reached
+        {outcome === 'yes'
           ? `${clicks !== null ? `${clicks}번 만에 ` : ''}${goalName} 화면에 도착했어요.`
-          : `${goalName} 화면을 찾지 못했어요.`}
+          : outcome === 'unfinished'
+            ? '진단을 끝내지 못했어요.'
+            : `${goalName} 화면을 찾지 못했어요.`}
       </p>
-      {!reached && stopReasonLabel(run.terminationReason) ? <p className="diagnosis-reason">{stopReasonLabel(run.terminationReason)}</p> : null}
+      {outcome === 'unfinished' ? (
+        <p className="diagnosis-reason">
+          {run.validity === 'INVALID' ? '이 진단은 결과로 쓸 수 없어요. ' : ''}
+          {run.terminationReason && run.terminationReason !== 'GOAL_VERIFIED' ? `${stopReasonLabel(run.terminationReason)}. ` : ''}
+          같은 조건으로 다시 진단해 주세요.
+        </p>
+      ) : outcome === 'no' && stopReasonLabel(run.terminationReason) ? (
+        <p className="diagnosis-reason">{stopReasonLabel(run.terminationReason)}</p>
+      ) : null}
 
       {ranked.length ? (
         <div className="diagnosis-first">

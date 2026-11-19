@@ -2580,3 +2580,15 @@ p {
     line-height: 27px;
   }
 }
+
+.summary-provisional {
+  margin: var(--um-space-2) 0 0;
+  padding: var(--um-space-2) var(--um-space-3);
+  border-radius: var(--um-radius-control);
+  color: var(--um-warning-text);
+  background: var(--um-warning-bg);
+}
+
+.diagnosis-card[data-reached='unfinished'] {
+  border-left-color: var(--um-danger);
+}

@@ -7,7 +7,7 @@ import { afterEach, expect, it, vi } from 'vitest'
 import { apiUrl } from '../src/api/client.ts'
 import type { ImprovementJobDto } from '../src/api/improvements.ts'
 import { ImprovementPage } from '../src/features/improvement/ImprovementPage.tsx'
-import { IMPROVEMENT_POLL_MS } from '../src/features/improvement/useImprovement.ts'
+import { IMPROVEMENT_POLL_MS, IMPROVEMENT_RETRY_MS } from '../src/features/improvement/useImprovement.ts'
 import { errorResponse } from '../src/mocks/errors.ts'
 import { server } from './setup.ts'
 
@@ -168,8 +168,80 @@ it('루프가 끝나 리포트가 생긴 뒤에도 진행 중이면 다시 확�
   renderPage()
   const progress = await screen.findByRole('region', { name: '진행 상황' })
   expect(within(progress).getAllByRole('listitem').map((li) => li.dataset.state)).toEqual(['done', 'done', 'doing'])
-  expect(screen.getByRole('region', { name: '개선 효과' })).toBeTruthy()
+  expect(screen.getByRole('region', { name: '개선 효과 (확정 전)' })).toBeTruthy()
   expect(screen.queryByRole('region', { name: '개선안에서 다시 확인한 결과' })).toBeNull()
+})
+
+it('공식 평가 중인 후보는 확정 전으로 보이고 "바꿔 보세요"라고 권하지 않는다', async () => {
+  serve(job({ status: 'RUNNING', phase: 'OFFICIAL_AND_VERIFY' }))
+  renderPage()
+  const area = await screen.findByRole('region', { name: '개선 효과 (확정 전)' })
+  expect(within(area).getByRole('heading', { name: '지금까지 찾은 후보' })).toBeTruthy()
+  expect(area.textContent).toContain('"주문내역" 후보')
+  expect(area.textContent).toContain('아직 확정이 아니에요')
+  expect(area.textContent).not.toContain('바꿔 보세요')
+})
+
+it('진행 중 후보가 공식 평가에서 탈락하면 끝난 결과에 탈락을 보이고 바꾸라고 권하지 않는다', async () => {
+  vi.useFakeTimers({ shouldAdvanceTime: true })
+  let calls = 0
+  serve(() => {
+    calls += 1
+    if (calls === 1) return job({ status: 'RUNNING', phase: 'OFFICIAL_AND_VERIFY' })
+    const report = improved()
+    report.summary = { ...report.summary, result: 'NO_IMPROVEMENT', afterLabel: null,
+      officialRejected: { label: '주문내역', reason: 'MAIN_GAIN_INSUFFICIENT' } }
+    return job({ improvement: report })
+  })
+  renderPage()
+  expect((await screen.findByRole('region', { name: '개선 효과 (확정 전)' })).textContent).toContain('"주문내역" 후보')
+  await act(async () => { await vi.advanceTimersByTimeAsync(IMPROVEMENT_POLL_MS) })
+  const area = await screen.findByRole('region', { name: '개선 효과' })
+  expect(area.textContent).toContain('좋아지지 않았어요')
+  expect(area.textContent).toContain('"주문내역"도 기준을 넘지 못했어요')
+  expect(area.textContent).not.toContain('바꿔 보세요')
+})
+
+it.each(['FAILED', 'INTERRUPTED'])('%s인데 루프 후보가 있으면 확정되지 않은 후보로만 보인다', async (status) => {
+  serve(job({ status, phase: 'OFFICIAL_AND_VERIFY', error: { code: 'X', message: '공식 평가 중 오류가 났어요.' } }))
+  renderPage()
+  const area = await screen.findByRole('region', { name: '개선 효과 (확정 전)' })
+  expect(area.textContent).toContain('확정되지 않은 후보예요')
+  expect(area.textContent).not.toContain('바꿔 보세요')
+})
+
+it('조회가 한 번 실패해도 자동으로 다시 시도해 이어서 완료 결과를 보인다', async () => {
+  vi.useFakeTimers({ shouldAdvanceTime: true })
+  let calls = 0
+  server.use(http.get(apiUrl('/api/improvements/:improvementId'), () => {
+    calls += 1
+    if (calls === 1) return HttpResponse.json(job({ status: 'RUNNING', phase: 'LOOP', improvement: null }))
+    if (calls === 2) return HttpResponse.error()
+    return HttpResponse.json(job())
+  }))
+  renderPage()
+  await screen.findByRole('region', { name: '진행 상황' })
+  await act(async () => { await vi.advanceTimersByTimeAsync(IMPROVEMENT_POLL_MS) })
+  expect((await screen.findByText(/서버에 잠시 연결하지 못해/)).textContent).toContain('자동으로 다시 시도')
+  expect(screen.getByRole('region', { name: '진행 상황' })).toBeTruthy()   // 받은 내용은 그대로
+  await act(async () => { await vi.advanceTimersByTimeAsync(IMPROVEMENT_RETRY_MS) })
+  expect(await screen.findByRole('region', { name: '개선 효과' })).toBeTruthy()
+  expect(screen.queryByText(/서버에 잠시 연결하지 못해/)).toBeNull()
+  expect(calls).toBe(3)
+})
+
+it('처음 조회부터 실패하면 다시 불러오기 버튼과 자동 재시도로 복구한다', async () => {
+  vi.useFakeTimers({ shouldAdvanceTime: true })
+  let calls = 0
+  server.use(http.get(apiUrl('/api/improvements/:improvementId'), () => {
+    calls += 1
+    return calls === 1 ? HttpResponse.error() : HttpResponse.json(job())
+  }))
+  renderPage()
+  const alert = await screen.findByRole('alert')
+  expect(within(alert).getByRole('button', { name: '지금 다시 불러오기' })).toBeTruthy()
+  await act(async () => { await vi.advanceTimersByTimeAsync(IMPROVEMENT_RETRY_MS) })
+  expect(await screen.findByRole('region', { name: '개선 효과' })).toBeTruthy()
 })
 
 it('진행 중이면 3초마다 다시 읽고, 끝나면 결과를 보이고 멈춘다', async () => {

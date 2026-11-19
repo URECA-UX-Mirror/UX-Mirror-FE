@@ -5,6 +5,7 @@ import { OfficialSection } from './OfficialSection.tsx'
 import { SummarySection } from './SummarySection.tsx'
 import { VerificationSection } from './VerificationSection.tsx'
 import { useImprovement } from './useImprovement.ts'
+import { RoundsSection } from './RoundsSection.tsx'
 import './improvement.css'
 
 /** JSON에 `limitations`가 없거나 비어 있을 때 쓰는 기본 안내 */
@@ -100,7 +101,7 @@ function ImprovementView({ improvementId }: { improvementId: string }) {
           />
         ) : null}
       </AreaSlot>
-      {!view.rounds.ok ? <AreaSlot title="개선 회차" area={view.rounds} /> : null}
+      {view.rounds.ok ? <RoundsSection rounds={view.rounds.data} stop={view.stop} goals={view.plan?.guardGoals ?? []} /> : <AreaSlot title="개선 회차" area={view.rounds} />}
 
       {/* 영역 오류나 `limitations` 누락과 상관없이 항상 보인다 */}
       <p className="improvement-limitations">

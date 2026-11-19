@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useId, useState } from 'react'
 import { Link, useNavigate } from 'react-router'
 import { isAbortError, isApiError } from '../../api/client.ts'
 import { createRun } from '../../api/runs.ts'
@@ -108,8 +108,8 @@ export function ScenarioPage() {
         <fieldset className="card">
           <legend>시나리오 조건</legend>
           <p className="muted">메뉴 이름 대신 사용자 상황으로 적어 주세요. 예: {GOAL_EXAMPLES.join(' / ')}</p>
-          <SentenceInput title="상황 문장(목표)" label="상황 문장" placeholder={`예: ${GOAL_EXAMPLES[0]}`} value={goalText} onChange={setGoalText} />
-          <SentenceInput title="사용자 유형" label="사용자 유형 문장" placeholder={`예: ${PERSONA_EXAMPLE}`} value={personaText} onChange={setPersonaText} />
+          <SentenceInput title="상황 문장(목표)" label="상황 문장" placeholder={`예: ${GOAL_EXAMPLES[0]}`} value={goalText} onChange={(t) => { setGoalText(t); setSubmitError(null) }} />
+          <SentenceInput title="사용자 유형" label="사용자 유형 문장" placeholder={`예: ${PERSONA_EXAMPLE}`} value={personaText} onChange={(t) => { setPersonaText(t); setSubmitError(null) }} />
           <div className="field">
             <label htmlFor="scenario-page">도착 화면</label>
             <select id="scenario-page" value={page?.pageKey ?? ''} onChange={(e) => { setPageKey(e.target.value); setSubmitError(null) }}>
@@ -129,7 +129,7 @@ export function ScenarioPage() {
               <button type="button" aria-label="탐색 횟수 늘리기" disabled={typeof maxSteps === 'number' && maxSteps >= STEPS.max} onClick={() => adjustSteps(1)}>+</button>
             </div>
           </div>
-          {!validSteps && <p role="alert">최대 탐색 횟수는 1~15 사이의 정수여야 합니다.</p>}
+          {!validSteps && <p role="alert">최대 탐색 횟수는 {STEPS.min}~{STEPS.max} 사이의 정수여야 합니다.</p>}
         </fieldset>
       )}
 
@@ -143,8 +143,8 @@ export function ScenarioPage() {
             // 진행 중인 Run 링크는 엔진 상태를 다시 읽은 뒤 위의 `activeRun` 안내가 맡는다
             ? (activeRun ? null : <p role="alert">다른 분석이 실행 중입니다.</p>)
             : isApiError(submitError) && submitError.status === 503
-              ? <div role="alert"><p>{submitError.message.trim() || '실행 환경을 준비하지 못했습니다.'}</p><p>Run은 생성되지 않았습니다.</p>{submitError.retryable && <button type="button" disabled={!ready} onClick={() => void start()}>다시 시도</button>}</div>
-              : <ErrorNotice error={submitError} onRetry={() => void start()} />
+              ? <div role="alert"><p>{submitError.message.trim() || '실행 환경을 준비하지 못했습니다.'}</p>{code === 'BROWSER_ERROR' && <p>Run은 생성되지 않았습니다.</p>}{submitError.retryable && <button type="button" disabled={!ready} onClick={() => void start()}>다시 시도</button>}</div>
+              : <ErrorNotice error={submitError} onRetry={ready ? () => void start() : undefined} />
       ) : null}
 
       <div className="scenario-actions">
@@ -155,15 +155,16 @@ export function ScenarioPage() {
 }
 
 function SentenceInput({ title, label, placeholder, value, onChange }: { title: string; label: string; placeholder: string; value: string; onChange: (text: string) => void }) {
+  const id = useId()
   const length = value.trim().length
   const max = INPUT_LIMITS.sentence
   return (
     <div className="field">
       <div className="field-head">
-        <span>{title}</span>
+        <label htmlFor={id}>{title}</label>
         <small className={length > max ? 'over' : 'muted'}>{length}/{max}자</small>
       </div>
-      <input aria-label={label} value={value} placeholder={placeholder} onChange={(e) => onChange(e.target.value)} />
+      <input id={id} aria-label={label} value={value} placeholder={placeholder} onChange={(e) => onChange(e.target.value)} />
       {length > max && <span role="alert" className="field-error">{label}은 {max}자 이하로 입력해 주세요.</span>}
     </div>
   )

@@ -74,5 +74,5 @@ it('/scenario에서 상단 바에 화면 이름을 보인다', () => {
       </Routes>
     </MemoryRouter>,
   )
-  expect(screen.getAllByText('시나리오 테스트').length).toBeGreaterThan(1)
+  expect(screen.getByLabelText('현재 위치').textContent).toContain('시나리오 테스트')
 })

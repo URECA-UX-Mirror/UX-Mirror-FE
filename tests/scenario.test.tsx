@@ -127,6 +127,6 @@ it('재시도할 수 있는 일반 오류는 다시 시도 버튼을 보이고 �
   await waitFor(() => expect(startButton().disabled).toBe(false))
   fireEvent.click(startButton())
   expect(await screen.findByText('서버 오류가 발생했습니다')).toBeTruthy()
-  expect(screen.getByRole('button', { name: '다시 시도' })).toBeTruthy()
+  expect(await screen.findByRole('button', { name: '다시 시도' })).toBeTruthy()
   expect(document.querySelector('[role="alert"] [role="alert"]')).toBeNull()
 })

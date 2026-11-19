@@ -16,8 +16,8 @@
 | 1 | 새 UX 분석 | `GET /api/health`, `GET /api/runs`, `POST /api/runs` | 입력한 목표·사용자 유형·성공 조건, 최대 탐색 횟수, 비교할 두 버전 선택 |
 | 2 | AI 탐색 진행 | `GET /api/health`, `GET /api/runs/{runId}`, `/steps`, `/screenshots/{stepId}` | 열람 중인 stepId(기록 열람 / 최신) |
 | 3 | UX 탐색 분석 결과 | `GET /api/health`, `GET /api/runs`, `GET /api/runs/{runId}`, `/steps`, `/screenshots/{stepId}`, `/issues` | 선택한 경로 노드, 열린 Issue 상세, 지표 패널 펼침 |
-| 5 | 시나리오 테스트 | `GET /api/health`, `GET /api/sites`, `POST /api/runs` | 선택한 사이트·도착 화면, 입력한 상황 문장·사용자 유형, 최대 탐색 횟수 |
 | 4 | 버전 비교 | `GET /api/health`, `GET /api/comparisons/{experimentKey}`, `GET /api/runs/{runId}`, `/api/runs/{runId}/steps`, `/api/runs/{runId}/screenshots/{stepId}` | 지표 표 펼침 |
+| 5 | 시나리오 테스트 | `GET /api/health`, `GET /api/sites`, `POST /api/runs` | 선택한 사이트·도착 화면, 입력한 상황 문장·사용자 유형, 최대 탐색 횟수 |
 
 `GET /api/health`는 모든 화면의 공통 영역(엔진 상태 표시)에서 호출하고, 라우트가 바뀔 때마다 다시 조회한다(다시 조회하는 동안은 이전 결과를 보인다). 화면 1에서는 시작 가능 여부 판단에도 쓴다. 화면 4는 `CandidateComparison`에 `bbox`가 없으므로 `beforeRunId`·`afterRunId`의 `/steps`에서 해당 Step을 가져온다.
 

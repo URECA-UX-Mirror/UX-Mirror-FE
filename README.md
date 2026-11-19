@@ -30,6 +30,8 @@ npm test           # 자동 테스트 1회 실행
 | ② AI 탐색 진행 | `GET /api/health`, `GET /api/runs/{runId}`, `/steps`, `/screenshots/{stepId}`, 시나리오 Run의 `GET /api/sites` |
 | ③ UX 탐색 분석 결과 | `GET /api/health`, `GET /api/runs`, `GET /api/runs/{runId}`, `/steps`, `/screenshots/{stepId}`, `/screenshots/goal`, `/issues`, 시나리오 Run의 `GET /api/sites` |
 | ④ 버전 비교 | `GET /api/health`, `GET /api/comparisons/{experimentKey}`, `/api/runs/{runId}`, `/api/runs/{runId}/steps`, `/api/runs/{runId}/screenshots/{stepId}` |
+| UX Optimizer (`/optimizations`) | `GET /api/health`, `POST /api/optimizations` |
+| UX Optimizer 후보 평가 (`/optimizations/:optimizationId`) | `GET /api/optimizations/{optimizationId}` |
 
 `/replay`는 고정 `experimentKey`(E 실행 목표별 네 개)마다 저장된 Run을 조회만 해서 위 화면들로 연결하는 재생 모드다(`GET /api/runs?experimentKey=`만 호출하고 Run을 만들지 않는다). 고정 키는 E 실행 최종 실행 계획의 키 네 개다([미결정 항목](docs/operations/open_issue.md) OI-7).
 

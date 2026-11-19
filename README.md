@@ -29,7 +29,7 @@ npm test           # 자동 테스트 1회 실행
 
 | 화면 | 하는 일 | 데이터 (백엔드 API) |
 | --- | --- | --- |
-| 첫 화면 (`/`) | 진단할 사이트는 시연용 예시 쇼핑몰 MORO MARKET 하나로 고정이다(첫 화면 스크린샷 미리 보기·크게 보기, #103). "무엇을 하려고 하나요?" 한 문장(예시는 시연 시나리오 문장 하나)을 받아 진단을 시작한다. 찾아야 할 화면은 문장의 낱말로 고르고, 못 고르면 직접 고르게 한다 | `GET /api/health`, `POST /api/runs` |
+| 첫 화면 (`/`) | 진단할 사이트는 시연용 예시 쇼핑몰 MORO MARKET 하나로 고정이다(첫 화면 스크린샷 미리 보기·크게 보기, #103). "무엇을 하려고 하나요?" 한 문장(예시는 서버에서 개선안이 확인된 환불 상황 세 개)을 받아 진단을 시작한다. 찾아야 할 화면은 문장의 낱말로 고르고, 못 고르면 직접 고르게 한다 | `GET /api/health`, `POST /api/runs` |
 | 결과 (`/runs/:runId`) | ① 진행 중에는 AI가 누르는 화면, 끝나면 "N번 만에 찾았어요"/"못 찾았어요"와 지나간 길 ② 실제 값에서 나온 이유 한두 문장과 누를 가능성 막대 ③ "AI에게 개선안 받아 보기" → 그 자리에서 진행 단계 → 바꿀 이름 ④ 찾아올 가능성 전 → 후, 다른 목표, 개선안 화면에서 다시 해 본 결과, "화면별로 비교하기" | `GET /api/runs/{runId}`, `/steps`, `/screenshots/{stepId}`, `/issues`, `GET /api/improvements`, `POST /api/improvements`, `GET /api/improvements/{id}`(진행 중이면 3초마다) |
 | 지금 화면 vs 개선안 (`/comparisons/:experimentKey`) | 한 줄 결론, 양쪽 결과(몇 번 만에 도착 / 못 찾음), 지나간 길을 나란히 보인다. 화면별 상세는 접혀 있다 | `GET /api/comparisons/{experimentKey}`, `/api/runs/{runId}`, `/steps`, `/screenshots/{stepId}` |
 

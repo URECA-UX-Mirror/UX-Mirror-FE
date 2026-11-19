@@ -130,7 +130,12 @@ it.each([
 it('예시를 누르면 문장 칸이 채워지고 찾아야 할 화면이 정해진다', async () => {
   renderPage()
   await settle()
-  expect(exampleChips().map((b) => b.textContent)).toEqual(['지난주에 산 운동화가 발에 안 맞아서 돌려보내고 돈을 돌려받고 싶다'])
+  expect(exampleChips().map((b) => b.textContent)).toEqual(['지난주에 산 운동화가 발에 안 맞아서 돌려보내고 돈을 돌려받고 싶다', '선물로 받은 셔츠가 작아서 반품하고 환불받고 싶다', '어제 받은 원피스가 마음에 안 들어서 반품하고 싶다'])
+  // 세 예시 모두 환불 신청 화면으로 맞춰진다
+  for (const chip of exampleChips()) {
+    fireEvent.click(chip)
+    expect(matchedLine()).toBe('찾아야 할 화면: 환불 신청 · 바꾸기')
+  }
   fireEvent.click(exampleChips()[0])
   expect(goalInput().value).toBe('지난주에 산 운동화가 발에 안 맞아서 돌려보내고 돈을 돌려받고 싶다')
   expect(matchedLine()).toBe('찾아야 할 화면: 환불 신청 · 바꾸기')

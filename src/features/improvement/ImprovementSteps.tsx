@@ -3,8 +3,7 @@ import type { ImprovementJobDto } from '../../api/improvements.ts'
 import type { ImprovementReport, ImprovementScoreLine, ImprovementView } from '../../domain/improvement.ts'
 import { formatScore, formatScoreDelta } from '../../domain/improvementScore.ts'
 import { Disclosure, TimelineStep } from '../../shared/Timeline.tsx'
-import { OfficialSection } from './OfficialSection.tsx'
-import { RoundsSection } from './RoundsSection.tsx'
+import { ChoiceSummary } from './ChoiceSummary.tsx'
 import { VerificationSection } from './VerificationSection.tsx'
 import { kindLabel, quote } from './labels.ts'
 import { describeReason } from './reasons.ts'
@@ -337,15 +336,12 @@ function Recheck({ view, mainGoalKey, improved }: { view: ImprovementView; mainG
   )
 }
 
-/** 접힌 "어떻게 골랐는지 보기": 시험한 이름 + 점수 계산. 둘 다 없으면 보이지 않는다 */
+/** 접힌 "어떻게 골랐는지 보기": 시험한 이름을 짧게 요약한다. 시험한 이름이 없으면 보이지 않는다 */
 function HowChosen({ view }: { view: ImprovementView }): ReactNode {
-  const rounds = view.rounds.ok && view.rounds.data.length ? view.rounds.data : null
-  const official = view.official.ok ? view.official.data : null
-  if (!rounds && !official) return null
+  if (!view.rounds.ok || !view.rounds.data.some((r) => r.candidates.length)) return null
   return (
     <Disclosure title="어떻게 골랐는지 보기">
-      {rounds ? <RoundsSection rounds={rounds} stop={view.stop} goals={goalsOf(view)} /> : null}
-      {official ? <OfficialSection official={official} goalNames={goalNamesOf(view)} /> : null}
+      <ChoiceSummary view={view} goalNames={goalNamesOf(view)} />
     </Disclosure>
   )
 }

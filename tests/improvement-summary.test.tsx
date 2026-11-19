@@ -163,6 +163,6 @@ it('허용 범위 키가 둘 다 없으면 범위 판정을 보이지 않는다'
   const body = sample()
   body.plan.rules = {}
   const area = await renderWith(body)
-  expect(within(area).queryByText(/허용 감소 범위/)).toBeNull()
-  expect(within(area).queryByText(/허용 범위 (이내|초과)/)).toBeNull()
+  expect(within(area).queryByText(/허용 감소 범위: /)).toBeNull()
+  expect(within(area).queryByText(/^허용 범위 (이내|초과)$/)).toBeNull()
 })

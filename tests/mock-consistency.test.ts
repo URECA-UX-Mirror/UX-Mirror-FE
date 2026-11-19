@@ -3,7 +3,7 @@ import { apiUrl } from '../src/api/client.ts'
 import { buildIssues, buildRun, buildSteps, siteMapGoalProbability, specsOf } from '../src/mocks/fixtures/run.ts'
 import * as siteMap from '../src/mocks/fixtures/siteMap.ts'
 import { scenarioForGoal, textVisibleOn, VISIBLE_TEXTS } from '../src/mocks/fixtures/scenario.ts'
-import { GOAL_PAGES } from '../src/features/new-analysis/constants.ts'
+import { GOAL_SCREENS } from '../src/shared/customerInput.ts'
 import { buildOptimization, buildReport, EVAL_START_MS, EVAL_STEP_MS, RECHECK_MS, verificationRuns } from '../src/mocks/fixtures/optimization.ts'
 import { allRuns, findRun } from '../src/mocks/store.ts'
 import { resetMockOptimizations } from '../src/mocks/store.ts'
@@ -26,13 +26,13 @@ it('직접 입력 시드의 성공 조건 글자는 도착 화면의 실제 제�
   const direct = allRuns().map((rec) => buildRun(rec, FAR_FUTURE)).filter((run) => run.goalId === null)
   expect(direct.length).toBeGreaterThan(0)
   for (const run of direct) {
-    const page = GOAL_PAGES.find((item) => item.path === run.verification!.path)
+    const page = GOAL_SCREENS.find((item) => item.path === run.verification!.path)
     expect([run.runId, run.verification!.text]).toEqual([run.runId, page?.text])
   }
 })
 
 it('화면에서 새로 만든 직접 입력 Run도 도착 화면마다 성공 조건과 같은 화면에서 끝난다', () => {
-  for (const page of GOAL_PAGES) {
+  for (const page of GOAL_SCREENS) {
     for (const variant of ['before', 'after'] as const) {
       const scenario = scenarioForGoal(variant, page.path)
       expect(scenario).not.toBeNull()
@@ -114,9 +114,9 @@ it('도착 화면 제목과 맞는 글자는 부분 일치·정확 일치·찾�
 })
 
 it('화면이 자동으로 채우는 도착 화면 제목은 모두 MOCK이 판정할 수 있다', () => {
-  for (const page of GOAL_PAGES) {
-    expect([page.path, VISIBLE_TEXTS[page.path]]).toEqual([page.path, [page.text]])
-    expect(textVisibleOn(page.path, page.text, true)).toBe(true)
+  for (const page of GOAL_SCREENS) {
+    expect([page.path, VISIBLE_TEXTS[page.path]]).toEqual([page.path, expect.arrayContaining([page.text])])
+    expect([page.path, textVisibleOn(page.path, page.text, true)]).toEqual([page.path, true])
   }
 })
 

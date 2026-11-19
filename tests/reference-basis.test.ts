@@ -160,7 +160,7 @@ describe('기준별 표시 문구', () => {
 
   it('허용 경로는 기존 이름을, 사이트 지도는 최단 경로 대비 이름을 쓴다', () => {
     expect(pathMetricNames('ALLOWED_PATHS')).toEqual({
-      extraSteps: '추가 이동(extraSteps)',
+      extraSteps: '추가 이동',
       extraNavigationCost: '추가 이동 비용',
       detourMoveCount: null,
     })

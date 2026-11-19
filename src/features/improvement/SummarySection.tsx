@@ -6,6 +6,11 @@ interface SummarySectionProps {
   report: ImprovementReport
   /** `plan.rules.maxGuardLoss`(0~1). 없으면 허용 범위 판정을 하지 않는다 */
   maxGuardLoss: number | null
+  /**
+   * `final`: 끝난 결과. `pending`: 공식 평가 중(루프 후보, 탈락하거나 점수가 바뀔 수 있음).
+   * `unfinished`: 평가를 끝내지 못함(실패·중단). 확정 안 된 후보는 "바꿔 보세요"라고 권하지 않는다.
+   */
+  stage?: 'final' | 'pending' | 'unfinished'
 }
 
 /** 점수 출처. 모르는 값은 원문으로 보인다 */
@@ -18,7 +23,8 @@ const SOURCE_LABELS: Record<string, string> = { AI: 'AI 제안', HUMAN: '사람 
 /** 부동소수점 오차로 정확히 경계인 값(−2.0%p)이 범위 밖이 되지 않게 한다 */
 const EPSILON = 1e-9
 
-export function SummarySection({ report, maxGuardLoss }: SummarySectionProps) {
+export function SummarySection({ report, maxGuardLoss, stage = 'final' }: SummarySectionProps) {
+  const final = stage === 'final'
   const improved = report.result === 'IMPROVED'
   const rejected = report.result === 'NO_IMPROVEMENT'
   const headline = report.headline
@@ -34,16 +40,16 @@ export function SummarySection({ report, maxGuardLoss }: SummarySectionProps) {
       {headline ? <p className="summary-headline">{headline}</p> : null}
 
       <div className="summary-block">
-        <h3>무엇을 바꿨나</h3>
+        <h3>{final ? '무엇을 바꾸면 되나' : '지금까지 찾은 후보'}</h3>
         {!improved ? (
           <p className="summary-rejected">
-            {/* 모르는 result 값은 원문으로 보이고, 후 값은 `NO_IMPROVEMENT`처럼 숨긴다 */}
-            {rejected ? '개선안 미채택' : `알 수 없는 결과: ${report.result}`}
-            <span className="summary-muted"> · 현재 이름: {report.beforeLabel}</span>
+            {/* 모르는 result 값도 사용자 말로 보이고, 후 값은 `NO_IMPROVEMENT`처럼 숨긴다 */}
+            {rejected ? `이 목표는 "${report.beforeLabel}" 이름만 바꿔서는 좋아지지 않았어요.` : '이번 실행에서는 바꿀 이름을 정하지 못했어요.'}
+            <span className="summary-muted"> 지금은 상단 메뉴 "{report.beforeLabel}" 자리만 바꿀 수 있어요.</span>
             {report.officialRejected ? (
               <span className="summary-muted">
                 {' '}
-                · 공식 평가(B)에서 {report.officialRejected.label ?? '후보'} 탈락
+                · 개선안 화면에서 다시 재 보니 {report.officialRejected.label ? `"${report.officialRejected.label}"` : '후보'}도 기준을 넘지 못했어요
                 {report.officialRejected.reason
                   ? ` (${describeReason(report.officialRejected.reason, goalNames)})`
                   : ''}
@@ -51,42 +57,43 @@ export function SummarySection({ report, maxGuardLoss }: SummarySectionProps) {
             ) : null}
           </p>
         ) : (
-          <p>
-            {report.target?.region ? (
-              <span className="summary-region">{report.target.region} · </span>
-            ) : null}
-            <span>{report.beforeLabel}</span>
+          <p className="summary-hero">
+            {report.target?.region ? <span className="summary-region">{report.target.region} </span> : null}
+            "<span>{report.beforeLabel}</span>"
             <span aria-hidden="true"> → </span>
-            <strong>{report.afterLabel ?? SCORE_NULL_TEXT}</strong>
+            "<strong>{report.afterLabel ?? SCORE_NULL_TEXT}</strong>"{final ? '(으)로 바꿔 보세요' : ' 후보'}
             {report.afterSource ? (
               <span className="summary-source">
-                {SOURCE_LABELS[report.afterSource] ?? report.afterSource}
+                {SOURCE_LABELS[report.afterSource] ?? '제안'}
               </span>
             ) : null}
           </p>
         )}
-        {!improved && report.target?.region ? (
-          <p className="summary-muted">대상 위치: {report.target.region}</p>
+        {stage === 'pending' && improved ? (
+          <p role="status" className="summary-provisional">아직 확정이 아니에요. 개선안 화면에서 공식 평가 중이라 탈락하거나 점수가 바뀔 수 있어요.</p>
+        ) : null}
+        {stage === 'unfinished' && improved ? (
+          <p role="status" className="summary-provisional">평가를 끝내지 못해 확정되지 않은 후보예요. 이 이름으로 바꾸라고 권하지 않아요.</p>
         ) : null}
       </div>
 
       <div className="summary-block">
-        <h3>얼마나 좋아졌나</h3>
+        <h3>가장 짧은 길로 찾아올 가능성</h3>
         <ScoreLine line={report.main} improved={improved} kind="main" />
         {scoreSource && improved ? (
-          <p className="summary-muted">점수 출처: {scoreSource}</p>
+          <p className="summary-muted">{scoreSource === '공식 평가(B) 점수' ? '개선안 화면에서 다시 잰 값이에요' : ''}</p>
         ) : null}
       </div>
 
       <div className="summary-block">
-        <h3>다른 목표는 유지됐나</h3>
+        <h3>다른 고객은 괜찮나</h3>
         {maxGuardLoss !== null ? (
           <p className="summary-muted">
-            허용 감소 범위: 최초 v1 대비 {formatScoreDelta(-maxGuardLoss)} 이내
+            지금 화면보다 {formatScoreDelta(-maxGuardLoss)}까지만 떨어져도 괜찮다고 봐요
           </p>
         ) : null}
         {report.guards.length === 0 ? (
-          <p className="summary-muted">지킬 목표 없음</p>
+          <p className="summary-muted">함께 살펴본 다른 고객이 없어요</p>
         ) : (
           <ul className="summary-lines">
             {report.guards.map((guard, index) => (
@@ -114,7 +121,7 @@ interface ScoreLineProps {
 }
 
 function ScoreLine({ line, improved, kind, maxGuardLoss = null }: ScoreLineProps) {
-  const name = [line.goalKey, line.name].filter(Boolean).join(' ')
+  const name = line.name ? `${line.name}${kind === 'main' ? '하려는 고객' : ' 고객'}` : '고객'
   // 개선안이 없으면 후 점수·변화량은 보이지 않는다(`NO_IMPROVEMENT`)
   const showAfter = improved
   const outOfRange =
@@ -140,7 +147,7 @@ function ScoreLine({ line, improved, kind, maxGuardLoss = null }: ScoreLineProps
       </span>
       {kind === 'guard' && showAfter && maxGuardLoss !== null && line.delta !== null ? (
         <span className={outOfRange ? 'summary-range-out' : 'summary-range-ok'}>
-          {outOfRange ? '허용 범위 초과' : '허용 범위 이내'}
+          {outOfRange ? '너무 많이 떨어짐' : '괜찮음'}
         </span>
       ) : null}
     </div>

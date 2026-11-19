@@ -49,7 +49,7 @@ function renderReplay() {
 }
 
 const compareLink = (section: HTMLElement) =>
-  within(section).findByRole('link', { name: '버전 비교 보기' })
+  within(section).findByRole('link', { name: '지금 화면 vs 개선안 보기' })
 
 it('실험 키마다 목록과 비교 링크를 따로 보인다', async () => {
   const requested: string[] = []
@@ -70,7 +70,7 @@ it('실험 키마다 목록과 비교 링크를 따로 보인다', async () => {
   expect((await compareLink(refund)).getAttribute('href')).toBe('/comparisons/exp_refund')
   expect((await compareLink(orders)).getAttribute('href')).toBe('/comparisons/exp_orders')
   expect(await within(support).findByText('저장된 실행이 없습니다')).toBeTruthy()
-  expect(within(support).queryByRole('link', { name: '버전 비교 보기' })).toBeNull()
+  expect(within(support).queryByRole('link', { name: '지금 화면 vs 개선안 보기' })).toBeNull()
   expect(new Set(requested)).toEqual(new Set(['exp_refund', 'exp_orders', 'exp_support']))
 })
 
@@ -112,7 +112,7 @@ it('한 실험의 조회가 최종 실패하면 그 카드에만 오류와 다�
   const alert = await within(orders).findByRole('alert')
   expect(alert.textContent).toContain('저장된 실험을 찾을 수 없습니다')
   expect(within(alert).getByRole('button', { name: '다시 시도' })).toBeTruthy()
-  expect(within(orders).queryByRole('link', { name: '버전 비교 보기' })).toBeNull()
+  expect(within(orders).queryByRole('link', { name: '지금 화면 vs 개선안 보기' })).toBeNull()
 
   for (const name of ['저장된 실행: 환불 신청', '저장된 실행: 고객센터']) {
     const card = screen.getByRole('region', { name })

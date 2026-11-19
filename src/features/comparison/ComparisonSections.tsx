@@ -1,3 +1,4 @@
+import { Link } from 'react-router'
 import type {
   Comparison,
   ImprovementContext,
@@ -7,6 +8,7 @@ import type {
 } from '../../domain/types.ts'
 import { improvementRunText } from '../../shared/improvementRun.ts'
 import { optimizerRunText } from '../../shared/optimizerRun.ts'
+import { issueTypeLabel } from '../../shared/runLabels.ts'
 import { ResultOriginBadge } from '../../shared/ResultOriginBadge.tsx'
 import { SectionTitle } from '../../shared/SectionTitle.tsx'
 import {
@@ -17,7 +19,9 @@ import {
   SettingsIcon,
 } from '../../shared/icons.tsx'
 import { versionName } from '../new-analysis/constants.ts'
+import { statusLabel } from '../run-progress/statusLabel.ts'
 import { formatDelta, formatMetric, NULL_TEXT } from './format.ts'
+import { pageName, SIDE_NAMES } from './labels.ts'
 
 const STATUS_TEXT: Record<string, string> = {
   COMPLETED: '모든 화면을 비교했습니다',
@@ -47,7 +51,7 @@ function VersionPanel({
     <div className="version-panel" data-side={side}>
       <div className="version-panel-head">
         <span className="version-panel-label">
-          {side === 'before' ? '기준 버전 (Before)' : '비교 버전 (After)'}
+          {SIDE_NAMES[side]}
         </span>
         <ResultOriginBadge origin={origin} />
       </div>
@@ -61,13 +65,13 @@ function VersionPanel({
         <p className="version-panel-optimizer">{optimizerRunText(context)}</p>
       ) : null}
       <dl className="version-panel-meta">
-        <dt>Run ID</dt>
-        <dd>
-          <span className="run-id">{runId}</span>
-        </dd>
         <dt>종료 상태</dt>
         <dd className="num">
-          {outcome.status} · {outcome.stepCount}단계
+          {statusLabel({ status: outcome.status, error: null })} · {outcome.stepCount}단계
+        </dd>
+        <dt>진단 결과</dt>
+        <dd>
+          <Link to={`/runs/${encodeURIComponent(runId)}/result`}>결과 보기</Link>
         </dd>
       </dl>
     </div>
@@ -93,7 +97,7 @@ export function ComparisonSetup({
       <SectionTitle
         icon={<SettingsIcon />}
         title="비교 대상"
-        aside={STATUS_TEXT[comparison.comparisonStatus] ?? comparison.comparisonStatus}
+        aside={STATUS_TEXT[comparison.comparisonStatus] ?? '비교 상태 확인 필요'}
       />
       <div className="version-panels">
         <VersionPanel
@@ -128,7 +132,7 @@ export function ConditionBar() {
         <CheckCircleIcon size={16} />
         비교 조건 검증
       </span>
-      <span>같은 사이트, 목표, 사용자 유형, 설정으로 실행한 두 Run입니다</span>
+      <span>같은 사이트, 목표, 사용자 유형, 설정으로 실행한 두 진단입니다</span>
     </section>
   )
 }
@@ -160,11 +164,11 @@ function KpiCard({
       <h3>{title}</h3>
       <dl className="kpi-values">
         <div data-side="before">
-          <dt>Before</dt>
+          <dt>{SIDE_NAMES.before}</dt>
           <dd>{before}</dd>
         </div>
         <div data-side="after">
-          <dt>After</dt>
+          <dt>{SIDE_NAMES.after}</dt>
           <dd>{after}</dd>
         </div>
       </dl>
@@ -221,7 +225,7 @@ function PathChain({
   return (
     <div className="path-panel" data-side={side}>
       <div className="path-panel-head">
-        <span className="path-panel-label">{side === 'before' ? 'Before 경로' : 'After 경로'}</span>
+        <span className="path-panel-label">{`${SIDE_NAMES[side]} 경로`}</span>
         <span className="num muted">총 {outcome.stepCount}단계</span>
       </div>
       {outcome.path.length === 0 ? (
@@ -231,7 +235,7 @@ function PathChain({
           {outcome.path.map((visit: PathVisit) => (
             <li key={visit.sequence} data-back={visit.enteredBy === 'GO_BACK' ? 'true' : undefined}>
               <span className="path-node">
-                {visit.pageKey}
+                {pageName(visit.pageKey)}
                 {visit.enteredBy === 'GO_BACK' ? <small>복귀</small> : null}
               </span>
             </li>
@@ -260,13 +264,14 @@ export function PathComparison({ comparison }: { comparison: Comparison }) {
 
 // ---------- 검토 항목 ----------
 
+/** 문제 유형 이름은 결과 화면과 같은 문구(`issueTypeLabel`)를 쓴다 */
 const ISSUE_TYPES: { type: string; label: string }[] = [
-  { type: 'CHOICE_AMBIGUITY', label: '선택 모호성' },
-  { type: 'REFERENCE_PATH_DEVIATION', label: '기준 경로 이탈' },
-  { type: 'REPEATED_VISIT', label: '반복 방문' },
-  { type: 'EXTRA_STEPS', label: '추가 단계' },
-  { type: 'GOAL_NOT_REACHED', label: '목표 화면 미도달' },
-]
+  'CHOICE_AMBIGUITY',
+  'REFERENCE_PATH_DEVIATION',
+  'REPEATED_VISIT',
+  'EXTRA_STEPS',
+  'GOAL_NOT_REACHED',
+].map((type) => ({ type, label: issueTypeLabel(type) }))
 
 function Detected({ yes }: { yes: boolean }) {
   return (
@@ -291,17 +296,14 @@ export function IssueComparison({ comparison }: { comparison: Comparison }) {
           <thead>
             <tr>
               <th scope="col">검토 항목</th>
-              <th scope="col">Before</th>
-              <th scope="col">After</th>
+              <th scope="col">{SIDE_NAMES.before}</th>
+              <th scope="col">{SIDE_NAMES.after}</th>
             </tr>
           </thead>
           <tbody>
             {ISSUE_TYPES.map(({ type, label }) => (
               <tr key={type}>
-                <th scope="row">
-                  {label}
-                  <code>{type}</code>
-                </th>
+                <th scope="row">{label}</th>
                 <td>
                   <Detected yes={before.detectedIssueTypes.includes(type)} />
                 </td>

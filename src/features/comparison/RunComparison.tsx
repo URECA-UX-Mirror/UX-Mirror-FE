@@ -2,6 +2,9 @@ import type { ReactNode } from 'react'
 import { pathMetricNames, referenceBasisLabel } from '../../domain/referenceBasis.ts'
 import type { RunOutcome } from '../../domain/types.ts'
 import type { RunBasis } from './useComparisonData.ts'
+import { stopReasonLabel } from '../../shared/runLabels.ts'
+import { statusLabel } from '../run-progress/statusLabel.ts'
+import { SIDE_NAMES } from './labels.ts'
 
 interface RunComparisonProps {
   before: RunOutcome
@@ -53,8 +56,8 @@ const ROWS: Row[] = [
     value: (o) => (o.goalReached ? '도달' : '도달하지 못함'),
   },
   { key: 'basis', label: () => '경로 지표 기준', value: (_, basis) => basisText(basis) },
-  { key: 'status', label: () => '종료 상태', value: (o) => o.status },
-  { key: 'reason', label: () => '종료 사유', value: (o) => o.terminationReason ?? '-' },
+  { key: 'status', label: () => '종료 상태', value: (o) => statusLabel({ status: o.status, error: null }) },
+  { key: 'reason', label: () => '종료 사유', value: (o) => stopReasonLabel(o.terminationReason) ?? '-' },
   { key: 'steps', label: () => '탐색 단계 수', value: (o) => o.stepCount },
   { key: 'cost', label: () => '탐색 비용', value: (o) => o.navigationCost },
   {
@@ -102,14 +105,14 @@ export function RunComparison({ before, after, beforeBasis, afterBasis }: RunCom
   const bases: Bases = { before: beforeBasis, after: afterBasis }
   return (
     <section className="comparison-run">
-      <h2>Run 단위 비교</h2>
+      <h2>진단 전체 비교</h2>
       <div className="comparison-table-scroll">
       <table>
         <thead>
           <tr>
             <th scope="col">항목</th>
-            <th scope="col">Before</th>
-            <th scope="col">After</th>
+            <th scope="col">{SIDE_NAMES.before}</th>
+            <th scope="col">{SIDE_NAMES.after}</th>
           </tr>
         </thead>
         <tbody>

@@ -15,14 +15,14 @@
 | ID | 항목 | 담당 | 임시 결정 | 2번 답변 (11-18) |
 | --- | --- | --- | --- | --- |
 | [OI-3](#oi-3) | 도착 화면 스크린샷 조회 | 정자비, 장근창 | 별도 API `GET /api/runs/{runId}/screenshots/goal`로 표시, 없으면 "도착 화면 이미지 없음" | 구현됨, 실제 서버 연동 확인 대기(UX-Mirror-BE #56 머지됨) |
-| [OI-8](#oi-8) | 분석 대상 사이트 입력 | 장근창 | 입력란은 두되 요청에 싣지 않고, MORO MARKET 외 값은 안내 후 시작을 막음; 등록 사이트 선택은 [OI-11](#oi-11), 임의 URL은 미해결 | (장근창 담당) |
+| [OI-8](#oi-8) | 분석 대상 사이트 입력 | 장근창 | 진단하기는 MORO MARKET 고정(입력 칸 없음), 다른 사이트는 링크로 등록 사이트를 찾음([OI-11](#oi-11)), 등록 안 된 URL은 미해결 | (장근창 담당) |
 | [OI-7](#oi-7) | 저장된 실측 데이터 시연 | 정자비 | `/replay`에서 원본 `LIVE` Run을 조회해 재생, 서버 없는 시연은 P0 제외 | 임시 결정대로. 고정 키는 E 실행 키 4개로 반영 |
 | [OI-9](#oi-9) | 목표·사용자 유형 직접 입력 | 정자비, 장근창 | 백엔드 구현 기준으로 요청·표시, 도착 화면은 목록에서 고름 | 화면 글자 사전 검사(`422`·`503`)는 BE #60으로 구현됨. 도착 경로 없음 `422`·지도 오류 처리도 구현됨 |
 | [OI-10](#oi-10) | 경로 지표 기준(basis)·우회 이동 | 정자비, 장근창 | 설계 v2.1 기준으로 optional로 받고, 설정의 `basis`가 없으면 `ALLOWED_PATHS`, 설정이 없으면 기준 없음으로 읽음 | 서버 동작과 대조 완료 |
 | [OI-11](#oi-11) | 시나리오 테스트(외부 사이트) | 장근창, 정자비, 권혁준 | 등록 사이트 선택, mock과 Adapter로 선행 | API 세부 사항 확정 대기 |
 | [OI-12](#oi-12) | UX Optimizer 응답 형식·이유 코드 | 정윤희, 장근창, 권혁준 | BE 코드·README 기준으로 DTO·mock 선행, 이유 코드는 원문 문자열로 받음 | 계약 v1.3.8 반영(#43)과 정책 모듈 값 목록 확정 대기 |
-| [OI-13](#oi-13) | 자동 개선 결과(`improvement.json`) 형식 | 정자비, 권혁준 | 팀이 확정한 공식 결과를 정본으로 정적 JSON을 영역별로 검증, 모르는 enum은 원문 | 통합 후 정자비가 계약서에 반영 |
-| [OI-14](#oi-14) | 새 UX 분석의 변경 후 버전 | 이성집, 정자비 | v2 카드를 자동 개선 최종안 행으로 교체, `variant=after` Run은 만들지 않음 | BE #128 머지됨, 계약서 반영 대기 |
+| [OI-13](#oi-13) | 자동 개선 결과(`improvement.json`) 형식 | 정자비, 권혁준 | 팀이 확정한 공식 결과를 형식 정본으로, API 응답의 보고서를 영역별로 검증, 모르는 enum은 원문 | 통합 후 정자비가 계약서에 반영 |
+| [OI-14](#oi-14) | 진단의 개선안 버전 | 이성집, 정자비 | 진단 결과에서 `variant=after` 진단을 권하지 않는다(고정 개선안 사이트가 AI가 고른 이름과 다를 수 있음). AI 개선 결과가 고른 이름으로 다시 확인한다 | BE #128 머지됨, 계약서 반영 대기 |
 
 ## 항목
 
@@ -55,7 +55,7 @@
 ### OI-8 분석 대상 사이트 입력
 
 - 계약서: `POST /api/runs` 요청 본문은 `experimentKey`, `variant`, `goalId`, `personaId`, `maxSteps`다. 사이트(주소)를 받는 필드는 없고 대상은 `variant`에 따라 백엔드가 정한다.
-- 임시 결정: 새 UX 분석 화면의 "분석 사이트"를 입력할 수 있게 두되 값은 요청에 싣지 않는다. 입력값이 MORO MARKET(대소문자·앞뒤 공백 무시)이 아니거나 비어 있으면 안내를 보이고 분석 시작을 막는다. 입력한 대상과 실제 분석 대상이 달라지지 않게 하기 위해서다.
+- 임시 결정: 진단하기는 MORO MARKET 고정이라 사이트 입력 칸이 없다. 다른 사이트는 "다른 사이트 진단"에서 링크를 붙여 넣어 등록 사이트(`allowedHosts`)로 찾는다([OI-11](#oi-11)).
 - 부분 해결: 등록된 외부 사이트 선택 방안으로 범위상 부분 해결했다. API 확정과 구현은 [OI-11](#oi-11)에서 진행 중이며 임의 URL 입력은 미해결이다.
 - 확인할 것: 임의 사이트를 분석할지, 요청 필드(예: 사이트 주소·버전별 주소)와 검증 규칙을 어떻게 둘지. 확정되면 계약서를 고치고 입력값을 요청에 싣는다.
 - 담당: 장근창(API).
@@ -116,7 +116,7 @@
 - 범위: `POST /api/optimizations`, `GET /api/optimizations/{id}`, `POST …/{id}/verify`, `GET …/{id}/report`와 Run의 `optimizationContext`. 엔드포인트와 사용법은 [REST API](../contracts/rest-api.md), 폴링은 [실행 상태와 폴링](../contracts/run-lifecycle.md)에 있다.
 - 계약서: 계약 v1.3.8(§17.12, §4.9, §6.1)에 반영됐지만 이 저장소의 계약 문서는 v1.3.5라 옮기지 않았다. 반영은 [#43](https://github.com/UX-Mirror/UX-Mirror-FE/issues/43)에서 한다.
 - 임시 결정: 필드는 UX-Mirror-BE `api/optimizer.py`·README 기준으로 DTO(`src/api/dto/optimization.ts`)를 만들었다. `candidateLabels`(후보 풀)처럼 화면이 쓰는 필드만 도메인으로 가져오고 해시·원본 요청 참조(`snapshotHash`, `rawRequestRef` 등)는 가져오지 않는다. 검증 시작 응답의 `baselineRunId`·`validationRunId`는 `null`로 읽는다(서버가 Run을 만들기 전에 응답하므로 시작 응답에서는 항상 `null`이고, `GET` 폴링 중에 기준 Run → 후보 Run 순으로 채워진다. 실서버·BE 코드 확인).
-- 확정되지 않은 값(정책 모듈 `uxm/optimizer_policy.py`, 정윤희): 선정 이유 `selection.selectionReasonCode`, 제외 이유 `excludedCandidates[].reasonCodes`, 후보 무효 이유 `invalidReasons`, 선정·판단의 근거 형식. 판단 이유 `verification.reasonCode`와 최종 판단 `finalDecision`(또는 `decision`)의 값 목록은 BE `uxm/optimizer_policy.py` `judge_verification` 기준으로 확인했다(최종 판단 `IMPROVEMENT_OBSERVED`·`HOLD`·`NEEDS_MORE_EVIDENCE`·`INCONCLUSIVE`, 판단 이유 `NAVIGATION_COST`·`GOAL_REACHED_GAINED`·`GOAL_REACHED_LOST`·`BOTH_GOALS_NOT_REACHED`·`INVALID_OR_MISSING_RUN_DATA`·`RUN_CONDITIONS_MISMATCH_OR_MISSING`). 화면은 이 값에 풀이를 붙이고 모르는 값은 원문으로 둔다. 값 목록이 정해지기 전에는 모르는 값을 오류로 만들지 않고 문자열 원문을 그대로 두며, `selection`·`verification` 안의 필드는 모두 없을 수 있다고 읽는다. 근거 형식은 타입으로 만들지 않았다.
+- 확정되지 않은 값(정책 모듈 `uxm/optimizer_policy.py`, 정윤희): 선정 이유 `selection.selectionReasonCode`, 제외 이유 `excludedCandidates[].reasonCodes`, 후보 무효 이유 `invalidReasons`, 선정·판단의 근거 형식. 판단 이유 `verification.reasonCode`와 최종 판단 `finalDecision`(또는 `decision`)의 값 목록은 BE `uxm/optimizer_policy.py` `judge_verification` 기준으로 확인했다(최종 판단 `IMPROVEMENT_OBSERVED`·`HOLD`·`NEEDS_MORE_EVIDENCE`·`INCONCLUSIVE`, 판단 이유 `NAVIGATION_COST`·`GOAL_REACHED_GAINED`·`GOAL_REACHED_LOST`·`BOTH_GOALS_NOT_REACHED`·`INVALID_OR_MISSING_RUN_DATA`·`RUN_CONDITIONS_MISMATCH_OR_MISSING`). 화면은 이 값을 풀이로만 보이고 모르는 값은 "확인 필요"로 보인다(원문 코드는 화면에 보이지 않는다). 선정·제외·무효 이유는 BE `uxm/optimizer_policy.py`·`api/site_instances.py`·`api/optimizer.py`의 코드에 풀이를 붙였다(`features/optimization/labels.ts`). 값 목록이 정해지기 전에는 모르는 값을 오류로 만들지 않고 도메인에는 문자열 원문을 그대로 두며, `selection`·`verification` 안의 필드는 모두 없을 수 있다고 읽는다. 근거 형식은 타입으로 만들지 않았다.
 - 실서버 확인(11-19, UX-Mirror-BE develop `d318ee5`, 사이트 서버 5개·모델 `http` 백엔드로 평가 → 검증 → 보고서 → 비교 `200`까지 실행): DTO·Adapter가 실제 응답(`GET`·`report`·검증 Run의 `optimizationContext`)을 오류 없이 읽었다. 확인된 값: `selectionReasonCode` `TOP_TARGET_PROBABILITY`, `excludedCandidates[].reasonCodes` `GOAL_PATH_DECREASE_EXCEEDED`, `finalDecision` `IMPROVEMENT_OBSERVED`, `verification.reasonCode` `NAVIGATION_COST`, `siteInstanceId` `site-c0`~`site-c4`. `selection.selectionStatus`(`SELECTED`·`NOT_SELECTABLE`)와 `rankedCandidates`는 도메인 `OptimizationSelection`의 `status`·`rankedCandidateIds`로 가져온다. 적격 후보가 없으면(`NOT_SELECTABLE`) `verificationCandidateId`가 `null`이라 검증을 시작할 수 없고 `POST /verify`가 `409 OPTIMIZATION_NOT_READY`다. 응답에는 DTO에 없는 필드(`siteRecheck`, `trace`)가 더 있다. `verification.navigationCostDelta`는 #70에서 DTO·도메인에 추가했고(`null`이면 계산 불가) 값은 후보 − 기준이다(11-19 실서버: 이동 비용 기준 3, 후보 2 → `-1`). 서버는 판단 이유가 `NAVIGATION_COST`(두 Run 모두 목표 도달)일 때만 채우고 다른 이유에서는 `null`이라, 화면은 `NAVIGATION_COST`가 아닌 이유의 `null`을 "해당 없음"으로 보인다. `siteRecheck`는 후보 ID별 `{siteInstanceId, snapshotHash, checkedAt}`이고 사이트 재확인에 실패하면 `null`이다. 해시는 내부 값이라 화면에서 쓰지 않고, 실패는 `error.code`로 구분한다. 이 한 번의 실행으로 값 목록 전체가 확정되지는 않는다(제외·무효 이유의 다른 값, 실패 경로는 확인하지 못했다).
 - mock: 제외 이유는 정책 모듈 코드(`uxm/optimizer_policy.py`)를 따라 `EVALUATION_NOT_COMPLETED`에 오류 코드·`invalidReasons`를 이어 붙인다. 시나리오와 시드는 `src/mocks/fixtures/optimization.ts`의 주석을 따른다.
 - 확인할 것: 정책 모듈의 선정·무효·제외 이유 코드 값 목록과 근거 형식, `GET /api/runs` 목록 항목에 `optimizationContext`가 없어(상세 `GET /api/runs/{runId}`에는 있다) 목록에서는 Optimizer Run을 구분하지 못한다. FE는 필드가 오면 구분해 표시하도록 구현했고 BE 담당(정자비·정윤희)에게 목록 응답에 넣을지 확인한다. 실서버 확인(11-19, #70): 평가 → 검증 시작 → 기준·후보 Run 링크 → 보고서 → 비교 화면과 `SITE_RECHECK_FAILED`(후보 사이트 8002를 끈 채 검증 시작, Run 미생성)·`409 OPTIMIZATION_ALREADY_PROCESSED`를 확인했다. 확인하지 못한 것: `SITE_INSTANCE_CHANGED`·`RUN_TIMEOUT`·`OPTIMIZATION_INTERRUPTED`·`503 MODEL_UNAVAILABLE`·`422 EXPERIMENT_CONDITION_MISMATCH` 실서버 응답, 검증 후보가 C2가 아닌 경우.
@@ -125,19 +125,21 @@
 <a id="oi-13"></a>
 ### OI-13 자동 개선 결과(`improvement.json`) 형식
 
-- 범위: 자동 개선 에이전트가 만드는 `improvement.json`(`schemaVersion: improvement-v1`). 1단계(해커톤)에서는 백엔드 API 없이 정적 JSON을 읽는다. 계약서에 없는 형식이다.
-- 임시 결정: 팀이 확정한 공식 결과(`public/improvements/imp-1119b.json`, 2차 공식 실행. 1차 `imp-1119.json`도 함께 둔다)를 정본으로 삼는다. `src/adapters/improvement.ts`가 필수 필드 규칙에 따라 report·official·rounds·verification 네 영역을 각각 `{ ok, data | reason }`로 검증하고, 한 영역이 오류여도 다른 영역은 정상 변환한다. `null`은 "값 없음"이라 0으로 바꾸지 않고, 모르는 enum 값은 원문 문자열로 둔다. 점수 표시 변환(`%`·`%p`)은 `src/domain/improvementScore.ts` 한 곳에 둔다.
+- 범위: 자동 개선 에이전트가 만드는 `improvement.json`(`schemaVersion: improvement-v1`)과 이를 내려 주는 `GET/POST /api/improvements`(UX-Mirror-BE #131). 계약서에 없는 형식이다.
+- 임시 결정: 팀이 확정한 공식 결과(2차 공식 실행 `imp-1119b`, 테스트 고정값은 `tests/fixtures/improvements/`)를 형식의 정본으로 삼는다. `src/adapters/improvement.ts`가 필수 필드 규칙에 따라 report·official·rounds·verification 네 영역을 각각 `{ ok, data | reason }`로 검증하고, 한 영역이 오류여도 다른 영역은 정상 변환한다. `null`은 "값 없음"이라 0으로 바꾸지 않고, 모르는 enum 값은 원문 문자열로 둔다. 점수 표시 변환(`%`·`%p`)은 `src/domain/improvementScore.ts` 한 곳에 둔다.
 - 임시: 검증 Run의 빈 `issues`만으로 분석 대기·실패·정상 빈 결과를 구분할 수 없다. 무효 Run은 "판단 불가", 그 밖에는 "저장된 Issue 없음 (분석 상태 확인 불가)"로 표시한다. BE PR #110의 `_run_view`는 분석 상태 없이 목록만 저장하므로 상태 필드와 값이 확정되면 표시를 구분한다.
 - 공식 결과가 정본이다. 탈락 사유 코드는 BE 실제 코드 기준 이름(`GUARD_LOSS_EXCEEDED:<목표>`, `MAIN_GAIN_INSUFFICIENT`, `TRUNCATED_LABEL`, `LABEL_TOO_LONG`, `EXISTING_LABEL` 등)을 쓰고 모르는 코드는 원문으로 보인다. 검증 쌍 키(`goalKey` `S1`, experimentKey `imp-1119b-S1` 형식)는 2차 공식 결과(BE #125)로 확인됐다. 검증 쌍의 `path`·`stepCount`·`issues`·`goalReached`는 `improvement.json`을 만드는 쪽이 Run을 읽어 채운다. 공식 결과(`imp-1119.json`)는 `NO_IMPROVEMENT`(개선안 미채택, 검증 `NOT_RUN`, `official: null`)이고, 연습 실행(개선안 채택 예시)은 공식이 아니라 아직 화면에 반영하지 않았다.
-- 전달 방식: 1단계는 `public/improvements/<id>.json` 정적 파일이다(반영 절차는 [자동 개선 JSON 반영 절차](improvement-release.md)). 2단계에서 `GET /api/improvements/{id}`로 바꿀 예정이며, 바뀌면 `useImprovement`의 읽기 부분만 교체한다.
+- 결과 출처(`kind`): `LIVE`(서버에서 시작한 심사·시연 실행, 공식 기록 아님) "심사위원 실행 (공식 기록 아님)", `OFFICIAL`(사전 등록 공식 결과) "사전 등록 공식 결과", `UNKNOWN`(연습 실행처럼 출처를 확인할 수 없는 결과 파일)과 모르는 값 "출처 확인 안 된 결과"(`kindLabel`). 원문은 화면에 보이지 않는다.
+- 시작 조건: 서버는 끝났고 `VALID`인 MORO MARKET `before` 진단에서만 AI 개선을 시작한다(그 밖은 `422`와 한국어 `message`). 진단 결과 화면은 같은 조건(`isTerminalStatus`, `validity=VALID`, `variant=before`, `siteId`·`optimizationContext`·`improvementContext` 없음)일 때만 "AI에게 고쳐 달라고 하기"를 보인다.
+- 전달 방식: `GET /api/improvements/{id}`가 실행 상태(`status`·`phase`·`kind`·`input`)와 보고서(`improvement`, 끝나기 전에는 `null`)를 함께 준다. 정적 파일은 더 이상 쓰지 않는다. 시작은 `POST /api/improvements`(`{sourceRunId}` 또는 `{goal, persona, goalPage}`)이고, 다른 Run이 있으면 `409`, 서버가 꺼 두면(`UXM_IMPROVEMENTS_ENABLED=0`) `503`, 입력 오류는 `422`다. 엔진 상태의 `activeRunOwner`(`kind`·`improvementId`)로 진행 중인 AI 개선 화면을 연다.
 - 형식을 바꿔야 하면 정자비(생성 담당)와 먼저 합의한다. 계약서 갱신은 통합 후 정자비가 한 번에 한다.
 - 담당: 정자비(생성·계약서), 권혁준(프론트). 관련 FE 이슈: #77, #82.
 - 확정되면 `docs/contracts/`를 고친 뒤 이 항목을 지운다.
 
 <a id="oi-14"></a>
-### OI-14 새 UX 분석의 변경 후 버전
+### OI-14 진단의 개선안 버전
 
 - 계약서: `POST /api/runs`의 `variant`는 `before` 또는 `after`다(`§4.2`). 고정 v2 사이트를 없앤 BE 변경(UX-Mirror-BE #124·#128, 머지됨)은 `variant=after`를 막지 않고 서버 설정 `SHOP_AFTER_URL` 사이트로 보낸다. `SHOP_AFTER_URL` 또는 `SHOP_AFTER_LABEL`이 없으면 `503 SITE_NOT_CONFIGURED`이고, 같은 실험 키에 다른 after 사이트의 Run이 있으면 `422`다. `after` Run에는 사이트 이름 `afterSite: {label}`이 남는다. 계약서에는 아직 반영되지 않았다.
-- 임시 결정: 팀 결정(안 2)에 따라 "새 UX 분석"은 v2 카드를 `에이전트 최종안` 행으로 바꾸고 `variant=after` Run을 만들지 않는다. 그래서 위 `503`·`422`와 `afterSite`는 FE가 쓰지 않는다. 이 행은 자동 개선 결과의 `verification.pairs[].comparisonPath`(`/comparisons/imp-1119b-S1`·`-S4`)만 연결한다. 직접 입력한 목표에는 최종안 비교가 없다.
+- 임시 결정: 진단 결과 화면에는 개선안(`variant=after`) 진단 버튼이 없다("개선안 화면으로도 해 보기"는 없앴다). 일반 `variant=after` Run은 서버의 고정 `SHOP_AFTER_URL` 사이트를 쓰므로, AI 개선이 방금 고른 이름과 다른 개선안을 보여 줄 수 있어서다. AI 개선 결과 화면이 고른 이름으로 다시 확인하고(검증 쌍) "나란히 비교하기"로 결과의 `verification.pairs[].comparisonPath`를 연다.
 - 확인된 것: 배포 서버에 `imp-1119b` 검증 Run 4개가 반영돼 `/comparisons/imp-1119b-S1`·`-S4`가 열린다(develop Preview 확인). 검증 Run의 `improvementContext`(`improvementId`·`goalId`·`label`·`siteInstanceId`·`executionRole`, BE `api/improvement.py`)가 있으면 비교·결과·진행 화면은 고정 변경 문구(`VERSIONS.change`) 대신 '자동 개선 검증 · 후보 주문 환불'처럼 라벨을 보인다. 이 필드가 없는 일반 Run은 기존 표시이며, 11/19 E 실험의 예전 `after` Run은 당시 고정 v2가 '주문·환불'이라 그 문구가 맞다. 계약서 갱신은 BE 통합 뒤 정자비가 하고, 반영되면 이 항목을 지운다.
 - 담당: 이성집, 정자비.

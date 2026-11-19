@@ -30,7 +30,7 @@ it('isReplayKey는 목록의 키만 재생 대상으로 본다', () => {
   expect(isReplayKey('other')).toBe(false)
 })
 
-const MOCK_NOTE = 'MOCK 재생 테스트'
+const MOCK_NOTE = '예시 데이터 재생'
 const LIVE_NOTE = '저장된 실측 결과 재생'
 
 function item(variant: 'before' | 'after', over: Record<string, unknown> = {}) {
@@ -61,7 +61,7 @@ function useRunList(items: unknown[]) {
   )
 }
 
-const compareLink = () => screen.queryByRole('link', { name: '버전 비교 보기' })
+const compareLink = () => screen.queryByRole('link', { name: '지금 화면 vs 개선안 보기' })
 
 it('고정 키의 저장된 Run 목록을 보이고 Run을 만드는 요청은 보내지 않는다', async () => {
   const fetchSpy = vi.spyOn(globalThis, 'fetch')
@@ -69,6 +69,11 @@ it('고정 키의 저장된 Run 목록을 보이고 Run을 만드는 요청은 �
 
   expect(await screen.findAllByRole('link', { name: '결과 보기' })).not.toHaveLength(0)
   expect(compareLink()?.getAttribute('href')).toBe(`/comparisons/${REPLAY_EXPERIMENT_KEY}`)
+  // 각 실행은 Run ID 대신 버전 이름·시작 시각·상태로 구분하고 실험 키·상태 코드는 보이지 않는다
+  const rows = [...document.querySelectorAll('.replay-runs li')].map((li) => li.textContent ?? '')
+  expect(rows.length).toBeGreaterThan(0)
+  for (const row of rows) expect(row).toMatch(/^(지금 화면|개선안)\d{2}-\d{2} \d{2}:\d{2} · /)
+  expect(document.body.textContent).not.toMatch(/run_|experimentKey|SUCCESS|\bMOCK\b|\bLIVE\b/)
 
   const urls = fetchSpy.mock.calls.map(([input, init]) => ({
     url: String(input instanceof Request ? input.url : input),
@@ -79,10 +84,11 @@ it('고정 키의 저장된 Run 목록을 보이고 Run을 만드는 요청은 �
   expect(urls.some((request) => request.url.includes(`experimentKey=${REPLAY_EXPERIMENT_KEY}`))).toBe(true)
 })
 
-it('MOCK 데이터의 재생 표시는 실측이 아니라 MOCK 재생 테스트이고 원본 배지는 그대로다', async () => {
+it('결과 화면에서 예시 데이터의 재생 표시는 실측이 아니라 예시 데이터 재생이다 (원본 배지는 결과 화면에 없다)', async () => {
   renderAt('/runs/run_mock_replay_before/result')
   expect((await screen.findByRole('note')).textContent).toBe(MOCK_NOTE)
-  expect(document.querySelector('.origin-badge')?.textContent).toBe('MOCK')
+  // 결과 화면은 사용자용이라 resultOrigin 배지를 보이지 않는다 (경로 기준 배지만 남는다)
+  expect(document.querySelector('.origin-badge[data-origin]')).toBeNull()
 })
 
 it('LIVE 결과의 재생 화면은 저장된 실측 결과 재생을 보이고 원본 LIVE 배지를 유지한다', async () => {
@@ -143,7 +149,7 @@ it('두 버전 중 아직 끝나지 않은 Run이 있으면 버전 비교 링크
 it('두 버전 모두 종료된 VALID Run이면 버전 비교 링크를 보인다', async () => {
   useRunList([item('before'), item('after')])
   renderAt('/replay')
-  expect(await screen.findByRole('link', { name: '버전 비교 보기' })).toBeTruthy()
+  expect(await screen.findByRole('link', { name: '지금 화면 vs 개선안 보기' })).toBeTruthy()
 })
 
 it('조회 실패로 재시도하는 동안 연결 재시도 중을 보이고 비교 링크는 숨긴다', async () => {

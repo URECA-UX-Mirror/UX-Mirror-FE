@@ -2,8 +2,9 @@ import { useEffect, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation } from 'react-router'
 import { useMock } from '../config/env.ts'
 import { mockRuntime } from '../config/runtime.ts'
-import { finalImprovementPath } from '../features/improvement/constants.ts'
 import { EngineStatus } from './EngineStatus.tsx'
+import { PAGE_NAMES } from './pageNames.ts'
+import { useTheme } from './theme.ts'
 import { CompareIcon, GlobeIcon, HistoryIcon, ListChecksIcon, MenuIcon, PlusCircleIcon } from './icons.tsx'
 
 const SIDEBAR_KEY = 'um.sidebar.open'
@@ -29,15 +30,15 @@ function initialWidth(): number {
 
 /** 상단 바 브레드크럼에 보이는 화면 이름. 경로는 `App.tsx`의 라우트와 같다 */
 function pageTitle(pathname: string): string {
-  if (pathname === '/') return '새 UX 분석'
-  if (pathname === '/scenario') return '시나리오 테스트'
-  if (pathname === '/optimizations') return 'UX Optimizer'
-  if (pathname.startsWith('/optimizations/')) return '후보 평가'
-  if (pathname.startsWith('/improvements/')) return '자동 개선 리포트'
-  if (pathname === '/replay') return '저장된 결과 재생'
-  if (pathname.startsWith('/comparisons/')) return '버전 비교'
-  if (/^\/runs\/[^/]+\/result\/?$/.test(pathname)) return 'UX 탐색 분석 결과'
-  if (pathname.startsWith('/runs/')) return 'AI 탐색 진행'
+  if (pathname === '/') return PAGE_NAMES.diagnose
+  if (pathname === '/scenario') return PAGE_NAMES.otherSite
+  if (pathname === '/optimizations') return PAGE_NAMES.optimizer
+  if (pathname.startsWith('/optimizations/')) return PAGE_NAMES.optimizerDetail
+  if (pathname.startsWith('/improvements')) return PAGE_NAMES.improvement
+  if (pathname === '/replay') return PAGE_NAMES.replay
+  if (pathname.startsWith('/comparisons/')) return PAGE_NAMES.comparison
+  if (/^\/runs\/[^/]+\/result\/?$/.test(pathname)) return PAGE_NAMES.result
+  if (pathname.startsWith('/runs/')) return PAGE_NAMES.progress
   return ''
 }
 
@@ -63,7 +64,6 @@ export function Layout() {
   // 라우트가 바뀔 때마다 엔진 상태(activeRun)를 다시 조회한다.
   const { pathname } = useLocation()
   const title = pageTitle(pathname)
-  const improvementPath = finalImprovementPath()
   const [open, setOpen] = useState(initialOpen)
   const [width, setWidth] = useState(initialWidth)
   const [dragging, setDragging] = useState(false)
@@ -94,6 +94,8 @@ export function Layout() {
     else return
     event.preventDefault()
   }
+
+  const { theme, toggle } = useTheme()
 
   // 좁은 화면에서는 사이드바가 본문을 덮으므로 메뉴를 고르면 닫는다.
   const closeOnMobile = () => {
@@ -134,13 +136,16 @@ export function Layout() {
         </div>
         <div className="layout-status">
           {mockRuntime.running ? (
-            <span className="mock-flag">MOCK 데이터</span>
+            <span className="mock-flag">예시 데이터</span>
           ) : useMock ? (
-            <span className="mock-flag">MOCK 시작 실패 · 실제 서버로 요청 중</span>
+            <span className="mock-flag">예시 데이터를 켜지 못해 실제 서버를 쓰는 중</span>
           ) : null}
+          <button type="button" className="theme-toggle" aria-label={theme === 'dark' ? '밝은 화면으로 바꾸기' : '어두운 화면으로 바꾸기'} onClick={toggle}>
+            {theme === 'dark' ? '밝게' : '어둡게'}
+          </button>
           <Link to="/" className="header-link">
             <PlusCircleIcon size={15} />
-            새 분석
+            새 진단
           </Link>
         </div>
       </header>
@@ -149,25 +154,23 @@ export function Layout() {
           <nav className="app-nav" aria-label="주요 메뉴">
             <NavLink to="/" end onClick={closeOnMobile} tabIndex={open ? 0 : -1}>
               <PlusCircleIcon />
-              새 UX 분석
+              {PAGE_NAMES.diagnose}
+            </NavLink>
+            <NavLink to="/improvements" onClick={closeOnMobile} tabIndex={open ? 0 : -1}>
+              <ListChecksIcon />
+              {PAGE_NAMES.improvement}
             </NavLink>
             <NavLink to="/scenario" onClick={closeOnMobile} tabIndex={open ? 0 : -1}>
               <GlobeIcon />
-              시나리오 테스트
+              {PAGE_NAMES.otherSite}
+            </NavLink>
+            <NavLink to="/replay" onClick={closeOnMobile} tabIndex={open ? 0 : -1}>
+              <HistoryIcon />
+              {PAGE_NAMES.replay}
             </NavLink>
             <NavLink to="/optimizations" onClick={closeOnMobile} tabIndex={open ? 0 : -1}>
               <CompareIcon />
-              UX Optimizer
-            </NavLink>
-            {improvementPath ? (
-              <NavLink to={improvementPath} onClick={closeOnMobile} tabIndex={open ? 0 : -1}>
-                <ListChecksIcon />
-                자동 개선 리포트
-              </NavLink>
-            ) : null}
-            <NavLink to="/replay" onClick={closeOnMobile} tabIndex={open ? 0 : -1}>
-              <HistoryIcon />
-              저장된 결과 재생
+              {PAGE_NAMES.optimizer}
             </NavLink>
           </nav>
           <div className="sidebar-foot">

@@ -20,6 +20,9 @@ export function toHealth(dto: HealthDto): Health {
     agentReady: dto.agent.ready,
     activeRunId: dto.activeRun ?? null,
     activeOptimization: toActiveOptimization(dto.activeOptimization),
+    activeOwner: dto.activeRunOwner && typeof dto.activeRunOwner.kind === 'string'
+      ? { kind: dto.activeRunOwner.kind, runId: dto.activeRunOwner.runId ?? null, improvementId: dto.activeRunOwner.improvementId ?? null }
+      : null,
     checkedAt: dto.checkedAt,
   }
 }

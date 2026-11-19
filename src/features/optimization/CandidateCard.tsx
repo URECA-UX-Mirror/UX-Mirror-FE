@@ -37,7 +37,7 @@ function Metric({
       <dd className="num">
         {value === null ? (
           <>
-            계산 불가{reason ? <span className="muted"> · {reasonText(reason)}</span> : null}
+            계산 불가{reason ? <span className="muted"> · {reasonLabel(reason)}</span> : null}
           </>
         ) : (
           formatProbability(value)
@@ -47,12 +47,7 @@ function Metric({
   )
 }
 
-function reasonText(code: string) {
-  const label = reasonLabel(code)
-  return label ? `${label} (${code})` : code
-}
-
-/** 평가 상태에 따라 본문을 정한다. `null` 지표는 0이 아니라 "계산 불가"와 사유로 보인다 */
+/** 평가 상태에 따라 본문을 정한다. `null` 지표는 0이 아니라 "계산 불가"와 사유로 보인다. 오류·사유 코드는 문구로만 보인다 */
 function Body({ evaluation }: { evaluation: CandidateEvaluation }) {
   if (evaluation.evaluationStatus === 'COMPLETED') {
     return (
@@ -82,15 +77,10 @@ function Body({ evaluation }: { evaluation: CandidateEvaluation }) {
       ) : evaluation.evaluationStatus === 'SKIPPED' ? (
         <p>이 후보는 평가에서 제외되었습니다.</p>
       ) : null}
-      {evaluation.error ? (
-        <p className="muted">
-          오류 코드 <code>{evaluation.error.code}</code>
-        </p>
-      ) : null}
       {invalid.length > 0 ? (
         <ul className="reason-list" aria-label="무효 사유">
           {invalid.map((code) => (
-            <li key={code}>{reasonText(code)}</li>
+            <li key={code}>{reasonLabel(code)}</li>
           ))}
         </ul>
       ) : null}
@@ -121,7 +111,6 @@ export function CandidateCard({
       data-candidate={candidate.candidateId}
     >
       <div className="candidate-card-head">
-        <span className="badge-mono">{candidate.candidateId}</span>
         <strong>{candidate.label}</strong>
         <span className="candidate-role" data-role={candidate.role}>
           {roleLabel(candidate.role)}

@@ -1,61 +1,50 @@
 import { Link } from 'react-router'
 import type { ImprovementVerification, VerificationPair, VerificationRun } from '../../domain/improvement.ts'
+import { issueTypeLabel } from '../../shared/runLabels.ts'
+import { screenName } from './labels.ts'
 import { canReplay, internalPath } from './verificationLinks.ts'
 
+/** "2번 만에 도착" / "4번 눌렀지만 찾지 못함" */
 function outcome(run: VerificationRun): string {
-  const steps = run.stepCount === null ? '단계 수 없음' : `${run.stepCount}단계`
-  const goal = run.goalReached === null ? '도달 여부 없음' : run.goalReached ? '성공' : '도달 실패'
-  return `${steps} ${goal}`
+  if (run.validity === 'INVALID') return '결과를 판단할 수 없음'
+  const clicks = run.stepCount === null ? '' : `${run.stepCount}번 `
+  if (run.goalReached === true) return `${clicks}만에 도착`.trim()
+  if (run.goalReached === false) return `${clicks}눌렀지만 찾지 못함`.trim()
+  return '결과 정보 없음'
 }
 
-function RunDetails({ title, run }: { title: string; run: VerificationRun | null }) {
-  if (!run) return <div className="verification-run"><h4>{title}</h4><p>Run 없음</p></div>
-  const valid = canReplay(run)
+function RunLine({ title, run }: { title: string; run: VerificationRun | null }) {
+  if (!run) return <div className="verification-run"><h4>{title}</h4><p>실행 기록이 없어요</p></div>
   return (
-    <div className="verification-run">
-      <h4>{title} · {run.label ?? '라벨 없음'}</h4>
-      <p>상태: {run.status ?? '없음'} · 유효성: {run.validity ?? '없음'}</p>
-      {run.validity === 'INVALID' ? <p><strong>판단 불가</strong> (경로와 단계는 참고용)</p> : null}
-      <p>목표 도달: {run.validity === 'INVALID' ? '판단 불가' : run.goalReached === null ? '정보 없음' : run.goalReached ? '도달' : '미도달'}</p>
-      <p>경로: {run.path.length ? run.path.join(' → ') : '정보 없음'}</p>
-      <p>단계 수: {run.stepCount === null ? '정보 없음' : `${run.stepCount}단계`}</p>
-      <p>Issue: {run.issues.length ? run.issues.join(', ') : run.validity === 'INVALID' ? '판단 불가' : '저장된 Issue 없음 (분석 상태 확인 불가)'}</p>
-      <p>결과 출처: {run.resultOrigin ?? '정보 없음'}</p>
-      {valid ? <nav aria-label={`${title} 재생`} className="verification-links">
-        {internalPath(run.resultPath) ? <Link to={run.resultPath}>결과 보기</Link> : null}
-        {internalPath(run.progressPath) ? <Link to={run.progressPath}>진행 보기</Link> : null}
-      </nav> : null}
+    <div className="verification-run" data-reached={run.goalReached === true ? 'yes' : 'no'}>
+      <h4>{title}{run.label ? ` · "${run.label}"` : ''}</h4>
+      <p className="verification-outcome">{outcome(run)}</p>
+      {run.path.length ? <p className="muted">{run.path.map(screenName).join(' → ')}</p> : null}
+      {run.validity !== 'INVALID' && run.issues.length ? <p className="muted">{run.issues.map(issueTypeLabel).join(' · ')}</p> : null}
+      {canReplay(run) && internalPath(run.resultPath) ? <Link to={run.resultPath}>다시 보기</Link> : null}
     </div>
   )
 }
 
 function PairCard({ pair }: { pair: VerificationPair }) {
   const comparable = canReplay(pair.before) && canReplay(pair.after)
-  const before = pair.before
-  const after = pair.after
-  const same = comparable && before && after && before.stepCount === after.stepCount && before.goalReached === after.goalReached && before.stepCount !== null && before.goalReached !== null && before.status === after.status &&
-    before.path.length === after.path.length && before.path.every((value, index) => value === after.path[index]) &&
-    before.issues.length === after.issues.length && before.issues.every((value, index) => value === after.issues[index])
   return (
     <article className="verification-pair">
-      <h3>{pair.name ?? '목표 이름 없음'} {pair.goalKey ? `(${pair.goalKey})` : ''}</h3>
-      {comparable && before && after ? <p className="verification-summary">{same ? '변화 없음' : `${outcome(before)} → ${outcome(after)}`}</p> : null}
-      {comparable && internalPath(pair.comparisonPath) ? <Link to={pair.comparisonPath}>비교 보기</Link> : null}
+      <h3>{pair.name ? `${pair.name}하려는 고객` : '고객'}</h3>
       <div className="verification-runs">
-        <RunDetails title="v1" run={before} />
-        <RunDetails title="최종안" run={after} />
+        <RunLine title="지금 화면" run={pair.before} />
+        <RunLine title="개선안" run={pair.after} />
       </div>
+      {comparable && internalPath(pair.comparisonPath) ? <Link to={pair.comparisonPath} className="primary-link">나란히 비교하기</Link> : null}
     </article>
   )
 }
 
 export function VerificationSection({ verification }: { verification: ImprovementVerification }) {
-  if (verification.status === 'NOT_RUN') return <p>검증 미진행</p>
+  if (verification.status === 'NOT_RUN') return <p>이번에는 개선안에서 다시 확인하지 않았어요 (채택된 이름이 없을 때 등).</p>
   return (
     <div className="verification-section">
-      {verification.status === 'FAILED' ? <p role="status">검증 실패: {verification.error?.code ?? '코드 없음'} · {verification.error?.message ?? '사유 없음'}</p> : null}
-      {verification.status !== 'COMPLETED' && verification.status !== 'FAILED' ? <p>검증 상태: {verification.status}</p> : null}
-      <p>실행 서버가 필요합니다. 아래 요약은 저장된 결과입니다.</p>
+      {verification.status === 'FAILED' ? <p role="status">개선안에서 다시 확인하는 중에 멈췄어요. 끝난 것까지만 보여줘요.</p> : null}
       {verification.pairs.map((pair, index) => <PairCard key={`${pair.goalKey ?? 'goal'}-${index}`} pair={pair} />)}
     </div>
   )

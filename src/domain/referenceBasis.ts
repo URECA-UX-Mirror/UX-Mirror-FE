@@ -33,7 +33,7 @@ const SITE_MAP_NAMES: PathMetricNames = {
 
 // 허용 경로 기준의 값은 "허용 경로 중 가장 짧은 경로 대비"라 사이트 지도의 최단 경로와 뜻이 다르다
 const ALLOWED_PATHS_NAMES: PathMetricNames = {
-  extraSteps: '추가 이동(extraSteps)',
+  extraSteps: '추가 이동',
   extraNavigationCost: '추가 이동 비용',
   detourMoveCount: null,
 }

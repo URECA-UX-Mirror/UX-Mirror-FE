@@ -1,9 +1,11 @@
 import { Link } from 'react-router'
-import { isApiError } from '../../api/client.ts'
 import { isTerminalStatus } from '../../domain/runStatus.ts'
 import { isScenarioRun } from '../../domain/site.ts'
 import type { RunListItem } from '../../domain/types.ts'
 import { optimizerRunText } from '../../shared/optimizerRun.ts'
+import { VERSIONS } from '../new-analysis/constants.ts'
+import { shortTime } from '../improvement/labels.ts'
+import { statusLabel } from '../run-progress/statusLabel.ts'
 
 interface OtherRunsProps {
   currentRunId: string
@@ -14,7 +16,14 @@ interface OtherRunsProps {
   onRetry: () => void
 }
 
-/** "다른 실행 보기". 서버가 준 순서(최신 먼저)를 그대로 쓴다. 조회에 실패해도 화면의 나머지는 계속 동작한다. */
+/** 목록 한 줄의 이름: 화면 종류 + 시작 시각 (Run ID는 보이지 않는다) */
+function runName(item: RunListItem): string {
+  const kind = isScenarioRun(item) ? '다른 사이트' : VERSIONS.find((v) => v.variant === item.variant)?.name ?? '진단'
+  const time = shortTime(item.createdAt)
+  return time ? `${kind} · ${time}` : kind
+}
+
+/** "같은 조건의 다른 진단". 서버가 준 순서(최신 먼저)를 그대로 쓴다. 조회에 실패해도 화면의 나머지는 계속 동작한다. */
 export function OtherRuns({
   currentRunId,
   items,
@@ -24,19 +33,18 @@ export function OtherRuns({
 }: OtherRunsProps) {
   return (
     <section className="result-section" aria-label="다른 실행 보기">
-      <h2>다른 실행 보기</h2>
+      <h2>같은 조건의 다른 진단</h2>
       {items === null ? (
         error && failed ? (
           <p role="status">
-            실행 목록을 불러오지 못했습니다
-            {isApiError(error) ? ` (${error.message})` : ''}.{' '}
+            목록을 불러오지 못했어요.{' '}
             <button type="button" onClick={onRetry}>
               다시 시도
             </button>
           </p>
         ) : (
           <p role="status">
-            {error ? '연결 재시도 중' : '실행 목록을 불러오는 중'}
+            {error ? '다시 연결하는 중이에요' : '목록을 불러오는 중이에요'}
           </p>
         )
       ) : (
@@ -47,35 +55,17 @@ export function OtherRuns({
               aria-current={item.runId === currentRunId ? 'true' : undefined}
             >
               {item.runId === currentRunId ? (
-                <strong>{item.runId} (현재)</strong>
-              ) : isTerminalStatus(item.status) ? (
-                <Link to={`/runs/${encodeURIComponent(item.runId)}/result`}>
-                  {item.runId}
-                </Link>
+                <strong>{runName(item)} (지금 보는 진단)</strong>
               ) : (
-                <Link to={`/runs/${encodeURIComponent(item.runId)}`}>
-                  {item.runId}
+                <Link to={isTerminalStatus(item.status) ? `/runs/${encodeURIComponent(item.runId)}/result` : `/runs/${encodeURIComponent(item.runId)}`}>
+                  {runName(item)}
                 </Link>
               )}
-              <span> · {isScenarioRun(item) ? '시나리오 테스트' : item.variant}</span>
               {item.optimizationContext ? (
                 <span> · {optimizerRunText(item.optimizationContext)}</span>
               ) : null}
-              <span> · {item.status}</span>
-              {item.goalReached === null ? null : (
-                <span>
-                  {item.goalReached ? ' · 목표 화면 도달' : ' · 목표 화면 미도달'}
-                </span>
-              )}
-              {item.validity === 'INVALID' ? (
-                <span>
-                  {' '}
-                  · 무효 처리된 실행
-                  {item.replacementRunId
-                    ? ` (대체 실행: ${item.replacementRunId})`
-                    : ''}
-                </span>
-              ) : null}
+              <span> · {statusLabel({ status: item.status, error: null })}</span>
+              {item.validity === 'INVALID' ? <span> · 결과로 쓸 수 없음</span> : null}
             </li>
           ))}
         </ul>

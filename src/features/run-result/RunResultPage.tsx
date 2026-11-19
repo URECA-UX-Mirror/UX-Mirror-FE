@@ -7,7 +7,6 @@ import { isScenarioRun, pageLabel } from '../../domain/site.ts'
 import type { Run } from '../../domain/types.ts'
 import { usePolling } from '../../shared/polling/usePolling.ts'
 import { ErrorNotice } from '../../shared/ErrorNotice.tsx'
-import { ResultOriginBadge } from '../../shared/ResultOriginBadge.tsx'
 import { formatDateTime } from '../../shared/stepLabel.ts'
 import { useRunSite } from '../../shared/useRunSite.ts'
 import { ReplayNotice } from '../replay/ReplayNotice.tsx'
@@ -19,6 +18,8 @@ import { OptimizerRunTag } from '../../shared/OptimizerRunTag.tsx'
 import { OtherRuns } from './OtherRuns.tsx'
 import { PathPanel } from './PathPanel.tsx'
 import { RunSummaryPanel } from './RunSummaryPanel.tsx'
+import { DiagnosisCard } from './DiagnosisCard.tsx'
+import { PAGE_NAMES } from '../../shared/pageNames.ts'
 
 /** 종료 후에도 `PENDING`이면 이슈만 최대 5회 다시 조회한다(`docs/contracts/run-lifecycle.md`). */
 const ISSUE_MAX_REFETCHES = 5
@@ -38,22 +39,22 @@ export function RunResultPage() {
       if (isApiError(runQuery.error) && runQuery.error.status === 404) {
         return (
           <section>
-            <h1>UX 탐색 분석 결과</h1>
-            <p role="alert">실행을 찾을 수 없습니다</p>
-            <Link to="/">새 분석 시작하기</Link>
+            <h1>{PAGE_NAMES.result}</h1>
+            <p role="alert">진단 결과를 찾을 수 없어요</p>
+            <Link to="/">새 진단 시작하기</Link>
           </section>
         )
       }
       return (
         <section>
-          <h1>UX 탐색 분석 결과</h1>
+          <h1>{PAGE_NAMES.result}</h1>
           <ErrorNotice error={runQuery.error} onRetry={runQuery.retry} />
         </section>
       )
     }
     return (
       <section>
-        <h1>UX 탐색 분석 결과</h1>
+        <h1>{PAGE_NAMES.result}</h1>
         <p role="status">
           {runQuery.error ? '연결 재시도 중' : '결과를 불러오는 중'}
         </p>
@@ -64,12 +65,12 @@ export function RunResultPage() {
   if (!isTerminalStatus(run.status)) {
     return (
       <section>
-        <h1>UX 탐색 분석 결과</h1>
+        <h1>{PAGE_NAMES.result}</h1>
         <p role="status">
-          아직 진행 중인 실행입니다. 결과는 실행이 끝나면 볼 수 있습니다.
+          아직 진단 중이에요. 끝나면 결과를 볼 수 있어요.
         </p>
         <Link to={`/runs/${encodeURIComponent(run.runId)}`}>
-          진행 화면으로 이동
+          진행 화면으로
         </Link>
       </section>
     )
@@ -105,59 +106,48 @@ function ResultBody({ run }: { run: Run }) {
       <section className="card run-head" aria-label="실행 정보">
         <div className="run-head-top">
           <div className="page-title-row">
-            <h1>UX 탐색 분석 결과</h1>
+            <h1>{PAGE_NAMES.result}</h1>
             <span role="status" className="run-status" data-status={run.status}>
               {statusLabel(run)}
             </span>
-            <ResultOriginBadge origin={run.resultOrigin} />
             <ReplayNotice experimentKey={run.experimentKey} origins={[run.resultOrigin]} />
           </div>
-          {!scenario ? <Link
-            className="run-result-link"
-            to={`/comparisons/${encodeURIComponent(run.experimentKey)}`}
-          >
-            버전 비교 보기
-          </Link> : null}
         </div>
         <dl className="meta-row">
           <div>
-            <dt>실행 ID</dt>
-            <dd>
-              <span className="run-id">{run.runId}</span>
-            </dd>
-          </div>
-          <div>
-            <dt>버전</dt>
-            <dd>{scenario ? `시나리오 테스트 · ${site?.name ?? run.siteId ?? '-'}` : versionName(run.variant, !!(run.optimizationContext || run.improvementContext))}</dd>
+            <dt>진단한 화면</dt>
+            <dd>{scenario ? `${PAGE_NAMES.otherSite} · ${site?.name ?? run.siteId ?? '-'}` : versionName(run.variant, !!(run.optimizationContext || run.improvementContext))}</dd>
           </div>
           {run.improvementContext ? (
             <div>
-              <dt>자동 개선 검증</dt>
+              <dt>AI 개선 확인</dt>
               <dd>{improvementRunText(run.improvementContext)}</dd>
             </div>
           ) : null}
           {run.optimizationContext ? (
             <div>
-              <dt>Optimizer 검증</dt>
+              <dt>후보 비교 확인</dt>
               <dd>
                 <OptimizerRunTag context={run.optimizationContext} />
               </dd>
             </div>
           ) : null}
           <div>
-            <dt>실행 일시</dt>
+            <dt>진단 시각</dt>
             <dd className="num">{formatDateTime(run.startedAt ?? run.createdAt)}</dd>
           </div>
           <div>
-            <dt>사용자 유형</dt>
+            <dt>고객 유형</dt>
             <dd>{run.persona}</dd>
           </div>
           <div className="meta-goal">
-            <dt>탐색 목표</dt>
+            <dt>고객이 하려는 일</dt>
             <dd>{run.goal}</dd>
           </div>
         </dl>
       </section>
+
+      <DiagnosisCard run={run} steps={steps.data} />
 
       <RunSummaryPanel run={run} issues={issues.data} siteMapUnavailable={scenario && site?.siteMapAvailable === false} />
 

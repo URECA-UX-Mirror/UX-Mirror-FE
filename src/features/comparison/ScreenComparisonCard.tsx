@@ -11,37 +11,38 @@ import {
 } from './format.ts'
 import { goalPathProbabilityHint, referenceBasisLabel } from '../../domain/referenceBasis.ts'
 import type { RunBasis, RunStepsState } from './useComparisonData.ts'
+import { pageName, SIDE_NAMES } from './labels.ts'
 
-/** 서버가 준 `reason` 코드의 안내 문구. 목록에 없는 코드는 코드를 그대로 보인다 */
+/** 서버가 준 `reason` 코드의 안내 문구. 목록에 없는 코드는 코드 대신 일반 안내를 보인다 */
 const REASON_TEXT: Record<string, string> = {
-  NOT_VISITED_IN_BEFORE: 'Before에서 방문하지 않은 화면입니다',
-  NOT_VISITED_IN_AFTER: 'After에서 방문하지 않은 화면입니다',
+  NOT_VISITED_IN_BEFORE: `${SIDE_NAMES.before}에서는 들르지 않은 화면입니다`,
+  NOT_VISITED_IN_AFTER: `${SIDE_NAMES.after}에서는 들르지 않은 화면입니다`,
   GLOBAL_CONDITIONS_MISMATCH: '비교 조건이 일치하지 않아 비교할 수 없습니다',
   CANDIDATE_SET_MISMATCH: '후보 구성이 달라 비교할 수 없습니다',
   ACTION_SET_MISMATCH: '선택지 구성이 달라 비교할 수 없습니다',
 }
 
 const reasonText = (reason: string | null) =>
-  reason === null ? '비교할 수 없습니다' : (REASON_TEXT[reason] ?? reason)
+  reason === null ? '비교할 수 없습니다' : (REASON_TEXT[reason] ?? '비교할 수 없는 이유를 확인하지 못했습니다')
 
 const METRIC_ROWS: {
   key: keyof ScreenMetrics
   label: string
   kind: MetricKind
 }[] = [
-  { key: 'normalizedEntropy', label: '정규화 엔트로피', kind: 'ratio' },
+  { key: 'normalizedEntropy', label: '고르기 어려운 정도', kind: 'ratio' },
   {
     key: 'clickOnlyNormalizedEntropy',
-    label: '클릭 후보 정규화 엔트로피',
+    label: '버튼 고르기 어려운 정도',
     kind: 'ratio',
   },
-  { key: 'top2Margin', label: 'Top-2 margin', kind: 'margin' },
+  { key: 'top2Margin', label: '1·2위 확률 차이', kind: 'margin' },
   {
     key: 'clickOnlyTop2Margin',
-    label: '클릭 후보 Top-2 margin',
+    label: '클릭 후보 1·2위 확률 차이',
     kind: 'margin',
   },
-  { key: 'goBackProbability', label: 'GO_BACK 확률', kind: 'probability' },
+  { key: 'goBackProbability', label: '뒤로 가기 확률', kind: 'probability' },
   { key: 'goalPathProbability', label: '목표 경로 확률', kind: 'probability' },
 ]
 
@@ -49,7 +50,7 @@ const METRIC_ROWS: {
 function goalPathHint(before: RunBasis, after: RunBasis): string | null {
   if (before === undefined || after === undefined) return null
   if (before === after) return goalPathProbabilityHint(before)
-  return `Before(${referenceBasisLabel(before)}): ${goalPathProbabilityHint(before)} / After(${referenceBasisLabel(after)}): ${goalPathProbabilityHint(after)}`
+  return `${SIDE_NAMES.before}(${referenceBasisLabel(before)}): ${goalPathProbabilityHint(before)} / ${SIDE_NAMES.after}(${referenceBasisLabel(after)}): ${goalPathProbabilityHint(after)}`
 }
 
 function MetricsTable({
@@ -68,9 +69,9 @@ function MetricsTable({
       <thead>
         <tr>
           <th scope="col">지표</th>
-          <th scope="col">Before</th>
-          <th scope="col">After</th>
-          <th scope="col">증감(서버 값)</th>
+          <th scope="col">{SIDE_NAMES.before}</th>
+          <th scope="col">{SIDE_NAMES.after}</th>
+          <th scope="col">변화</th>
         </tr>
       </thead>
       <tbody>
@@ -106,7 +107,7 @@ function GaugeRow({
   return (
     <div className="pair-row">
       <span className="pair-side" data-side={side}>
-        {side === 'before' ? 'Before' : 'After'}
+        {SIDE_NAMES[side]}
       </span>
       {value === null ? (
         <span className="gauge" aria-hidden="true" />
@@ -159,7 +160,7 @@ export function ScreenComparisonCard({
   return (
     <article className="comparison-screen">
       <h3>
-        화면: <code>{screen.pageKey}</code>
+        화면: {pageName(screen.pageKey)}
       </h3>
       {screen.screenComparable ? null : (
         <p role="status" className="comparison-reason">
@@ -169,14 +170,14 @@ export function ScreenComparisonCard({
 
       <div className="comparison-panes">
         <ScreenshotPane
-          title="Before"
+          side="before"
           runId={beforeRunId}
           stepId={screen.beforeStepId}
           stepsState={beforeSteps}
           screen={screen}
         />
         <ScreenshotPane
-          title="After"
+          side="after"
           runId={afterRunId}
           stepId={screen.afterStepId}
           stepsState={afterSteps}
@@ -194,10 +195,10 @@ export function ScreenComparisonCard({
           <div className="comparison-legend">
             <h4>후보별 확률 비교</h4>
             <span className="legend-item" data-tone="before">
-              Before
+              {SIDE_NAMES.before}
             </span>
             <span className="legend-item" data-tone="after">
-              After
+              {SIDE_NAMES.after}
             </span>
           </div>
           <div className="comparison-table-scroll">
@@ -205,8 +206,8 @@ export function ScreenComparisonCard({
             <thead>
               <tr>
                 <th scope="col">후보</th>
-                <th scope="col">Before / After 확률</th>
-                <th scope="col">증감(서버 값)</th>
+                <th scope="col">{SIDE_NAMES.before} / {SIDE_NAMES.after} 확률</th>
+                <th scope="col">변화</th>
               </tr>
             </thead>
             <tbody>

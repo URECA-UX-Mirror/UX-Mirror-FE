@@ -16,6 +16,8 @@ export const SITES: SiteDto[] = [
     siteId: DEMO_SITE_ID,
     name: 'ONS 공식몰 (cafe24 데모)',
     mode: 'SCENARIO',
+    siteUrl: 'https://ecudemo360127.cafe24.com',
+    allowedHosts: ['ecudemo360127.cafe24.com'],
     startPage: 'home',
     pages: [
       { pageKey: 'home', path: '/', label: '홈', goalText: null, goalSelectable: false, goalUnavailableReason: 'START_PAGE' },
@@ -35,6 +37,8 @@ export const SITES: SiteDto[] = [
     siteId: NO_MAP_SITE_ID,
     name: '지도 없는 데모 사이트',
     mode: 'SCENARIO',
+    siteUrl: 'https://nomap.example.com',
+    allowedHosts: ['nomap.example.com'],
     startPage: 'home',
     pages: [
       { pageKey: 'home', path: '/', label: '홈', goalText: null, goalSelectable: false, goalUnavailableReason: 'START_PAGE' },

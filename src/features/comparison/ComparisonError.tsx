@@ -17,7 +17,7 @@ export function ComparisonError({ experimentKey, error, onRetry }: ComparisonErr
       <div role="alert" className="error-notice">
         <p>비교 대상을 찾을 수 없습니다</p>
         <p className="muted">주소의 실험 키가 올바른지 확인하세요.</p>
-        <Link to="/">새 UX 분석으로 이동</Link>
+        <Link to="/">새 진단 하러 가기</Link>
       </div>
     )
   }

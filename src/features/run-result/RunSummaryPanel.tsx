@@ -2,7 +2,8 @@ import { useState } from 'react'
 import { Link } from 'react-router'
 import type { IssueList, Run } from '../../domain/types.ts'
 import { pathMetricNames, referenceBasisLabel } from '../../domain/referenceBasis.ts'
-import { formatPathMetric, NOT_USED } from './format.ts'
+import { stopReasonLabel } from '../../shared/runLabels.ts'
+import { formatPathMetric } from './format.ts'
 
 interface RunSummaryPanelProps {
   run: Run
@@ -93,20 +94,20 @@ export function RunSummaryPanel({ run, issues, siteMapUnavailable = false }: Run
               value={summary.goalReached ? '도달' : '도달하지 못함'}
               note={
                 summary.goalReached
-                  ? '목표 화면에 도달했습니다'
-                  : '정해진 단계 안에 목표 화면에 도달하지 못했습니다'
+                  ? '목표 화면에 도착했어요'
+                  : stopReasonLabel(run.terminationReason) ?? '목표 화면에 도착하지 못했어요'
               }
             />
             <StatCard
-              label="탐색 단계"
+              label="클릭 수"
               value={String(summary.stepCount)}
-              unit={`단계 / 최대 ${run.maxSteps}`}
-              note={`CLICK ${summary.clickCount}회 · GO_BACK ${summary.backCount}회 (모델 ${summary.modelBackCount} · 시스템 ${summary.systemBackCount})`}
+              unit={`번 / 최대 ${run.maxSteps}`}
+              note={`누름 ${summary.clickCount}번 · 뒤로 가기 ${summary.backCount}번`}
             />
             <StatCard
-              label="UX 검토 후보"
+              label="살펴볼 점"
               value={issueCountText(issues, run.validity)}
-              note="AI 탐색 기록 기반의 검토 후보이며 실제 문제가 확정된 것이 아니라 검토가 필요한 단서입니다"
+              note="AI 고객의 기록에서 찾은 단서예요. 사람 테스트로 확인해 보세요"
             />
           </div>
           <button
@@ -119,20 +120,17 @@ export function RunSummaryPanel({ run, issues, siteMapUnavailable = false }: Run
           </button>
           {open ? (
             <dl className="summary-grid summary-full">
-              <dt>종료 상태</dt>
-              <dd>
-                {run.status}
-                {run.terminationReason ? ` (${run.terminationReason})` : ''}
-              </dd>
+              <dt>끝난 이유</dt>
+              <dd>{stopReasonLabel(run.terminationReason) ?? '-'}</dd>
               <dt>목표 화면 도달</dt>
               <dd>{summary.goalReached ? '도달' : '도달하지 못함'}</dd>
               <dt>탐색 단계</dt>
               <dd>
                 {summary.stepCount} / 최대 {run.maxSteps}
               </dd>
-              <dt>CLICK 횟수</dt>
+              <dt>누른 횟수</dt>
               <dd>{summary.clickCount}</dd>
-              <dt>GO_BACK 횟수</dt>
+              <dt>뒤로 가기 횟수</dt>
               <dd>
                 {summary.backCount} (모델 {summary.modelBackCount} · 시스템{' '}
                 {summary.systemBackCount})
@@ -148,8 +146,6 @@ export function RunSummaryPanel({ run, issues, siteMapUnavailable = false }: Run
                     {formatPathMetric(summary.detourMoveCount, basis, summary.goalReached, 'detour')}
                     <span className="metric-hint">목표 거리가 줄지 않은 이동</span>
                   </dd>
-                  <dt>허용 경로 이탈</dt>
-                  <dd>{NOT_USED}</dd>
                 </>
               ) : null}
               <dt>검토 후보 수</dt>

@@ -5,30 +5,43 @@ import { http, HttpResponse } from 'msw'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { expect, it } from 'vitest'
 import { toImprovementView } from '../src/adapters/improvement.ts'
-import { FINAL_IMPROVEMENT_ID } from '../src/features/improvement/constants.ts'
+import { apiUrl } from '../src/api/client.ts'
 import { ImprovementPage } from '../src/features/improvement/ImprovementPage.tsx'
 import { server } from './setup.ts'
 
-// 공식 자동 개선 결과(imp-1119): 개선안 미채택(NO_IMPROVEMENT), 검증 NOT_RUN, official null
+// 사전 등록 공식 실행 결과 (BE가 kind=OFFICIAL로 주는 리포트)
+// 1차(imp-1119): 개선안 미채택(NO_IMPROVEMENT), 다시 확인 NOT_RUN, official null
+// 2차(imp-1119b): '이용정보' → '주문 환불' 채택, 공식 B 확정, 개선안에서 다시 확인 완료
 
-const official = () =>
-  JSON.parse(readFileSync(resolve(process.cwd(), 'public/improvements/imp-1119.json'), 'utf-8'))
+const read = (id: string) =>
+  JSON.parse(readFileSync(resolve(process.cwd(), `tests/fixtures/improvements/${id}.json`), 'utf-8'))
 
-it('1차 공식 결과 파일은 imp-1119 id를 가진다', () => {
-  expect(official().improvementId).toBe('imp-1119')
+function renderOfficial(id: string) {
+  server.use(
+    http.get(apiUrl(`/api/improvements/${id}`), () =>
+      HttpResponse.json({
+        improvementId: id, kind: 'OFFICIAL', status: 'COMPLETED', phase: 'DONE',
+        createdAt: null, startedAt: null, finishedAt: null, error: null,
+        input: { goal: '산 물건을 환불하고 싶을', persona: '온라인 쇼핑이 낯선', goalPage: 'refund' },
+        improvement: read(id),
+      })),
+  )
+  render(
+    <MemoryRouter initialEntries={[`/improvements/${id}`]}>
+      <Routes>
+        <Route path="/improvements/:improvementId" element={<ImprovementPage />} />
+      </Routes>
+    </MemoryRouter>,
+  )
+}
+
+it('공식 결과 파일은 각자 자기 id를 가진다', () => {
+  expect(read('imp-1119').improvementId).toBe('imp-1119')
+  expect(read('imp-1119b').improvementId).toBe('imp-1119b')
 })
 
-// 2차 공식 결과(imp-1119b): '이용정보' → '주문 환불' 채택, 공식 B 확정, 실제 Run 검증 완료
-const second = () =>
-  JSON.parse(readFileSync(resolve(process.cwd(), 'public/improvements/imp-1119b.json'), 'utf-8'))
-
-it('사이드바 링크가 2차 최종 결과를 가리키고 파일이 같은 id를 가진다', () => {
-  expect(FINAL_IMPROVEMENT_ID).toBe('imp-1119b')
-  expect(second().improvementId).toBe('imp-1119b')
-})
-
-it('2차 결과는 네 영역이 오류 없이 변환되고 채택·공식 확정·검증 비교 키를 읽는다', () => {
-  const view = toImprovementView(second())
+it('2차 결과는 네 영역이 오류 없이 변환되고 채택·공식 확정·다시 확인 비교 경로를 읽는다', () => {
+  const view = toImprovementView(read('imp-1119b'))
   expect(view.report.ok && view.official.ok && view.rounds.ok && view.verification.ok).toBe(true)
   if (!view.report.ok || !view.rounds.ok || !view.official.ok || !view.verification.ok) return
   expect(view.report.data.result).toBe('IMPROVED')
@@ -41,26 +54,18 @@ it('2차 결과는 네 영역이 오류 없이 변환되고 채택·공식 확�
   expect(view.verification.data.pairs.map((pair) => pair.comparisonPath)).toEqual(['/comparisons/imp-1119b-S1', '/comparisons/imp-1119b-S4'])
 })
 
-it('2차 결과 화면은 채택 이름과 비교 보기를 보이고 데이터 오류가 없다', async () => {
-  server.use(http.get('/improvements/imp-1119b.json', () => HttpResponse.json(second())))
-  render(
-    <MemoryRouter initialEntries={['/improvements/imp-1119b']}>
-      <Routes>
-        <Route path="/improvements/:improvementId" element={<ImprovementPage />} />
-      </Routes>
-    </MemoryRouter>,
-  )
-  expect(await screen.findByRole('heading', { name: '자동 개선 리포트' })).toBeTruthy()
-  expect((await screen.findAllByRole('link', { name: '비교 보기' })).map((a) => a.getAttribute('href'))).toEqual(['/comparisons/imp-1119b-S1', '/comparisons/imp-1119b-S4'])
-  expect(screen.queryByText(/데이터 오류/)).toBeNull()
+it('2차 결과 화면은 공식 결과 표시·채택 이름·나란히 비교 링크를 보이고 영역 안내가 없다', async () => {
+  renderOfficial('imp-1119b')
+  expect(await screen.findByText('사전 등록 공식 결과')).toBeTruthy()
+  expect(screen.getByRole('region', { name: '개선 효과' }).querySelector('.summary-hero strong')?.textContent).toBe('주문 환불')
+  expect(screen.getAllByRole('link', { name: '나란히 비교하기' }).map((a) => a.getAttribute('href'))).toEqual(['/comparisons/imp-1119b-S1', '/comparisons/imp-1119b-S4'])
+  expect(screen.getByText('점수 계산 자세히 보기')).toBeTruthy()
+  expect(screen.queryByText('이 부분을 보여줄 수 없어요.')).toBeNull()
 })
 
-it('네 영역이 모두 오류 없이 변환되고 후보 11개를 읽는다', () => {
-  const view = toImprovementView(official())
-  expect(view.report.ok).toBe(true)
-  expect(view.official.ok).toBe(true)
-  expect(view.rounds.ok).toBe(true)
-  expect(view.verification.ok).toBe(true)
+it('1차 결과는 네 영역이 오류 없이 변환되고 후보 11개를 읽는다', () => {
+  const view = toImprovementView(read('imp-1119'))
+  expect(view.report.ok && view.official.ok && view.rounds.ok && view.verification.ok).toBe(true)
   if (!view.report.ok || !view.rounds.ok || !view.official.ok || !view.verification.ok) return
   expect(view.report.data.result).toBe('NO_IMPROVEMENT')
   expect(view.official.data).toBeNull()
@@ -68,17 +73,10 @@ it('네 영역이 모두 오류 없이 변환되고 후보 11개를 읽는다', 
   expect(view.rounds.data.reduce((n, r) => n + r.candidates.length, 0)).toBe(11)
 })
 
-it('화면은 개선안 미채택과 검증 미진행을 보이고 데이터 오류가 없다', async () => {
-  server.use(http.get('/improvements/imp-1119.json', () => HttpResponse.json(official())))
-  render(
-    <MemoryRouter initialEntries={['/improvements/imp-1119']}>
-      <Routes>
-        <Route path="/improvements/:improvementId" element={<ImprovementPage />} />
-      </Routes>
-    </MemoryRouter>,
-  )
-  expect(await screen.findByRole('heading', { name: '자동 개선 리포트' })).toBeTruthy()
-  expect(await screen.findByText('개선안 미채택')).toBeTruthy()
-  expect(screen.getByText('검증 미진행')).toBeTruthy()
-  expect(screen.queryByText(/데이터 오류/)).toBeNull()
+it('1차 결과 화면은 이름만 바꿔서는 좋아지지 않았음과 다시 확인하지 않았음을 보이고 영역 안내가 없다', async () => {
+  renderOfficial('imp-1119')
+  expect(await screen.findByText(/이름만 바꿔서는 좋아지지 않았어요/)).toBeTruthy()
+  expect(screen.getByText(/이번에는 개선안에서 다시 확인하지 않았어요/)).toBeTruthy()
+  expect(screen.queryByText('점수 계산 자세히 보기')).toBeNull()
+  expect(screen.queryByText('이 부분을 보여줄 수 없어요.')).toBeNull()
 })

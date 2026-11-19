@@ -7,6 +7,9 @@ import { ResultOriginBadge } from '../../shared/ResultOriginBadge.tsx'
 import { HistoryIcon } from '../../shared/icons.tsx'
 import { SectionTitle } from '../../shared/SectionTitle.tsx'
 import { isTerminalStatus } from '../../domain/runStatus.ts'
+import { shortTime } from '../improvement/labels.ts'
+import { statusLabel } from '../run-progress/statusLabel.ts'
+import { PAGE_NAMES } from '../../shared/pageNames.ts'
 import { REPLAY_EXPERIMENTS } from './constants.ts'
 import { ReplayNotice } from './ReplayNotice.tsx'
 
@@ -51,11 +54,7 @@ function ReplayExperiment({ experimentKey, label }: { experimentKey: string; lab
 
   return (
     <section className="card" aria-label={`저장된 실행: ${label}`}>
-      <SectionTitle
-        icon={<HistoryIcon />}
-        title={label}
-        aside={`experimentKey: ${experimentKey}`}
-      />
+      <SectionTitle icon={<HistoryIcon />} title={label} />
       {runs.data && runs.data.length > 0 ? (
         <ReplayNotice
           experimentKey={experimentKey}
@@ -80,7 +79,10 @@ function ReplayExperiment({ experimentKey, label }: { experimentKey: string; lab
                   <li key={run.runId}>
                     <span className="replay-version">{name}</span>
                     <span className="replay-run">
-                      <span className="run-id">{run.runId}</span>
+                      {/* Run ID 대신 버전 이름 + 시작 시각 + 상태로 구분한다 */}
+                      <span>
+                        {shortTime(run.createdAt) ?? '시각 모름'} · {statusLabel({ status: run.status, error: null })}
+                      </span>
                       <ResultOriginBadge origin={run.resultOrigin} />
                     </span>
                     <span className="replay-links">
@@ -93,7 +95,7 @@ function ReplayExperiment({ experimentKey, label }: { experimentKey: string; lab
           </ul>
           {comparable ? (
             <p className="card-footer">
-              <Link to={`/comparisons/${key}`}>버전 비교 보기</Link>
+              <Link to={`/comparisons/${key}`}>{PAGE_NAMES.comparison} 보기</Link>
             </p>
           ) : null}
         </>

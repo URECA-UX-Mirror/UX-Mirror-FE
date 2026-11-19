@@ -1,10 +1,18 @@
 <!doctype html>
-<html lang="en">
+<html lang="ko">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ux-mirror-fe</title>
+    <meta name="color-scheme" content="light dark" />
+    <title>UX MIRROR</title>
+    <script>
+      // 고른 테마를 첫 그리기 전에 적용한다 (키는 src/shared/theme.ts THEME_KEY)
+      try {
+        var t = localStorage.getItem('um.theme')
+        if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t
+      } catch (e) {}
+    </script>
   </head>
   <body>
     <div id="root"></div>

@@ -58,7 +58,7 @@
 - 준비 성공이 탐색 성공을 보장하지 않는다(`계약 §17.8`). "엔진 준비 완료"로만 표시하고 "분석 성공 가능"으로 표시하지 않는다.
 - `status`가 `READY`가 아니면 분석 시작을 막고 다시 확인할 수 있게 한다. 상태 조회가 실패한 경우에는 분석 시작을 막고 확인 불가를 안내한다.
 - `activeRun`은 실행 중인 Run의 `runId` 문자열이고(없으면 `null`), 값이 있으면 다른 Run이 실행 중이므로 새 분석 시작을 막고 해당 Run으로 이동하는 링크를 보인다.
-- `activeOptimization`(`{optimizationId, status}` 또는 `null`)은 UX Optimizer가 후보를 평가·검증하는 동안 값이 있다(계약 v1.3.8 §17.8, 이 저장소의 나머지 문서는 v1.3.5 기준이며 반영은 [#43](https://github.com/UX-Mirror/UX-Mirror-FE/issues/43)에서 한다). 필드가 없는 응답은 `null`로 읽고 모르는 `status`는 "진행 중"으로 보인다. 이 동안 `POST /api/runs`는 `409 RUN_ALREADY_ACTIVE`이고 `activeRun`은 비어 있을 수 있다. 엔진 상태에 "Optimizer ○○ 중"을 표시하고, 새 UX 분석·시나리오 테스트는 시작 버튼을 막지 않고 안내만 보인다(막는 판단은 서버의 `409`에 맡긴다). `409`의 `message`가 있으면 그대로 보인다.
+- `activeOptimization`(`{optimizationId, status}` 또는 `null`)은 UX Optimizer가 후보를 평가·검증하는 동안 값이 있다(계약 v1.3.8 §17.8, 이 저장소의 나머지 문서는 v1.3.5 기준이며 반영은 [#43](https://github.com/UX-Mirror/UX-Mirror-FE/issues/43)에서 한다). 필드가 없는 응답은 `null`로 읽고 모르는 `status`는 "진행 중"으로 보인다. 이 동안 `POST /api/runs`는 `409 RUN_ALREADY_ACTIVE`이고 `activeRun`은 비어 있을 수 있다. 엔진 상태에 "후보 비교 중"을 표시하고, 진단하기·다른 사이트 진단은 이 동안 시작 버튼을 막고 안내를 보인다(서버도 `409`를 준다). `activeRunOwner`(`{kind, runId, external, improvementId}`, 임시 [OI-13](../operations/open_issue.md#oi-13))가 있으면 진행 중인 것이 진단·AI 개선·후보 비교 중 무엇인지 구분해 그 화면 링크를 보인다.
 - 호출이 실패하면 엔진 상태를 "확인 불가"로 표시하고 나머지 화면은 계속 쓸 수 있다.
 
 ### POST /api/runs
@@ -179,7 +179,7 @@
 - 계산할 수 없는 지표(`targetOptionProbability`, `goalPathProbability` 등)는 `null`이며 0으로 바꾸지 않는다. 사유는 `metricNullReasons`(지표 이름 → 코드)이다. `baseUrl` 같은 내부 주소는 응답에 없다.
 - 검증 Run은 `experimentKey`가 `optimizationId`이고 기준은 `variant=before`, 후보는 `after`다. 어느 라벨 사이트인지는 `variant`가 아니라 Run의 `optimizationContext`(`optimizationId`, `candidateId`, `label`, `executionRole`, `siteInstanceId`)로만 구분한다. 일반 Run에는 이 필드가 없고 Adapter는 `null`로 읽는다. 비교는 기존 `GET /api/comparisons/{optimizationId}`를 쓴다.
 - 선정 이유(`selection.selectionReasonCode`, `excludedCandidates[].reasonCodes`)·판단 이유(`verification.reasonCode`)·`finalDecision`·`invalidReasons`는 정책 모듈이 정하는 값이다. 목록이 확정되기 전이므로 모르는 값을 오류로 만들지 않고 원문 문자열을 그대로 둔다.
-- 오류 코드와 화면 문구는 `src/domain/optimizationErrors.ts` 한 곳에서 정하되, 같은 코드가 상황마다 뜻이 달라 세 함수로 나눈다. API 오류 응답은 서버 `message`를 우선하고(없을 때만 코드별 대체 문구), `FAILED`인 Optimization의 `error.code`와 후보 평가의 `error.code`(후보 하나만 실패, 평가는 계속)는 각각 따로 문구를 정한다. 모르는 코드는 서버 `message`를 그대로 쓴다.
+- 오류 코드와 화면 문구는 `src/domain/optimizationErrors.ts` 한 곳에서 정하되, 같은 코드가 상황마다 뜻이 달라 세 함수로 나눈다. API 오류 응답은 서버 `message`를 우선하고(없을 때만 코드별 대체 문구), `FAILED`인 Optimization의 `error.code`와 후보 평가의 `error.code`(후보 하나만 실패, 평가는 계속)는 각각 따로 문구를 정한다. API 오류의 모르는 코드는 서버 `message`를 그대로 쓰고, 실패 원인·후보 평가 오류의 모르는 코드는 서버 `message`에 한글이 있을 때만 쓰며 아니면 일반 안내("후보 비교를 끝내지 못했습니다. 다시 시작해 주세요." / "이 후보를 평가하지 못했습니다.")다.
 
 | HTTP | `error.code` |
 | --- | --- |

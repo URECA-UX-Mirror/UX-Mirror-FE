@@ -16,7 +16,6 @@ API와 데이터 구조의 정본은 **인터페이스·데이터 계약서 v1.3
 | 계약 | [스크린샷과 bbox](contracts/screenshot-bbox.md) | 이미지 표시와 bbox 좌표 변환 |
 | 계약 | [지표와 목표 판정](contracts/metrics-and-goal.md) | 지표 의미, 목표 판정, 프론트의 책임 범위 |
 | 운영 | [로컬 환경](operations/local-environment.md) | 포트, 환경변수, CORS, 비밀값 규칙 |
-| 운영 | [자동 개선 JSON 반영 절차](operations/improvement-release.md) | 최종 `improvement.json` 반영·배포 확인과 공개 전 검사 |
 | 운영 | [미결정 항목](operations/open_issue.md) | 계약서에 없어 확정이 필요한 항목과 담당 역할 |
 | 규칙 | [저장소 작업 지침](../AGENTS.md) | 읽기 범위, 문서·테스트·Git 규칙 |
 

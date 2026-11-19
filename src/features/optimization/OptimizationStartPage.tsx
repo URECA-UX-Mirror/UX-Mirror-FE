@@ -4,13 +4,14 @@ import { isApiError } from '../../api/client.ts'
 import { createOptimization } from '../../api/optimizations.ts'
 import { optimizationApiErrorMessage } from '../../domain/optimizationErrors.ts'
 import { SectionTitle } from '../../shared/SectionTitle.tsx'
+import { PAGE_NAMES } from '../../shared/pageNames.ts'
 import { activeOptimizationLabel } from '../../shared/optimizationStatus.ts'
 import { useHealth } from '../../shared/useHealth.ts'
 import { CompareIcon } from '../../shared/icons.tsx'
 import './optimization.css'
 
 /**
- * Optimizer 시작 화면(`/optimizations`). 후보 풀·목표·모델 조건은 서버가 정하므로 입력 칸은 없다.
+ * 메뉴 이름 후보 비교 시작 화면(`/optimizations`). 후보 풀·목표·모델 조건은 서버가 정하므로 입력 칸은 없다.
  * 진단 Run은 선택이며 `?sourceRunId=`로만 받는다. 엔진이 `READY`이고 진행 중인 Run·Optimization이 없을 때만 시작할 수 있다.
  */
 export function OptimizationStartPage() {
@@ -52,16 +53,16 @@ export function OptimizationStartPage() {
 
   return (
     <section className="optimization-page">
-      <h1>UX Optimizer</h1>
+      <h1>{PAGE_NAMES.optimizer}</h1>
       <section className="card" aria-label="후보 평가 시작">
         <SectionTitle icon={<CompareIcon />} title="후보 평가" />
         <p>
-          상단 메뉴의 라벨 후보를 모델로 평가해 검증할 후보를 고릅니다. 후보 풀과 평가
-          조건은 서버 설정을 따릅니다.
+          상단 메뉴 이름의 여러 후보를 AI 고객에게 보여 주고, 어느 이름이 찾기 쉬운지 비교해 확인할
+          후보를 고릅니다. 비교할 후보와 조건은 미리 정해져 있습니다.
         </p>
         {sourceRunId ? (
           <p className="muted">
-            진단 Run <span className="run-id">{sourceRunId}</span>을 연결해 시작합니다.
+            방금 본 진단 결과와 연결해 시작합니다.
           </p>
         ) : null}
         {loading && !health && !healthError ? (

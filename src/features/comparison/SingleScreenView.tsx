@@ -4,6 +4,7 @@ import { CandidateProbabilityList } from '../../shared/screenshot/CandidateProba
 import { candidateNumbers } from './candidateNumbers.ts'
 import { ScreenshotPane } from './ScreenshotPane.tsx'
 import type { RunStepsState } from './useComparisonData.ts'
+import { pageName, SIDE_NAMES } from './labels.ts'
 
 type Side = 'before' | 'after'
 
@@ -16,7 +17,7 @@ interface SingleScreenViewProps {
 }
 
 /**
- * 하나씩 보기. 화면(pageKey)과 버전(Before·After)을 고르면 그 화면을 크게 한 장 보이고,
+ * 하나씩 보기. 화면(pageKey)과 버전(지금 화면·개선안)을 고르면 그 화면을 크게 한 장 보이고,
  * 오른쪽에 같은 Step의 후보 확률 게이지를 둔다. 후보 번호는 한눈에 보기와 같다.
  * 선택한 화면·버전은 화면 상태다.
  */
@@ -36,7 +37,6 @@ export function SingleScreenView({
   const stepId = side === 'before' ? screen.beforeStepId : screen.afterStepId
   const stepsState = side === 'before' ? beforeSteps : afterSteps
   const step = stepId === null ? undefined : stepsState.steps.get(stepId)
-  const title = side === 'before' ? 'Before' : 'After'
 
   return (
     <div className="comparison-single">
@@ -49,7 +49,7 @@ export function SingleScreenView({
               aria-pressed={item.pageKey === screen.pageKey}
               onClick={() => setPageKey(item.pageKey)}
             >
-              {item.pageKey}
+              {pageName(item.pageKey)}
             </button>
           ))}
         </div>
@@ -59,20 +59,20 @@ export function SingleScreenView({
             aria-pressed={side === 'before'}
             onClick={() => setSide('before')}
           >
-            Before
+            {SIDE_NAMES.before}
           </button>
           <button
             type="button"
             aria-pressed={side === 'after'}
             onClick={() => setSide('after')}
           >
-            After
+            {SIDE_NAMES.after}
           </button>
         </div>
       </div>
       <div className="single-body">
         <ScreenshotPane
-          title={title}
+          side={side}
           runId={runId}
           stepId={stepId}
           stepsState={stepsState}

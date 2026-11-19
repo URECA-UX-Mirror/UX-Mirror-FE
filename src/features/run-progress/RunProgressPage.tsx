@@ -6,7 +6,6 @@ import { isTerminalStatus } from '../../domain/runStatus.ts'
 import { isScenarioRun, pageLabel } from '../../domain/site.ts'
 import type { Run, Step } from '../../domain/types.ts'
 import { ErrorNotice } from '../../shared/ErrorNotice.tsx'
-import { ResultOriginBadge } from '../../shared/ResultOriginBadge.tsx'
 import { CandidateProbabilityList } from '../../shared/screenshot/CandidateProbabilityList.tsx'
 import { ScreenshotViewer } from '../../shared/screenshot/ScreenshotViewer.tsx'
 import { SectionTitle } from '../../shared/SectionTitle.tsx'
@@ -21,6 +20,7 @@ import { ReplayNotice } from '../replay/ReplayNotice.tsx'
 import { improvementRunText } from '../../shared/improvementRun.ts'
 import { OptimizerRunTag } from '../../shared/OptimizerRunTag.tsx'
 import { statusLabel } from './statusLabel.ts'
+import { PAGE_NAMES } from '../../shared/pageNames.ts'
 import { useRunProgress } from './useRunProgress.ts'
 
 export function RunProgressPage() {
@@ -42,16 +42,16 @@ function RunProgress({ runId }: { runId: string }) {
       }
       return (
         <section>
-          <h1>AI 탐색 진행</h1>
+          <h1>{PAGE_NAMES.progress}</h1>
           <ErrorNotice error={polling.error} onRetry={polling.retry} />
         </section>
       )
     }
     return (
       <section>
-        <h1>AI 탐색 진행</h1>
+        <h1>{PAGE_NAMES.progress}</h1>
         <p role="status">
-          {polling.retrying ? '연결 재시도 중' : '실행 정보를 불러오는 중'}
+          {polling.retrying ? '다시 연결하는 중이에요' : '진단 정보를 불러오는 중이에요'}
         </p>
       </section>
     )
@@ -62,70 +62,61 @@ function RunProgress({ runId }: { runId: string }) {
 
   return (
     <section className="run-progress">
-      <section className="card run-head" aria-label="실행 정보">
+      <section className="card run-head" aria-label="진단 정보">
         <div className="run-head-top">
           <div className="page-title-row">
-            <h1>AI 탐색 진행</h1>
+            <h1>{terminal ? '진단이 끝났어요' : PAGE_NAMES.progress}</h1>
             <span role="status" className="run-status" data-status={run.status}>
               {statusLabel(run)}
             </span>
-            <ResultOriginBadge origin={run.resultOrigin} />
             <ReplayNotice experimentKey={run.experimentKey} origins={[run.resultOrigin]} />
           </div>
           {terminal ? (
             <Link className="run-result-link" to={`/runs/${encodeURIComponent(run.runId)}/result`}>
-              분석 결과 보기
+              {PAGE_NAMES.result} 보기
             </Link>
           ) : (
-            <button type="button" disabled title="탐색이 끝나면 활성화됩니다">
-              분석 결과 보기
-            </button>
+            <span className="muted">끝나면 결과를 볼 수 있어요 (보통 1~2분)</span>
           )}
         </div>
         <dl className="meta-row">
           <div>
-            <dt>실행 ID</dt>
-            <dd>
-              <span className="run-id">{run.runId}</span>
-            </dd>
-          </div>
-          <div>
-            <dt>버전</dt>
-            <dd>{isScenarioRun(run) ? `시나리오 테스트 · ${site?.name ?? run.siteId ?? '-'}` : versionName(run.variant, !!(run.optimizationContext || run.improvementContext))}</dd>
+            <dt>사이트</dt>
+            <dd>{isScenarioRun(run) ? site?.name ?? '등록된 사이트' : versionName(run.variant, !!(run.optimizationContext || run.improvementContext))}</dd>
           </div>
           {run.improvementContext ? (
             <div>
-              <dt>자동 개선 검증</dt>
+              <dt>AI 개선</dt>
               <dd>{improvementRunText(run.improvementContext)}</dd>
             </div>
           ) : null}
           {run.optimizationContext ? (
             <div>
-              <dt>Optimizer 검증</dt>
+              <dt>{PAGE_NAMES.optimizer}</dt>
               <dd>
                 <OptimizerRunTag context={run.optimizationContext} />
               </dd>
             </div>
           ) : null}
           <div>
-            <dt>진행 단계</dt>
+            <dt>클릭 수</dt>
             <dd className="num">
-              Step {run.progress.stepCount} / {run.progress.maxSteps}단계
+              {run.progress.stepCount}번 / 최대 {run.progress.maxSteps}번
             </dd>
           </div>
           <div>
             <dt>현재 화면</dt>
             <dd>
-              <span className="mono">{run.progress.currentPageKey ? pageLabel(site, run.progress.currentPageKey) : '-'}</span>
+              {run.progress.currentPageKey ? pageLabel(site, run.progress.currentPageKey) : '-'}
             </dd>
           </div>
           <div className="meta-goal">
-            <dt>탐색 목표</dt>
-            <dd>{run.goal}</dd>
+            <dt>하려는 일</dt>
+            <dd>{run.persona ? `${run.persona} 고객이 ` : ''}{run.goal}</dd>
           </div>
         </dl>
-        {run.validity === 'INVALID' ? <p role="alert">무효 처리된 실행{run.invalidReason ? ` · ${run.invalidReason}` : ''}</p> : null}
-        {run.error ? <p role="alert">실행 오류: {run.error.message}</p> : null}
+        {run.validity === 'INVALID' ? <p role="alert">이 진단은 결과로 쓸 수 없어요. 다시 시작해 주세요.</p> : null}
+        {run.error ? <p role="alert">진단 중 문제가 생겼어요. 다시 시작해 주세요.</p> : null}
         <RunGauge
           stepCount={run.progress.stepCount}
           maxSteps={run.progress.maxSteps}
@@ -135,18 +126,18 @@ function RunProgress({ runId }: { runId: string }) {
         {polling.status === 'failed' ? (
           <ErrorNotice error={polling.error} onRetry={polling.retry} />
         ) : polling.retrying ? (
-          <p role="status">연결 재시도 중</p>
+          <p role="status">다시 연결하는 중이에요</p>
         ) : null}
         {snapshot.stepsError === null ? null : polling.status === 'done' ? (
           // 종료 뒤에도 `/steps`를 받지 못했다. Run 상태는 그대로 두고 단계 기록만 다시 조회한다.
           <div role="alert" className="error-notice">
-            <p>단계 기록을 불러오지 못했습니다</p>
+            <p>클릭 기록을 불러오지 못했어요</p>
             <button type="button" onClick={polling.retry}>
               다시 시도
             </button>
           </div>
         ) : (
-          <p role="status">단계 기록 재시도 중</p>
+          <p role="status">클릭 기록을 다시 불러오는 중이에요</p>
         )}
       </section>
 
@@ -158,9 +149,9 @@ function RunProgress({ runId }: { runId: string }) {
 function RunNotFound() {
   return (
     <section>
-      <h1>AI 탐색 진행</h1>
-      <p role="alert">실행을 찾을 수 없음</p>
-      <Link to="/">새 분석</Link>
+      <h1>{PAGE_NAMES.progress}</h1>
+      <p role="alert">이 진단을 찾을 수 없어요.</p>
+      <Link to="/">새 진단</Link>
     </section>
   )
 }
@@ -179,9 +170,9 @@ function StepViewer({
 
   if (steps.length === 0) {
     return (
-      <section className="card" aria-label="탐색 화면">
-        <SectionTitle icon={<ColumnsIcon />} title="탐색 화면" />
-        <p role="status">{terminal ? '단계 기록 없음' : '첫 단계 준비 중'}</p>
+      <section className="card" aria-label="고객이 본 화면">
+        <SectionTitle icon={<ColumnsIcon />} title="고객이 본 화면" />
+        <p role="status">{terminal ? '클릭 기록이 없어요' : 'AI 고객이 첫 화면을 보고 있어요'}</p>
       </section>
     )
   }
@@ -198,22 +189,22 @@ function StepViewer({
       {browsingHistory ? (
         <p role="status" className="history-banner">
           <span>
-            기록 열람 중 (Step {viewed.stepId}) 입니다. 실시간 화면이 아닙니다.
+            {viewed.stepId}번째 클릭 화면을 보는 중이에요 (지금 화면 아님)
           </span>
           <button type="button" onClick={() => setPinnedId(null)}>
-            최신 단계로 이동
+            지금 화면 보기
           </button>
         </p>
       ) : null}
 
       <div className="step-layout">
-        <section className="card" aria-label="탐색 화면">
+        <section className="card" aria-label="고객이 본 화면">
           <SectionTitle
             icon={<ColumnsIcon />}
-            title="탐색 화면"
-            aside="기록된 화면과 AI의 선택 결과"
+            title="고객이 본 화면"
+            aside="AI 고객이 본 화면과 누른 곳"
             action={
-              <nav className="step-tabs" aria-label="단계 선택">
+              <nav className="step-tabs" aria-label="클릭 선택">
                 {steps.map((step) => (
                   <button
                     key={step.stepId}
@@ -221,7 +212,7 @@ function StepViewer({
                     aria-pressed={step.stepId === viewed.stepId}
                     onClick={() => select(step)}
                   >
-                    Step {step.stepId}
+                    {step.stepId}번째
                   </button>
                 ))}
               </nav>
@@ -234,15 +225,15 @@ function StepViewer({
               <i />
             </span>
             <span className="browser-url mono">
-              {viewed.page.path} · {viewed.page.title}
+              {viewed.page.title}
             </span>
             <span className="browser-tag num">
-              화면 캡처 #{viewed.stepId} · {viewed.page.viewport.width} × {viewed.page.viewport.height}
+              {viewed.stepId}번째 클릭 전 화면
             </span>
           </div>
           <ScreenshotViewer
             src={screenshotUrl(run.runId, viewed.stepId)}
-            alt={`Step ${viewed.stepId} 스크린샷`}
+            alt={`${viewed.stepId}번째 클릭 전 화면`}
             viewport={viewed.page.viewport}
             screenshotSize={viewed.page.screenshotSize}
             scroll={viewed.page.scroll}
@@ -258,14 +249,14 @@ function StepViewer({
           />
         </section>
 
-        <section className="card" aria-label="AI 선택 결과">
+        <section className="card" aria-label="고객이 누른 곳">
           <SectionTitle
             icon={<SettingsIcon />}
-            title="AI 선택 결과"
-            action={<span className="step-chip">Step {viewed.stepId}</span>}
+            title="고객이 누른 곳"
+            action={<span className="step-chip">{viewed.stepId}번째</span>}
           />
           <SelectedAction step={viewed} />
-          <h3 className="list-title">후보별 선택 확률</h3>
+          <h3 className="list-title">버튼별로 누를 가능성</h3>
           <CandidateProbabilityList
             candidates={viewed.candidates}
             decision={viewed.decision}
@@ -278,11 +269,11 @@ function StepViewer({
         </section>
       </div>
 
-      <section className="card" aria-label="탐색 기록">
+      <section className="card" aria-label="클릭 기록">
         <SectionTitle
           icon={<HistoryIcon />}
-          title="탐색 기록"
-          aside={`최대 ${run.maxSteps}단계 · 카드를 누르면 그 시점의 화면을 볼 수 있습니다`}
+          title="클릭 기록"
+          aside={`최대 ${run.maxSteps}번 · 누르면 그때 화면을 볼 수 있어요`}
         />
         <div className="history-grid">
           {steps.map((step) => (
@@ -291,42 +282,39 @@ function StepViewer({
               type="button"
               className="history-card"
               aria-pressed={step.stepId === viewed.stepId}
-              aria-label={`기록 STEP ${String(step.stepId).padStart(2, '0')}`}
+              aria-label={`${step.stepId}번째 클릭`}
               onClick={() => select(step)}
             >
               <span className="history-card-head">
-                <span>STEP {String(step.stepId).padStart(2, '0')}</span>
+                <span>{step.stepId}번째</span>
                 <span className="num">{stepTime(step.timestamp)}</span>
               </span>
               <span className="history-card-body">
                 <span className="history-from">{step.page.title}</span>
                 <span className="history-action">
-                  {step.decision.selectedActionType} [{selectedLabel(step)}]
+                  {step.decision.selectedActionType === 'GO_BACK' ? '뒤로 가기' : `'${selectedLabel(step)}' 누름`}
                 </span>
               </span>
               <span className="history-card-foot">
                 {step.action.executed
                   ? step.decision.selectedActionType === 'GO_BACK'
-                    ? '뒤로 가기 완료'
-                    : '이동 완료'
-                  : '실행하지 못함'}
+                    ? '뒤로 감'
+                    : '이동함'
+                  : '누르지 못함'}
               </span>
             </button>
           ))}
           {waiting ? (
             <div className="history-card history-card-waiting">
               <span className="history-card-head">
-                <span>
-                  STEP {String(steps.length + 1).padStart(2, '0')}
-                  {run.maxSteps > steps.length + 1 ? ` ~ ${String(run.maxSteps).padStart(2, '0')}` : ''}
-                </span>
-                <span>상한 {run.maxSteps}단계</span>
+                <span>{steps.length + 1}번째</span>
+                <span>최대 {run.maxSteps}번</span>
               </span>
               <span className="history-card-body">
-                <span className="history-from">추가 탐색 대기</span>
-                <span className="history-action">최대 단계에 도달하면 자동으로 종료됩니다</span>
+                <span className="history-from">다음 화면을 보는 중</span>
+                <span className="history-action">목표 화면에 도착하거나 클릭 수를 다 쓰면 끝나요</span>
               </span>
-              <span className="history-card-foot">대기 중</span>
+              <span className="history-card-foot">진행 중</span>
             </div>
           ) : null}
         </div>

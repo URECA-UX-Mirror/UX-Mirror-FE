@@ -19,7 +19,7 @@ import {
 } from '../src/mocks/store.ts'
 import { server } from './setup.ts'
 
-// UX Optimizer 후보 평가 화면 (FE #69). mock 시드와 시나리오는 src/mocks/fixtures/optimization.ts 주석을 따른다.
+// 메뉴 이름 후보 비교 화면 (FE #69). mock 시드와 시나리오는 src/mocks/fixtures/optimization.ts 주석을 따른다.
 
 afterEach(() => {
   setMockActiveOptimization(null)
@@ -49,6 +49,12 @@ const seeded = (id: string): OptimizationDto => buildOptimization(findOptimizati
 
 function serve(dto: OptimizationDto) {
   server.use(http.get(apiUrl(`/api/optimizations/${dto.optimizationId}`), () => HttpResponse.json(dto)))
+}
+
+/** 화면 글자에 서버 코드값·ID가 보이지 않는다 */
+function expectNoCodes(...codes: string[]) {
+  const text = document.body.textContent ?? ''
+  for (const code of codes) expect(text).not.toContain(code)
 }
 
 const card = (id: string) => {
@@ -81,6 +87,8 @@ function renderStart(search = '') {
 it('시작: 후보 평가 시작을 누르면 Optimization 화면으로 이동해 대기 상태와 후보 5개를 보인다', async () => {
   renderStart()
   const button = (await screen.findByRole('button', { name: '후보 평가 시작' })) as HTMLButtonElement
+  expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('메뉴 이름 후보 비교')
+  expectNoCodes('Optimizer')
   await waitFor(() => expect(button.disabled).toBe(false))
   fireEvent.click(button)
   await waitFor(() => expect(screen.getByTestId('location').textContent).toMatch(/^\/optimizations\/opt_mock_/))
@@ -174,7 +182,8 @@ it('시작 오류: 코드별 이유를 보이고 화면에 머문다', async () 
   ]
   for (const [sourceRunId, message] of cases) {
     const view = renderStart(`?sourceRunId=${sourceRunId}`)
-    expect(await screen.findByText(new RegExp(sourceRunId))).toBeTruthy()
+    expect(await screen.findByText('방금 본 진단 결과와 연결해 시작합니다.')).toBeTruthy()
+    expectNoCodes(sourceRunId)
     const button = screen.getByRole('button', { name: '후보 평가 시작' }) as HTMLButtonElement
     await waitFor(() => expect(button.disabled).toBe(false))
     fireEvent.click(button)
@@ -226,8 +235,11 @@ it('EVALUATED: 추천·검증 후보와 선정 사유를 보이고 검증 시작
   serve(seeded('opt_mock_evaluated'))
   renderOptimization('opt_mock_evaluated')
   const panel = await screen.findByRole('region', { name: '선정 결과' })
-  expect(within(panel).getAllByText('C2 주문·환불', { selector: 'dd' })).toHaveLength(2)
-  expect(within(panel).getByText('TOP_TARGET_PROBABILITY')).toBeTruthy()
+  expect(within(panel).getAllByText('주문·환불', { selector: 'dd' })).toHaveLength(2)
+  expect(within(panel).getByText('대상 메뉴 확률이 가장 높은 후보')).toBeTruthy()
+  expectNoCodes('TOP_TARGET_PROBABILITY', 'SELECTED', 'RECOMMENDED', 'opt_mock_evaluated', 'Optimizer', 'MOCK')
+  // 후보 ID는 카드의 data 속성에만 있고 글자로는 보이지 않는다
+  expect(card('C2').queryByText('C2')).toBeNull()
   expect(card('C2').getByText('62.0%')).toBeTruthy()
   expect(card('C2').getByText('88.0%')).toBeTruthy()
   expect(card('C2').getByText('추천 후보')).toBeTruthy()
@@ -242,8 +254,8 @@ it('추천 후보와 검증 후보가 다르면 각각 구분해 보인다', asy
   serve(dto)
   renderOptimization('opt_mock_evaluated')
   const panel = await screen.findByRole('region', { name: '선정 결과' })
-  expect(within(panel).getByText('C3 주문·반품', { selector: 'dd' })).toBeTruthy()
-  expect(within(panel).getByText('C2 주문·환불', { selector: 'dd' })).toBeTruthy()
+  expect(within(panel).getByText('주문·반품', { selector: 'dd' })).toBeTruthy()
+  expect(within(panel).getByText('주문·환불', { selector: 'dd' })).toBeTruthy()
   expect(within(panel).getByText(/검증 후보는 전체 적격 후보 중 1위/)).toBeTruthy()
   expect(card('C3').getByText('추천 후보')).toBeTruthy()
   expect(card('C3').queryByText('검증 후보')).toBeNull()
@@ -261,24 +273,24 @@ it('추천 후보가 없으면 추천 기준 안내를 보이고 알려진 사�
   const panel = await screen.findByRole('region', { name: '선정 결과' })
   expect(within(panel).getByText(/추천 기준\(\+5%p\)을 넘은 후보가 없어/)).toBeTruthy()
   expect(within(panel).queryByText(/추천 후보와 다를 수 있습니다/)).toBeNull()
-  expect(within(panel).getByText('TIE_BREAK')).toBeTruthy()
-  expect(within(panel).getByText(/동률이라 의미 명확성 순위로 선정/)).toBeTruthy()
+  expect(within(panel).getByText('동률이라 의미가 더 분명한 이름을 선정')).toBeTruthy()
+  expectNoCodes('TIE_BREAK', 'NO_RECOMMENDATION')
 })
 
-it('후보 FAILED·SKIPPED는 사유를, 제외된 후보는 이유 코드를 보인다', async () => {
+it('후보 FAILED·SKIPPED는 사유를, 제외된 후보는 이유를 문구로 보인다', async () => {
   serve(seeded('opt_mock_partial'))
   renderOptimization('opt_mock_partial')
   await screen.findByRole('region', { name: '선정 결과' })
   expect(card('C3').getByText('평가 실패')).toBeTruthy()
   expect(card('C3').getByText('후보 화면을 열지 못했습니다.')).toBeTruthy()
-  expect(card('C3').getByText('BROWSER_ERROR')).toBeTruthy()
   expect(card('C3').queryByText(/%/)).toBeNull()
   expect(card('C4').getByText('평가 제외')).toBeTruthy()
-  expect(card('C4').getByText(/SITE_INSTANCE_MISSING/)).toBeTruthy()
+  expect(card('C4').getByText('후보 화면이 준비되지 않음')).toBeTruthy()
   const excluded = within(screen.getByRole('list', { name: '제외된 후보' }))
-  expect(excluded.getByText(/C3 주문·반품/)).toBeTruthy()
-  expect(excluded.getAllByText('EVALUATION_NOT_COMPLETED')).toHaveLength(2)
-  expect(excluded.getByText('BROWSER_ERROR')).toBeTruthy()
+  expect(excluded.getByText('주문·반품')).toBeTruthy()
+  expect(excluded.getAllByText('평가를 마치지 못함')).toHaveLength(2)
+  expect(excluded.getByText('후보 화면을 열지 못함')).toBeTruthy()
+  expectNoCodes('BROWSER_ERROR', 'SITE_INSTANCE_MISSING', 'EVALUATION_NOT_COMPLETED', '오류 코드')
 })
 
 it('null 지표는 0이 아니라 계산 불가와 사유로 보인다', async () => {
@@ -298,7 +310,9 @@ it('null 지표는 0이 아니라 계산 불가와 사유로 보인다', async (
   await screen.findByRole('region', { name: '선정 결과' })
   const c1 = card('C1')
   expect(c1.getByText(/계산 불가/)).toBeTruthy()
-  expect(c1.getByText(/TARGET_OPTION_NOT_FOUND/)).toBeTruthy()
+  // 모르는 사유 코드는 원문 대신 "확인 필요"다
+  expect(c1.getByText(/확인 필요/)).toBeTruthy()
+  expectNoCodes('TARGET_OPTION_NOT_FOUND')
   expect(c1.getByText('55.0%')).toBeTruthy()
   expect(c1.queryByText('0.0%')).toBeNull()
   expect(c1.queryByText('0%')).toBeNull()
@@ -332,7 +346,8 @@ it('NOT_SELECTABLE: 검증 후보가 없으면 그렇게 보이고 검증 시작
   renderOptimization('opt_x')
   const panel = await screen.findByRole('region', { name: '선정 결과' })
   expect(within(panel).getByText('선정할 수 있는 후보 없음')).toBeTruthy()
-  expect(within(panel).getByText('NO_VALID_CANDIDATE')).toBeTruthy()
+  expect(within(panel).getByText('조건에 맞는 후보 없음')).toBeTruthy()
+  expectNoCodes('NO_VALID_CANDIDATE', 'NOT_SELECTABLE')
   expect(within(panel).getByText('검증할 후보가 없어 검증을 시작할 수 없습니다.')).toBeTruthy()
   expect(screen.queryByRole('button', { name: '검증 시작' })).toBeNull()
 })
@@ -344,7 +359,8 @@ it('FAILED(평가 단계): 실패 원인·단계·직전 상태를 문구로 보
   renderOptimization('opt_mock_eval_timeout')
   const alert = await screen.findByRole('alert')
   expect(alert.textContent).toContain('모델 응답이 제한 시간을 넘겨 후보 평가를 멈췄습니다.')
-  expect(alert.textContent).toContain('MODEL_TIMEOUT')
+  expect(alert.textContent).not.toContain('MODEL_TIMEOUT')
+  expect(alert.textContent).not.toContain('오류 코드')
   expect(alert.textContent).toContain('실패 단계 후보 평가')
   expect(alert.textContent).toContain('직전 상태 후보 평가 중')
   expect(card('C2').getByText('평가 실패')).toBeTruthy()
@@ -400,11 +416,12 @@ it('BASELINE_INVALID: 기준 화면 평가를 하지 않았다는 점을 후보 
   const alert = await screen.findByRole('alert')
   expect(alert.textContent).toContain('기준 화면이 후보 평가 설정과 달라 평가를 멈췄습니다.')
   expect(card('C0').getByText('기준 화면이 평가 설정과 달라 모델 평가를 하지 않았습니다.')).toBeTruthy()
-  expect(card('C0').getByText(/BASELINE_LABEL_MISMATCH/)).toBeTruthy()
+  expect(card('C0').getByText('확인 필요')).toBeTruthy()
+  expectNoCodes('BASELINE_LABEL_MISMATCH', 'BASELINE_INVALID')
   expect(card('C1').getByText('평가하지 못함')).toBeTruthy()
 })
 
-it('모르는 상태·이유 코드가 와도 화면이 깨지지 않고 원문을 보인다', async () => {
+it('모르는 상태·이유 코드가 와도 화면이 깨지지 않고 원문 대신 확인 필요로 보인다', async () => {
   const dto = seeded('opt_mock_partial')
   dto.status = 'SOMETHING_NEW'
   dto.selection = {
@@ -422,14 +439,12 @@ it('모르는 상태·이유 코드가 와도 화면이 깨지지 않고 원문�
   serve(dto)
   renderOptimization('opt_mock_partial')
   const panel = await screen.findByRole('region', { name: '선정 결과' })
-  expect(within(panel).getByText('NEW_SELECTION_REASON')).toBeTruthy()
-  expect(within(panel).getByText('NEW_SELECTION_STATUS')).toBeTruthy()
-  expect(within(panel).getByText('NEW_RECOMMENDATION')).toBeTruthy()
-  expect(within(panel).getByText('NEW_EXCLUDE_REASON')).toBeTruthy()
-  expect(within(panel).getByText(/C9/)).toBeTruthy()
-  expect(card('C3').getByText('PAUSED')).toBeTruthy()
-  expect(card('C3').getByText('요청을 처리하지 못했습니다.')).toBeTruthy()
-  expect(screen.getAllByText('SOMETHING_NEW').length).toBeGreaterThan(0)
+  expect(within(panel).getAllByText('확인 필요').length).toBe(4)
+  expect(within(panel).getByText('알 수 없는 후보')).toBeTruthy()
+  expect(card('C3').getByText('확인 필요')).toBeTruthy()
+  expect(card('C3').getByText('이 후보를 평가하지 못했습니다.')).toBeTruthy()
+  expect(screen.getByRole('status').textContent).toBe('확인 필요')
+  expectNoCodes('NEW_SELECTION_REASON', 'NEW_SELECTION_STATUS', 'NEW_RECOMMENDATION', 'NEW_EXCLUDE_REASON', 'C9', 'PAUSED', 'NEW_ERROR', 'SOMETHING_NEW')
 })
 
 // ---- 주소 재진입·오류 ----
@@ -438,11 +453,11 @@ it('같은 주소로 다시 열면 같은 Optimization을 보인다', async () =
   serve(seeded('opt_mock_evaluated'))
   const first = renderOptimization('opt_mock_evaluated')
   await screen.findByRole('region', { name: '선정 결과' })
-  expect(screen.getByText('opt_mock_evaluated')).toBeTruthy()
+  expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('후보 비교 결과')
   first.unmount()
   renderOptimization('opt_mock_evaluated')
   expect(await screen.findByRole('region', { name: '선정 결과' })).toBeTruthy()
-  expect(screen.getByText('opt_mock_evaluated')).toBeTruthy()
+  expectNoCodes('opt_mock_evaluated')
   expect(card('C2').getByText('62.0%')).toBeTruthy()
 })
 
@@ -451,13 +466,14 @@ it('없는 Optimization 주소는 찾을 수 없음을 안내한다', async () =
   expect(await screen.findByText('후보 평가를 찾을 수 없음')).toBeTruthy()
 })
 
-it('엔진 상태의 Optimizer 표시는 진행 중인 후보 평가 화면으로 연결된다', async () => {
+it('엔진 상태의 후보 비교 표시는 진행 중인 후보 평가 화면으로 연결된다', async () => {
   setMockActiveOptimization({ optimizationId: 'opt_mock_1', status: 'EVALUATING' })
   render(
     <MemoryRouter>
       <EngineStatus />
     </MemoryRouter>,
   )
-  const link = await screen.findByRole('link', { name: /Optimizer 후보 평가 중/ })
+  expect(await screen.findByText('후보 비교 중')).toBeTruthy()
+  const link = screen.getByRole('link', { name: '보기' })
   expect(link.getAttribute('href')).toBe('/optimizations/opt_mock_1')
 })

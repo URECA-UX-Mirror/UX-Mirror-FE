@@ -137,7 +137,7 @@
 <a id="oi-14"></a>
 ### OI-14 새 UX 분석의 변경 후 버전
 
-- 계약서: `POST /api/runs`의 `variant`는 `before` 또는 `after`다(`§4.2`). 고정 v2 사이트를 없앤 BE 변경(UX-Mirror-BE #124·#128, 머지됨)은 `variant=after`를 막지 않고 서버 설정 `SHOP_AFTER_URL` 사이트로 보낸다. `SHOP_AFTER_URL`과 `SHOP_AFTER_LABEL`이 둘 다 없으면 `503 SITE_NOT_CONFIGURED`이고, 같은 실험 키에 다른 after 사이트의 Run이 있으면 `422`다. `after` Run에는 사이트 이름 `afterSite: {label}`이 남는다. 계약서에는 아직 반영되지 않았다.
+- 계약서: `POST /api/runs`의 `variant`는 `before` 또는 `after`다(`§4.2`). 고정 v2 사이트를 없앤 BE 변경(UX-Mirror-BE #124·#128, 머지됨)은 `variant=after`를 막지 않고 서버 설정 `SHOP_AFTER_URL` 사이트로 보낸다. `SHOP_AFTER_URL` 또는 `SHOP_AFTER_LABEL`이 없으면 `503 SITE_NOT_CONFIGURED`이고, 같은 실험 키에 다른 after 사이트의 Run이 있으면 `422`다. `after` Run에는 사이트 이름 `afterSite: {label}`이 남는다. 계약서에는 아직 반영되지 않았다.
 - 임시 결정: 팀 결정(안 2)에 따라 "새 UX 분석"은 v2 카드를 `에이전트 최종안` 행으로 바꾸고 `variant=after` Run을 만들지 않는다. 그래서 위 `503`·`422`와 `afterSite`는 FE가 쓰지 않는다. 이 행은 자동 개선 결과의 `verification.pairs[].comparisonPath`(`/comparisons/imp-1119b-S1`·`-S4`)만 연결한다. 직접 입력한 목표에는 최종안 비교가 없다.
 - 확인된 것: 배포 서버에 `imp-1119b` 검증 Run 4개가 반영돼 `/comparisons/imp-1119b-S1`·`-S4`가 열린다(develop Preview 확인). 검증 Run의 `improvementContext`(`improvementId`·`goalId`·`label`·`siteInstanceId`·`executionRole`, BE `api/improvement.py`)가 있으면 비교·결과·진행 화면은 고정 변경 문구(`VERSIONS.change`) 대신 '자동 개선 검증 · 후보 주문 환불'처럼 라벨을 보인다. 이 필드가 없는 일반 Run은 기존 표시이며, 11/19 E 실험의 예전 `after` Run은 당시 고정 v2가 '주문·환불'이라 그 문구가 맞다. 계약서 갱신은 BE 통합 뒤 정자비가 하고, 반영되면 이 항목을 지운다.
 - 담당: 이성집, 정자비.

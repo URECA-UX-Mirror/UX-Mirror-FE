@@ -22,7 +22,7 @@
 | [OI-11](#oi-11) | 시나리오 테스트(외부 사이트) | 장근창, 정자비, 권혁준 | 등록 사이트 선택, mock과 Adapter로 선행 | API 세부 사항 확정 대기 |
 | [OI-12](#oi-12) | UX Optimizer 응답 형식·이유 코드 | 정윤희, 장근창, 권혁준 | BE 코드·README 기준으로 DTO·mock 선행, 이유 코드는 원문 문자열로 받음 | 계약 v1.3.8 반영(#43)과 정책 모듈 값 목록 확정 대기 |
 | [OI-13](#oi-13) | 자동 개선 결과(`improvement.json`) 형식 | 정자비, 권혁준 | 팀이 확정한 공식 결과를 정본으로 정적 JSON을 영역별로 검증, 모르는 enum은 원문 | 통합 후 정자비가 계약서에 반영 |
-| [OI-14](#oi-14) | 새 UX 분석의 변경 후 버전 | 이성집, 정자비 | v2 카드를 자동 개선 최종안 행으로 교체, `variant=after` Run은 만들지 않음 | BE #128(`SHOP_AFTER_URL`) 머지 보류 중 |
+| [OI-14](#oi-14) | 새 UX 분석의 변경 후 버전 | 이성집, 정자비 | v2 카드를 자동 개선 최종안 행으로 교체, `variant=after` Run은 만들지 않음 | BE #128 머지됨, 계약서 반영 대기 |
 
 ## 항목
 
@@ -137,7 +137,7 @@
 <a id="oi-14"></a>
 ### OI-14 새 UX 분석의 변경 후 버전
 
-- 계약서: `POST /api/runs`의 `variant`는 `before` 또는 `after`다(`§4.2`). 고정 v2 사이트를 없애는 BE 변경(UX-Mirror-BE #124·#128)은 `variant=after`를 막지 않고 서버 설정 `SHOP_AFTER_URL` 사이트로 보내며, 설정이 없으면 `503 SITE_NOT_CONFIGURED`다. 계약서에는 아직 반영되지 않았다.
-- 임시 결정: 팀 결정(안 2)에 따라 "새 UX 분석"은 v2 카드를 `에이전트 최종안` 행으로 바꾸고 `variant=after` Run을 만들지 않는다. 이 행은 자동 개선 결과의 `verification.pairs[].comparisonPath`(`/comparisons/imp-1119b-S1`·`-S4`)만 연결한다. 직접 입력한 목표에는 최종안 비교가 없다.
-- 확인할 것: 배포 서버의 `results/runs/`에 `imp-1119b` 검증 Run 4개가 있어야 비교 화면이 열린다(정자비 → 장근창 복사). 검증 Run의 `improvementContext`(`improvementId`·`goalId`·`label`·`siteInstanceId`·`executionRole`, BE `api/improvement.py`)가 있으면 비교·결과·진행 화면은 고정 변경 문구(`VERSIONS.change`) 대신 '자동 개선 검증 · 후보 주문 환불'처럼 라벨을 보인다. 이 필드가 없는 일반 Run은 기존 표시다. #128 머지 뒤 `SHOP_AFTER_URL` 사이트로 돈 일반 `after` Run의 문구는 BE가 이름을 Run에 남기면 같은 방식으로 맞춘다. 계약서 갱신은 BE 통합 뒤 정자비가 한다.
+- 계약서: `POST /api/runs`의 `variant`는 `before` 또는 `after`다(`§4.2`). 고정 v2 사이트를 없앤 BE 변경(UX-Mirror-BE #124·#128, 머지됨)은 `variant=after`를 막지 않고 서버 설정 `SHOP_AFTER_URL` 사이트로 보낸다. `SHOP_AFTER_URL` 또는 `SHOP_AFTER_LABEL`이 없으면 `503 SITE_NOT_CONFIGURED`이고, 같은 실험 키에 다른 after 사이트의 Run이 있으면 `422`다. `after` Run에는 사이트 이름 `afterSite: {label}`이 남는다. 계약서에는 아직 반영되지 않았다.
+- 임시 결정: 팀 결정(안 2)에 따라 "새 UX 분석"은 v2 카드를 `에이전트 최종안` 행으로 바꾸고 `variant=after` Run을 만들지 않는다. 그래서 위 `503`·`422`와 `afterSite`는 FE가 쓰지 않는다. 이 행은 자동 개선 결과의 `verification.pairs[].comparisonPath`(`/comparisons/imp-1119b-S1`·`-S4`)만 연결한다. 직접 입력한 목표에는 최종안 비교가 없다.
+- 확인된 것: 배포 서버에 `imp-1119b` 검증 Run 4개가 반영돼 `/comparisons/imp-1119b-S1`·`-S4`가 열린다(develop Preview 확인). 검증 Run의 `improvementContext`(`improvementId`·`goalId`·`label`·`siteInstanceId`·`executionRole`, BE `api/improvement.py`)가 있으면 비교·결과·진행 화면은 고정 변경 문구(`VERSIONS.change`) 대신 '자동 개선 검증 · 후보 주문 환불'처럼 라벨을 보인다. 이 필드가 없는 일반 Run은 기존 표시이며, 11/19 E 실험의 예전 `after` Run은 당시 고정 v2가 '주문·환불'이라 그 문구가 맞다. 계약서 갱신은 BE 통합 뒤 정자비가 하고, 반영되면 이 항목을 지운다.
 - 담당: 이성집, 정자비.

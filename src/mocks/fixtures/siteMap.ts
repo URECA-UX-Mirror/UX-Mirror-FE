@@ -88,7 +88,7 @@ export function movesCloser(
 ): boolean {
   const before = distances[from]
   const after = distances[to]
-  return before != null && after != null && after < before
+  return before !== undefined && after !== undefined && (after ?? Infinity) < (before ?? Infinity)
 }
 
 /**

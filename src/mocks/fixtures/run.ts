@@ -224,7 +224,7 @@ export function siteMapGoalProbability(
   pageKey: PageKey,
   candidates: { leadsTo: PageKey; probability: number }[],
 ): number | null {
-  if (distances[pageKey] == null || candidates.some((c) => distances[c.leadsTo] == null)) return null
+  if (!(pageKey in distances) || candidates.some((c) => !(c.leadsTo in distances))) return null
   return round(candidates.filter((c) => movesCloser(distances, pageKey, c.leadsTo))
     .reduce((sum, c) => sum + c.probability, 0))
 }

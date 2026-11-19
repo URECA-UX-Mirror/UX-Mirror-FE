@@ -123,6 +123,9 @@ it('사이트 지도 목표 확률은 모든 후보의 거리를 확인한다', 
   expect(siteMapGoalProbability({ home: 1, orders: 0 }, 'home', candidates)).toBeNull()
   expect(siteMapGoalProbability({ orders: 0, mypage: 2 }, 'home', candidates)).toBeNull()
   expect(siteMapGoalProbability({ home: 1, orders: 0, mypage: 2 }, 'home', candidates)).toBe(0.4)
+  expect(siteMapGoalProbability({ home: 1, orders: 0, mypage: null }, 'home', candidates)).toBe(0.4)
+  expect(siteMapGoalProbability({ home: 1, orders: null, mypage: null }, 'home', candidates)).toBe(0)
+  expect(siteMapGoalProbability({ home: null, orders: 0, mypage: null }, 'home', candidates)).toBe(0.4)
 })
 
 it('허용 경로 기준의 목표 확률은 기존 후보 확률의 합이다', () => {

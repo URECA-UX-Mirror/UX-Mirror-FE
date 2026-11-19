@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { Link, useParams } from 'react-router'
 import type { Area } from '../../domain/improvement.ts'
 import { useImprovement } from './useImprovement.ts'
+import { RoundsSection } from './RoundsSection.tsx'
 import './improvement.css'
 
 /** JSON에 `limitations`가 없거나 비어 있을 때 쓰는 기본 안내 */
@@ -80,9 +81,9 @@ function ImprovementView({ improvementId }: { improvementId: string }) {
       <AreaSlot title="① 개선 효과" area={view.report} />
       <AreaSlot title="② 실제 검증" area={view.verification} />
       <AreaSlot title="보조 정보" area={view.official}>
-        {/* 공식 평가·회차 상세는 보조 영역 이슈가 채운다 */}
+        {/* 공식 평가 영역은 후속 이슈가 채운다 */}
       </AreaSlot>
-      {!view.rounds.ok ? <AreaSlot title="개선 회차" area={view.rounds} /> : null}
+      {view.rounds.ok ? <RoundsSection rounds={view.rounds.data} stop={view.stop} goals={view.plan?.guardGoals ?? []} /> : <AreaSlot title="개선 회차" area={view.rounds} />}
 
       {/* 영역 오류나 `limitations` 누락과 상관없이 항상 보인다 */}
       <p className="improvement-limitations">

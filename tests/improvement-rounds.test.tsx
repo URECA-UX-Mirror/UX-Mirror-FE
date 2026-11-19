@@ -23,11 +23,18 @@ it('기본 접힘 요약과 회차별 판정, 누락 점수 및 알 수 없는 �
   const c2 = screen.getByRole('heading', { name: /R1-H2/ }).closest('article')!
   expect(c2.textContent).toContain('지킬 목표 문의(S4) 하락으로 탈락')
   expect(c2.textContent).toContain('사람')
+  expect(within(c2).getByText('주 점수').nextElementSibling?.textContent).toBe('61.6%')
+  expect(within(c2).getByText('지킬 점수').nextElementSibling?.textContent).toContain('문의(S4) 63.3%')
+  const firstRound = screen.getByRole('heading', { name: '1회차' }).closest('section')!
+  expect(within(firstRound).getByText(/고칠 버튼:/).textContent).toContain('19.5%')
+  expect(within(firstRound).getByText('현재 기준').nextElementSibling?.textContent).toContain('38.5%')
   const skipped = screen.getByRole('heading', { name: /R1-A3/ }).closest('article')!
-  expect(within(skipped).getAllByText('미실행').length).toBeGreaterThan(0)
+  expect(within(skipped).getByText('주 점수').nextElementSibling?.textContent).toBe('미실행')
+  expect(within(skipped).getByText('지킬 점수').nextElementSibling?.textContent).toBe('미실행')
   expect(skipped.textContent).toContain('AI')
   const failed = screen.getByRole('heading', { name: /R1-A4/ }).closest('article')!
-  expect(within(failed).getAllByText('평가 실패').length).toBeGreaterThan(0)
+  expect(within(failed).getByText('주 점수').nextElementSibling?.textContent).toBe('평가 실패')
+  expect(within(failed).getByText('지킬 점수').nextElementSibling?.textContent).toBe('평가 실패')
   expect(screen.getByText('이 회차는 채택 없음')).toBeTruthy()
   expect(screen.getByText('UNKNOWN_REASON')).toBeTruthy()
   expect(screen.getByText(/UNKNOWN_FILTER/)).toBeTruthy()

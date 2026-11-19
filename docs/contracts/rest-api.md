@@ -27,6 +27,7 @@
 | --- | --- | --- | --- |
 | GET | `/api/presets` | - (화면에서 호출 안 함) | `계약 §17.9` |
 | GET | `/api/health` | 전체 | `계약 §17.8` |
+| GET | `/api/sites` | - (화면에서 아직 호출 안 함) | `임시` ([OI-11](../operations/open_issue.md#oi-11)) |
 | GET | `/api/runs` | 1, 3 | `계약 §17.10` |
 | POST | `/api/runs` | 1 | `계약 §17.2`, `§5.1` |
 | GET | `/api/runs/{runId}` | 2, 3, 4 | `계약 §17.3` |
@@ -65,6 +66,7 @@
 | `personaId` | △ | 보내지 않는다. `goalId`와 같은 예외만 있다. `persona`와 둘 중 하나만 |
 | `persona` | O | 입력한 사용자 유형 문장. `personaId`와 둘 중 하나만 ([OI-9](../operations/open_issue.md#oi-9)) |
 | `maxSteps` | X | 사용자가 입력(1~15, 기본 8). 범위는 `계약 §5.1` |
+| `siteId` | X | `임시`([OI-11](../operations/open_issue.md#oi-11)). 시나리오 테스트에서만 `createRun`이 싣는다(`CreateRunInput.siteId`). 없으면 본문은 버전 비교 요청과 같다. 화면에서는 아직 보내지 않고 mock에서만 처리한다 |
 | `startPath`, `viewport`, `promptVersion` | X | 보내지 않는다(서버 기본값 사용) |
 
 - 성공은 `201`이고 `{ runId, experimentKey, variant, status: "READY", maxSteps, createdAt }`다.
@@ -77,6 +79,12 @@
 | 422 | `CONTRACT_VALIDATION_ERROR` | 서버 `message`(키 형식, `maxSteps` 범위, 없는 목표·사용자 유형, 직접 입력 문장의 빈 값·길이·금지 문자열, 성공 조건 오류, 첫 Run과 다른 입력)를 그대로 보이고 입력 수정을 안내한다. 재시도 버튼은 두지 않는다 |
 | 503 | `BROWSER_ERROR` | FE는 서버 `message`를 보이고 Run이 생성되지 않았음을 안내한다. 직접 입력한 목표의 도착 화면 사전 검사에서 Before·After 어느 화면이든 열지 못하거나 화면마다 10초(요청당 최대 약 20초) 안에 응답이 없을 때도 이 코드이며 백엔드에 구현됐다(UX-Mirror-BE #60, 계약서 반영 전, [OI-9](../operations/open_issue.md#oi-9)). 메시지가 비어 있으면 "도착 화면을 확인하지 못했습니다"를 보인다. `retryable`이면 같은 버전의 실행 재시도 버튼을 보인다 |
 
+### GET /api/sites
+
+`임시`([OI-11](../operations/open_issue.md#oi-11), FE #53). 계약서 v1.3.5에 없고 백엔드 구현 전이라 **mock 형식**만 있다. API 함수는 `src/api/sites.ts`의 `listSites()`다.
+
+응답은 `{ items: Site[] }`이고 시나리오용 등록 사이트만 나온다(MORO MARKET 제외). 한 항목은 `siteId`, `name`, `mode`(`SCENARIO`), `startPage`, `pages`, `siteMap.available`이다. `pages`의 원소는 `pageKey`, `path`(쿼리 없음), `label`(화면 이름), `goalText`(도착 화면 확인용 글자, `null` 가능), `goalSelectable`(도착 화면으로 고를 수 있는지)이다. `goalSelectable`이 없는 응답은 Adapter가 `goalText`가 있고 시작 화면이 아닌 화면을 선택 가능으로 본다. 사이트 이름은 Run에 없고 이 목록의 `name`으로 찾는다.
+
 ### GET /api/runs
 
 쿼리 `experimentKey`, `variant`(`before` / `after`)는 선택이고 둘 다 주면 둘 다 맞는 Run만 온다. 응답은 `{ count, items }`이며 최신 Run이 먼저 온다. 한 줄은 `RunListItem`이다.
@@ -88,6 +96,7 @@
 | `validity`, `replacementRunId` | 무효 여부와 재실행 Run. 종료 전에는 `validity`가 `null` |
 | `resultOrigin` | `LIVE` / `MOCK` / `SAVED_MEASURED` |
 | `goalReached` | `summary.goalReached`. `summary`가 없으면 `null` |
+| `siteId`, `mode` | `임시`([OI-11](../operations/open_issue.md#oi-11)). `mode`가 `SCENARIO`일 때만 시나리오 Run이다. `null`이거나 필드가 없으면 버전 비교 Run이다 |
 
 - 화면 1의 "마지막 Run·분석 상태·목표 달성 상태"는 `?experimentKey=&variant=`로 받은 첫 항목이고, 화면 3의 "다른 실행 보기"는 이 목록이다. 브라우저 저장소에 기록하지 않는다.
 - 서버의 `results/runs/` 전체가 대상이라 다른 브라우저에서 시작한 Run과 저장된 실측 Run도 나온다.
@@ -98,6 +107,7 @@
 응답은 `Run`이다. 404(`RUN_NOT_FOUND`)이면 "실행을 찾을 수 없음" 화면과 새 분석 이동을 보인다.
 
 - 실행 중에는 `startedAt`·`finishedAt`·`terminationReason`·`summary`·`validity`가 `null`일 수 있다. `계약 §6.1`
+- `siteId`·`mode`(`임시`, [OI-11](../operations/open_issue.md#oi-11))는 목록 항목과 같다. 화면 코드는 `isScenarioRun(run)`(`src/domain/site.ts`)으로 구분한다.
 - `validity = INVALID`이면 결과 화면에 "무효 처리된 실행" 안내를 보이고, `replacementRunId`가 있으면 그 Run으로 이동하는 링크를 보인다.
 
 ### GET /api/runs/{runId}/steps

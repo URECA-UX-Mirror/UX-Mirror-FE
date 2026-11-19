@@ -16,6 +16,8 @@ import {
 } from '../fixtures/run.ts'
 import { scenarioForGoal, stepSpecs, textVisibleOn, VISIBLE_TEXTS } from '../fixtures/scenario.ts'
 import { issueOverride } from '../fixtures/runResult.ts'
+import { findSite } from '../fixtures/sites.ts'
+import type { SiteDto } from '../../api/dto/index.ts'
 import {
   addRun,
   allRuns,
@@ -36,6 +38,11 @@ import type { RunRecord } from '../store.ts'
 //   run_mock_invalid → run_mock_invalid_retry(mock-invalid), run_mock_invalid_only(mock-invalid-run)
 //   run_mock_maxsteps(목표 미도달), run_mock_issue_pending|failed|empty(/issues 상태 고정) — fixtures/runResult.ts
 //   run_mock_direct_before(mock-direct): 목표·사용자 유형 직접 입력, 허용 경로 없음
+// 시나리오 Run(임시, OI-11, FE #53): POST /api/runs 에 siteId가 있으면 등록 사이트에서 만든다.
+//   variant는 `before`만 받고 목표는 goal+verification만 받는다. verification.path는 사이트 화면의 path, text는 goalText의 일부여야 하며
+//   goalSelectable: false인 화면, 등록되지 않은 siteId, 같은 experimentKey의 버전 비교 Run과 섞는 요청은 422(메시지에 Before/After를 붙이지 않는다)
+//   단계·이미지는 기존 쇼핑몰 mock 시나리오를 재사용하므로 화면 이름은 사이트와 맞지 않는다(MOCK 배지가 붙는다)
+//   시나리오 Run은 비교 대상이 아니라서 GET /api/comparisons/{experimentKey}가 404 RUN_NOT_FOUND다
 // 직접 입력 검사(UX-Mirror-BE #42와 같은 규칙): 빈 값·200자 초과·누출 금지 문자열·성공 조건 오류·첫 Run과 다른 입력은 422
 
 const ERROR_RUN_ID = 'run_mock_error'
@@ -72,8 +79,9 @@ function sentenceError(text: unknown, field: string): string | null {
 }
 
 /** 목표·사용자 유형 입력을 검사하고 저장할 값으로 정리한다. 오류면 문자열 */
-function resolveInputs(body: Partial<CreateRunRequestDto>): Inputs | string {
+function resolveInputs(body: Partial<CreateRunRequestDto>, site?: SiteDto): Inputs | string {
   if ((body.goalId === undefined) === (body.goal === undefined)) return 'goalId와 goal 중 하나만 보내야 합니다.'
+  if (site && body.goalId !== undefined) return '시나리오 테스트는 goal과 verification을 직접 보내야 합니다.'
   if ((body.personaId === undefined) === (body.persona === undefined)) return 'personaId와 persona 중 하나만 보내야 합니다.'
   const inputs: Inputs = { goalId: null, personaId: null }
   if (body.goalId !== undefined) {
@@ -86,8 +94,16 @@ function resolveInputs(body: Partial<CreateRunRequestDto>): Inputs | string {
     const v = body.verification
     if (!v) return 'goal을 직접 입력할 때는 성공 조건(verification)이 필요합니다.'
     const page = v.path?.trim().replace(/\/$/, '').replace(/^\/shop\//, '')
-    if (!v.path?.trim().startsWith('/shop/') || !SHOP_PAGES.includes(page)) return 'verification.path가 쇼핑몰 화면이 아닙니다.'
+    if (site) {
+      const sitePage = site.pages.find((item) => item.path === v.path?.trim())
+      if (!sitePage) return 'verification.path가 사이트에 등록된 화면이 아닙니다.'
+      if (!sitePage.goalSelectable) return `도착 화면으로 고를 수 없는 화면입니다: ${sitePage.label}`
+    } else if (!v.path?.trim().startsWith('/shop/') || !SHOP_PAGES.includes(page)) return 'verification.path가 쇼핑몰 화면이 아닙니다.'
     if (!v.text?.trim() || v.text.trim().length > 100) return 'verification.text는 1~100자여야 합니다.'
+    if (site) {
+      const goalText = site.pages.find((item) => item.path === v.path.trim())?.goalText ?? ''
+      if (!goalText.includes(v.text.trim())) return `도착 화면에 '${v.text.trim()}' 글자가 없습니다.`
+    }
     if (v.scope !== undefined && v.scope !== 'page' && v.scope !== 'main') return 'verification.scope는 page/main 중 하나여야 합니다.'
     inputs.goal = (body.goal as string).trim()
     inputs.verification = { type: 'PATH_AND_VISIBLE_TEXT', path: v.path.trim(), text: v.text.trim(),
@@ -114,8 +130,12 @@ export const runsHandlers = [
     await delay(200)
     const body = await readBody(request)
 
+    const scenarioRun = body.siteId !== undefined
+    const site = scenarioRun ? findSite(body.siteId) : undefined
+    if (scenarioRun && !site) return validationError('등록되지 않은 사이트입니다')
+
     if (body.experimentKey === 'mock-preflight-503') {
-      return errorResponse(503, 'BROWSER_ERROR', `${body.variant === 'after' ? 'After' : 'Before'} 도착 화면을 읽지 못했습니다`, true)
+      return errorResponse(503, 'BROWSER_ERROR', `${scenarioRun ? '' : body.variant === 'after' ? 'After ' : 'Before '}도착 화면을 읽지 못했습니다`, true)
     }
     if (body.experimentKey?.startsWith('mock-fail-503')) {
       return errorResponse(
@@ -133,19 +153,32 @@ export const runsHandlers = [
     ) {
       return validationError('요청 값이 올바르지 않습니다')
     }
-    const inputs = resolveInputs(body)
+    if (scenarioRun && body.variant !== 'before') {
+      return validationError('시나리오 테스트의 variant는 before여야 합니다')
+    }
+    const inputs = resolveInputs(body, site)
     if (typeof inputs === 'string') return validationError(inputs)
     // 직접 입력한 목표는 성공 조건의 도착 화면에서 끝나는 시나리오로 진행한다(환불 화면으로 가서 성공 처리하지 않음)
-    const scenario = inputs.verification ? scenarioForGoal(body.variant, inputs.verification.path) : undefined
+    // 시나리오 Run은 사이트 화면의 단계를 만들지 않고 가장 짧은 기존 시나리오(홈 → 마이페이지)를 재사용한다
+    const scenario = scenarioRun
+      ? 'to-mypage'
+      : inputs.verification ? scenarioForGoal(body.variant, inputs.verification.path) : undefined
     if (scenario === null) return validationError('MOCK에서 지원하지 않는 도착 화면입니다 (시작 화면 home 등)')
     // MOCK은 화면 전체 글자를 모르므로, 도착 화면의 알려진 제목과 맞는 성공 조건만 받는다.
     // 화면에 없는 글자로 만든 Run이 성공으로 표시되지 않게 실행 전에 거부한다(exact·scope 포함)
     const v = inputs.verification
-    if (v && !textVisibleOn(v.path, v.text, v.exact)) {
+    if (v && !scenarioRun && !textVisibleOn(v.path, v.text, v.exact)) {
       const known = (VISIBLE_TEXTS[v.path] ?? []).join(', ')
       return validationError(`${body.variant === 'after' ? 'After' : 'Before'} 도착 화면(${v.path})에 '${v.text}' 글자가 없습니다${v.exact ? ' (정확 일치)' : ''}. MOCK에서 판정할 수 있는 글자: ${known}`)
     }
     const first = firstExperimentRun(body.experimentKey)
+    // 버전 비교 Run과 시나리오 Run은 같은 experimentKey를 쓸 수 없다
+    if (first && Boolean(first.siteId) !== scenarioRun) {
+      return validationError('같은 experimentKey에 버전 비교 Run과 시나리오 Run을 섞을 수 없습니다')
+    }
+    if (first && first.siteId !== body.siteId) {
+      return validationError('같은 experimentKey의 첫 실행과 사이트가 다릅니다')
+    }
     if (first && !sameInputs(inputs, first)) {
       return validationError('같은 experimentKey의 첫 실행과 입력이 다릅니다')
     }
@@ -186,6 +219,7 @@ export const runsHandlers = [
       variant: body.variant,
       ...inputs,
       ...(scenario ? { scenario } : {}),
+      ...(scenarioRun ? { siteId: body.siteId } : {}),
       maxSteps: body.maxSteps ?? 8,
       createdAtMs: now,
     }
@@ -226,6 +260,7 @@ export const runsHandlers = [
           goalReached: dto.summary?.goalReached ?? null,
           createdAt: dto.createdAt,
           finishedAt: dto.finishedAt,
+          ...(dto.siteId ? { siteId: dto.siteId, mode: dto.mode } : {}),
         }
       })
     const body: RunListDto = { count: items.length, items }

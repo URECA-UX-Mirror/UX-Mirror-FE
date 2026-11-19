@@ -3,7 +3,11 @@ import { apiUrl } from '../../api/client.ts'
 import { errorResponse } from '../errors.ts'
 import { buildComparison } from '../fixtures/comparison.ts'
 import { buildIssues, getTiming } from '../fixtures/run.ts'
-import { findExperimentRuns, findRun, type RunRecord } from '../store.ts'
+import { findExperimentRuns as findAllRuns, findRun, type RunRecord } from '../store.ts'
+
+// 시나리오 Run은 비교 대상에서 빠진다(임시, OI-11). 시나리오 Run만 있는 실험은 `404 RUN_NOT_FOUND`다.
+const findExperimentRuns = (key: string, variant: 'before' | 'after') =>
+  findAllRuns(key, variant).filter((run) => !run.siteId)
 
 // 응답 종류를 고르는 방법(화면 개발용): experimentKey로 고른다.
 //   mock-done          COMPLETED  — 두 버전이 같은 화면(home, orders)만 방문

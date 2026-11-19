@@ -96,6 +96,8 @@ export function toRun(dto: RunDto): Run {
     validity: dto.validity,
     invalidReason: dto.invalidReason,
     replacementRunId: dto.replacementRunId,
+    siteId: dto.siteId ?? null,
+    mode: dto.mode ?? null,
   }
 }
 
@@ -113,6 +115,8 @@ export function toRunList(dto: RunListDto): RunListItem[] {
     goalReached: item.goalReached,
     createdAt: item.createdAt,
     finishedAt: item.finishedAt,
+    siteId: item.siteId ?? null,
+    mode: item.mode ?? null,
   }))
 }
 

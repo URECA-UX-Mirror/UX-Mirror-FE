@@ -410,6 +410,8 @@ export function buildRun(rec: RunRecord, nowMs: number): RunDto {
     validity: timing.terminal ? (rec.invalid ? 'INVALID' : 'VALID') : null,
     invalidReason: timing.terminal && rec.invalid ? 'BROWSER_CRASH' : null,
     replacementRunId: rec.replacementRunId ?? null,
+    // 버전 비교 Run에는 두 필드를 주지 않는다(필드가 없는 응답도 버전 비교 Run으로 읽는다)
+    ...(rec.siteId ? { siteId: rec.siteId, mode: 'SCENARIO' } : {}),
   }
 }
 

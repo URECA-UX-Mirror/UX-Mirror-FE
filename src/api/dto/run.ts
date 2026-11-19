@@ -8,6 +8,7 @@ import type {
   Size,
   Variant,
 } from './common.ts'
+import type { OptimizationContextDto } from './optimization.ts'
 
 /** 계약 §6 */
 export interface RunDto {
@@ -48,6 +49,8 @@ export interface RunDto {
   siteId?: string | null
   /** 임시(OI-11). `SCENARIO`면 시나리오 Run. `null`이거나 필드가 없으면 버전 비교 Run */
   mode?: string | null
+  /** 임시(OI-12). UX Optimizer 검증 Run이면 연결 정보. 일반 Run은 필드가 없거나 `null`이다 */
+  optimizationContext?: OptimizationContextDto | null
 }
 
 export interface RunProgressDto {

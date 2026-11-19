@@ -1,4 +1,14 @@
-import type { Variant, VerificationDto } from '../api/dto/index.ts'
+import type {
+  OptimizationContextDto,
+  Variant,
+  VerificationDto,
+} from '../api/dto/index.ts'
+import {
+  buildOptimization,
+  isActiveStatus,
+  OPTIMIZATION_SEEDS,
+  verificationRuns,
+} from './fixtures/optimization.ts'
 import { RESULT_SEEDS } from './fixtures/runResult.ts'
 import type { ScenarioName } from './fixtures/scenario.ts'
 
@@ -32,6 +42,29 @@ export interface RunRecord {
   /** true이면 종료 후 `validity = INVALID` */
   invalid?: boolean
   replacementRunId?: string
+  /** UX Optimizer 검증 Run의 연결 정보(임시, OI-12). 있으면 응답의 `optimizationContext`가 된다 */
+  optimizationContext?: OptimizationContextDto
+}
+
+/** UX Optimizer mock 시나리오(fixtures/optimization.ts 주석) */
+export type OptimizationScenario =
+  | 'success'
+  | 'partial'
+  | 'eval-timeout'
+  | 'site-changed'
+  | 'interrupted'
+  | 'invalid-site'
+  | 'not-selectable'
+
+/** 상태는 이 기록과 현재 시각으로만 정한다(`buildOptimization`). 검증 Run은 `verifyAtMs`가 있는 기록에서 만든다 */
+export interface OptimizationRecord {
+  optimizationId: string
+  scenario: OptimizationScenario
+  sourceRunId: string | null
+  /** 생성 시각(ms). 이 시각부터 경과 시간으로 상태가 전이한다 */
+  createdAtMs: number
+  /** 검증을 시작한 시각(ms). 시작 전이면 없다 */
+  verifyAtMs?: number
 }
 
 // 진행 중인 UX Optimizer(`GET /api/health`의 `activeOptimization`). 기본은 없음이다.
@@ -41,7 +74,19 @@ export interface MockActiveOptimization {
   status: 'CREATED' | 'EVALUATING' | 'VERIFYING' | 'MODEL_CALL_PENDING'
 }
 let activeOptimization: MockActiveOptimization | null = null
-export const getMockActiveOptimization = () => activeOptimization
+/** 수동으로 켠 값이 우선이고, 없으면 진행 중인(`CREATED`·`EVALUATING`·`VERIFYING`) Optimization 기록에서 구한다 */
+export const getMockActiveOptimization = (
+  nowMs: number = Date.now(),
+): MockActiveOptimization | null => {
+  if (activeOptimization) return activeOptimization
+  for (const rec of allOptimizations()) {
+    const { status } = buildOptimization(rec, nowMs)
+    if (isActiveStatus(status)) {
+      return { optimizationId: rec.optimizationId, status: status as MockActiveOptimization['status'] }
+    }
+  }
+  return null
+}
 export const setMockActiveOptimization = (value: MockActiveOptimization | null) => {
   activeOptimization = value
 }
@@ -142,9 +187,18 @@ function persist() {
   }
 }
 
-/** 생성 시각이 최근인 Run이 먼저 온다(`GET /api/runs`와 같은 순서). */
-export function allRuns(): RunRecord[] {
-  return [...SEEDS, ...Object.values(created)].sort(
+/**
+ * 생성 시각이 최근인 Run이 먼저 온다(`GET /api/runs`와 같은 순서). UX Optimizer 검증 Run도 포함하되,
+ * 서버가 아직 만들지 않은 Run(`createdAtMs`가 `nowMs`보다 뒤)은 빼서 목록·health의 `activeRun`에 보이지 않게 한다
+ */
+export function allRuns(nowMs: number = Date.now()): RunRecord[] {
+  return [
+    ...SEEDS,
+    ...Object.values(created),
+    ...allOptimizations()
+      .flatMap(verificationRuns)
+      .filter((run) => run.createdAtMs <= nowMs),
+  ].sort(
     (a, b) => b.createdAtMs - a.createdAtMs,
   )
 }
@@ -173,4 +227,67 @@ export function findExperimentRuns(
 export function addRun(run: RunRecord): void {
   created[run.runId] = run
   persist()
+}
+
+// ---- UX Optimizer 기록 (임시, OI-12) ----
+// 새로고침 뒤 복원을 위해 sessionStorage에 보관한다. 시드는 코드에 있고 만든 기록과 검증 시작 시각만 저장한다.
+
+const OPT_STORAGE_KEY = 'ux-mirror-mock-optimizations'
+
+interface OptimizationStorage {
+  created: Record<string, OptimizationRecord>
+  verifyAt: Record<string, number>
+}
+
+function loadOptimizations(): OptimizationStorage {
+  try {
+    const raw = sessionStorage.getItem(OPT_STORAGE_KEY)
+    if (raw) return JSON.parse(raw) as OptimizationStorage
+  } catch {
+    // 저장소를 읽지 못하면 메모리 값으로 시작한다.
+  }
+  return { created: {}, verifyAt: {} }
+}
+
+const optimizations: OptimizationStorage = loadOptimizations()
+
+function persistOptimizations() {
+  try {
+    sessionStorage.setItem(OPT_STORAGE_KEY, JSON.stringify(optimizations))
+  } catch {
+    // 저장하지 못해도 메모리 값으로 동작한다.
+  }
+}
+
+/** 생성 시각이 최근인 기록이 먼저 온다. */
+export function allOptimizations(): OptimizationRecord[] {
+  return [...OPTIMIZATION_SEEDS, ...Object.values(optimizations.created)]
+    .map((rec) =>
+      optimizations.verifyAt[rec.optimizationId] === undefined
+        ? rec
+        : { ...rec, verifyAtMs: optimizations.verifyAt[rec.optimizationId] },
+    )
+    .sort((a, b) => b.createdAtMs - a.createdAtMs)
+}
+
+export function findOptimization(optimizationId: string): OptimizationRecord | undefined {
+  return allOptimizations().find((rec) => rec.optimizationId === optimizationId)
+}
+
+/** 테스트용: 만든 Optimization 기록과 검증 시작 시각을 지우고 시드 상태로 되돌린다 */
+export function resetMockOptimizations(): void {
+  optimizations.created = {}
+  optimizations.verifyAt = {}
+  persistOptimizations()
+}
+
+export function addOptimization(rec: OptimizationRecord): void {
+  optimizations.created[rec.optimizationId] = rec
+  persistOptimizations()
+}
+
+/** 검증을 시작한 시각을 기록한다. 이 시각부터 기준 Run → 후보 Run이 만들어진다 */
+export function markOptimizationVerifying(optimizationId: string, atMs: number): void {
+  optimizations.verifyAt[optimizationId] = atMs
+  persistOptimizations()
 }

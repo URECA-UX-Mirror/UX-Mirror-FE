@@ -36,6 +36,10 @@
 | GET | `/api/runs/{runId}/screenshots/{stepId}` | 2, 3, 4 | `계약 §17.7` |
 | GET | `/api/runs/{runId}/screenshots/goal` | 3 | 임시, [OI-3](../operations/open_issue.md#oi-3) |
 | GET | `/api/comparisons/{experimentKey}` | 4 | `계약 §17.6` |
+| POST | `/api/optimizations` | (화면 없음, [FE #69](https://github.com/UX-Mirror/UX-Mirror-FE/issues/69)) | `계약 v1.3.8 §17.12`, 임시 [OI-12](../operations/open_issue.md#oi-12) |
+| GET | `/api/optimizations/{id}` | (화면 없음, #69·#70) | 같음 |
+| POST | `/api/optimizations/{id}/verify` | (화면 없음, #70) | 같음 |
+| GET | `/api/optimizations/{id}/report` | (화면 없음, #70) | 같음 |
 
 `/events` 조회는 `P1`이라 프론트는 호출하지 않는다.
 
@@ -159,6 +163,32 @@
 - 직접 입력한 Run의 비교 조건은 `GOAL_MATCHED`가 목표 문장과 `verification`, `PERSONA_MATCHED`가 사용자 유형 문장을 기준으로 판정한다. `verification`이 없는 과거 Run은 확인 불가로 처리되어 `PARTIAL`이 될 수 있다([OI-9](../operations/open_issue.md#oi-9)).
 
 `COMPARISON_NOT_READY`와 `RUN_NOT_FOUND`는 화면 문구를 구분한다. 한쪽이 진행 중이면 기다리라는 안내이고, 키가 없으면 잘못된 주소 안내다.
+
+### UX Optimizer API (`/api/optimizations`)
+
+라벨 후보 풀을 모델로 평가해 후보를 고르고(`POST /api/optimizations`), 고른 후보와 기준을 실제 브라우저로 다시 실행해 검증한 뒤(`POST …/{id}/verify`) 최종 판단과 보고서(`GET …/{id}/report`)를 만든다. 기존 `POST /api/runs` 흐름과 별도다. 계약 v1.3.8(§17.12, §4.9, §6.1)에 정의되며 이 저장소의 계약 문서는 v1.3.5라 아직 반영하지 않았다. 구현은 API 함수(`src/api/optimizations.ts`)·DTO·Adapter·mock까지이고 화면은 없다. 타입과 값 목록의 임시 결정은 [OI-12](../operations/open_issue.md#oi-12)에 있다.
+
+| 함수 | 요청 | 응답 |
+| --- | --- | --- |
+| `createOptimization(sourceRunId?)` | 본문 `{}` 또는 `{sourceRunId}`. 후보 풀·목표·모델 조건은 서버가 동결하므로 보내지 않는다 | `202` `{optimizationId, status, createdAt}` |
+| `getOptimization(id)` | - | 상태·`progress`·`evaluations`·`selection`·검증 Run ID·`finalDecision`·`error` |
+| `startVerification(id)` | 본문 없음 | `202` `{optimizationId, status: VERIFYING, verificationPhase, baselineRunId, validationRunId}` |
+| `getOptimizationReport(id)` | - | 완료된(`COMPLETED`) Optimization의 보고서 |
+
+- 상태는 `CREATED → EVALUATING → EVALUATED → VERIFYING → COMPLETED`이고 실패는 `FAILED`다(`error.failedPhase`·`lastStatus`). `FAILED`는 오류 응답이 아니라 `200` 응답의 상태값이다. 폴링 규칙은 [실행 상태와 폴링](run-lifecycle.md)의 "Optimization 폴링"을 따른다.
+- 계산할 수 없는 지표(`targetOptionProbability`, `goalPathProbability` 등)는 `null`이며 0으로 바꾸지 않는다. 사유는 `metricNullReasons`(지표 이름 → 코드)이다. `baseUrl` 같은 내부 주소는 응답에 없다.
+- 검증 Run은 `experimentKey`가 `optimizationId`이고 기준은 `variant=before`, 후보는 `after`다. 어느 라벨 사이트인지는 `variant`가 아니라 Run의 `optimizationContext`(`optimizationId`, `candidateId`, `label`, `executionRole`, `siteInstanceId`)로만 구분한다. 일반 Run에는 이 필드가 없고 Adapter는 `null`로 읽는다. 비교는 기존 `GET /api/comparisons/{optimizationId}`를 쓴다.
+- 선정 이유(`selection.selectionReasonCode`, `excludedCandidates[].reasonCodes`)·판단 이유(`verification.reasonCode`)·`finalDecision`·`invalidReasons`는 정책 모듈이 정하는 값이다. 목록이 확정되기 전이므로 모르는 값을 오류로 만들지 않고 원문 문자열을 그대로 둔다.
+- 오류 코드와 화면 문구는 `src/domain/optimizationErrors.ts` 한 곳에서 정하되, 같은 코드가 상황마다 뜻이 달라 세 함수로 나눈다. API 오류 응답은 서버 `message`를 우선하고(없을 때만 코드별 대체 문구), `FAILED`인 Optimization의 `error.code`와 후보 평가의 `error.code`(후보 하나만 실패, 평가는 계속)는 각각 따로 문구를 정한다. 모르는 코드는 서버 `message`를 그대로 쓴다.
+
+| HTTP | `error.code` |
+| --- | --- |
+| 404 | `OPTIMIZATION_NOT_FOUND` |
+| 409 | `OPTIMIZATION_NOT_READY`(평가 전 검증 요청, 완료 전 보고서), `OPTIMIZATION_ALREADY_PROCESSED`, `RUN_ALREADY_ACTIVE`(다른 Run·Optimization 진행 중) |
+| 422 | `INVALID_SITE_INSTANCE`, `EXPERIMENT_CONDITION_MISMATCH` |
+| 503 | `MODEL_UNAVAILABLE`, `OPTIMIZER_POLICY_UNAVAILABLE` |
+
+실패한 Optimization의 `error.code`는 `BASELINE_INVALID`, `BASELINE_NOT_EVALUATED`, `MODEL_TIMEOUT`, `SITE_INSTANCE_CHANGED`, `SITE_RECHECK_FAILED`, `RUN_TIMEOUT`, `OPTIMIZATION_INTERRUPTED`, `OPTIMIZATION_FAILED`다. 후보 하나의 평가는 `evaluationStatus`가 `COMPLETED`·`FAILED`(예: `BROWSER_ERROR`)·`SKIPPED`(`candidateValidity: INVALID_CANDIDATE`)이고 다른 후보의 평가는 계속된다.
 
 ## P1 (구현된 기능이 아님)
 

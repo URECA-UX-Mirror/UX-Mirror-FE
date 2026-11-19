@@ -141,7 +141,7 @@ it('모르는 summary.result는 원문을 보이고 후 값은 숨긴다', async
   expect(area.textContent).not.toContain('→ 값 없음')
 })
 
-it('백엔드 키 maxGuardLoss로 허용 범위를 판정한다', async () => {
+it('maxGuardLoss로 허용 범위를 판정한다', async () => {
   const body = sample()
   body.plan.rules = { maxGuardLoss: 0.01 }
   body.summary.guards[2] = { ...body.summary.guards[2], after: 0.76, delta: -0.015 }
@@ -150,13 +150,6 @@ it('백엔드 키 maxGuardLoss로 허용 범위를 판정한다', async () => {
   const s4 = within(area).getByText('S4 문의').parentElement as HTMLElement
   expect(within(s4).getByText('허용 범위 초과')).toBeTruthy()
   expect(within(area).getAllByText('허용 범위 이내')).toHaveLength(2)
-})
-
-it('maxGuardLoss와 guardMaxDrop이 모두 있으면 maxGuardLoss가 우선이다', async () => {
-  const body = sample()
-  body.plan.rules = { maxGuardLoss: 0.03, guardMaxDrop: 0.02 }
-  const area = await renderWith(body)
-  expect(within(area).getByText(/-3\.0%p 이내/)).toBeTruthy()
 })
 
 it('허용 범위 키가 둘 다 없으면 범위 판정을 보이지 않는다', async () => {

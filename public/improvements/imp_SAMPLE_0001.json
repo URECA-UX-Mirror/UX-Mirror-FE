@@ -34,7 +34,7 @@
   "finishedAt": "2026-11-19T21:42:00+09:00",
 
   "plan": {
-    "planId": "improve-plan-1119",
+    "improvementPlanId": "improve-plan-1119",
     "site": {"siteId": "moro-market", "variant": "before", "name": "MORO MARKET v1"},
     "persona": "온라인 쇼핑몰 이용 경험이 적은 사용자",
     "mainGoal": {"goalKey": "S1", "name": "환불", "goal": "지난주에 산 운동화가 발에 안 맞아서 돌려보내고 돈을 돌려받고 싶다", "goalPage": "refund", "shortestSteps": 2},
@@ -44,7 +44,7 @@
       {"goalKey": "S4", "name": "문의", "goal": "받은 상품에 문제가 있어서 직원에게 직접 물어보고 싶다", "goalPage": "support", "shortestSteps": 1}
     ],
     "score": "reachWithinShortestProbability",
-    "rules": {"mainMinGain": 0.05, "mainBaseline": "CURRENT", "guardMaxDrop": 0.02, "guardBaseline": "ORIGINAL_V1", "tieRange": 0.01, "tieBreak": ["GUARD_MEAN", "SHORTER_LABEL", "HUMAN_FIRST", "ORDER"], "targetScore": 0.80, "maxRounds": 3, "maxLabelLength": 6, "editableRegions": ["상단 메뉴"]},
+    "rules": {"minMainGain": 0.05, "mainBaseline": "CURRENT", "maxGuardLoss": 0.02, "guardBaseline": "ORIGINAL_V1", "tieTolerance": 0.01, "tieBreak": ["GUARD_MEAN", "SHORTER_LABEL", "HUMAN_FIRST", "ORDER"], "targetScore": 0.80, "maxRounds": 3, "maxLabelLength": 6, "editableRegions": ["상단 메뉴"]},
     "model": {"modelVersion": "trillionlabs/Zoro-1", "modelEndpointId": "brev-l40s-bf16", "temperature": 1.52, "promptVersion": "v2", "proposalPromptVersion": "propose-v1"}
   },
 

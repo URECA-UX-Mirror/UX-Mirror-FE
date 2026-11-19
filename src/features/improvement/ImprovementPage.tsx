@@ -86,7 +86,7 @@ function ImprovementView({ improvementId }: { improvementId: string }) {
         {view.report.ok ? (
           <SummarySection
             report={view.report.data}
-            guardMaxDrop={guardMaxDropOf(view.plan?.rules ?? null)}
+            maxGuardLoss={maxGuardLossOf(view.plan?.rules ?? null)}
           />
         ) : null}
       </AreaSlot>
@@ -124,16 +124,10 @@ function statusMessage(status: string): string {
   }
 }
 
-/**
- * 지킬 목표 허용 감소 범위. 백엔드 키 `plan.rules.maxGuardLoss`를 먼저 읽고, 없으면 옛 샘플 키
- * `guardMaxDrop`을 읽는다. 둘 다 있으면 `maxGuardLoss`가 우선이다. 숫자가 아니면 건너뛰고 없으면 `null`.
- */
-function guardMaxDropOf(rules: Record<string, unknown> | null): number | null {
-  for (const key of ['maxGuardLoss', 'guardMaxDrop']) {
-    const value = rules?.[key]
-    if (typeof value === 'number' && Number.isFinite(value)) return value
-  }
-  return null
+/** 지킬 목표 허용 감소 범위 `plan.rules.maxGuardLoss`. 숫자가 아니거나 없으면 `null` */
+function maxGuardLossOf(rules: Record<string, unknown> | null): number | null {
+  const value = rules?.maxGuardLoss
+  return typeof value === 'number' && Number.isFinite(value) ? value : null
 }
 
 function goalNamesOf(report: ImprovementReport | null): Record<string, string> {

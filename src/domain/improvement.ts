@@ -184,7 +184,7 @@ export interface ImprovementView {
 }
 
 export interface ImprovementPlan {
-  planId: string | null
+  improvementPlanId: string | null
   persona: string | null
   mainGoal: ImprovementGoal | null
   guardGoals: ImprovementGoal[]

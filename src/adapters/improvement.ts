@@ -341,7 +341,7 @@ function toPlan(value: unknown): ImprovementPlan | null {
   if (!isObject(value)) return null
   const site = isObject(value.site) ? value.site : null
   return {
-    planId: stringOrNull(value.planId),
+    improvementPlanId: stringOrNull(value.improvementPlanId),
     persona: stringOrNull(value.persona),
     mainGoal: toGoal(value.mainGoal),
     guardGoals: Array.isArray(value.guardGoals)

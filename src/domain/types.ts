@@ -59,6 +59,8 @@ export interface Health {
   agentReady: boolean
   /** 실행 중인 Run이 있으면 그 `runId`, 없으면 `null` */
   activeRunId: string | null
+  /** 진행 중인 UX Optimizer. 없거나 응답에 필드가 없으면 `null` */
+  activeOptimization: { optimizationId: string; status: string } | null
   checkedAt: string
 }
 

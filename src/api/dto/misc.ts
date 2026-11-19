@@ -9,6 +9,8 @@ export interface PresetsDto {
  * `status`는 모델·브라우저·에이전트가 모두 준비되면 `READY`, 아니면 `NOT_READY`다.
  * `activeRun`은 실행 중인 Run의 `runId` 문자열이고 없으면 `null`이다(계약서는 `null` 예시만 있고
  * 값이 있을 때의 형식은 적지 않았다. UX-Mirror-BE `api/main.py`의 `runner.active_run_id` 기준).
+ * `activeOptimization`은 UX Optimizer가 후보를 평가·검증 중일 때의 `{optimizationId, status}`이고 없으면 `null`이다
+ * (계약 v1.3.8 §17.8, BE README). 이 동안 일반 Run 시작은 `409 RUN_ALREADY_ACTIVE`다. 응답에 필드가 없는 서버도 있어 optional이다.
  */
 export interface HealthDto {
   status: 'READY' | 'NOT_READY'
@@ -21,5 +23,12 @@ export interface HealthDto {
   browser: { ready: boolean }
   agent: { ready: boolean }
   activeRun: string | null
+  activeOptimization?: ActiveOptimizationDto | null
   checkedAt: string
+}
+
+/** `status`는 `CREATED`·`EVALUATING`·`VERIFYING`·`MODEL_CALL_PENDING` 등이다. 값 목록이 열려 있어 문자열로 받는다 */
+export interface ActiveOptimizationDto {
+  optimizationId: string
+  status: string
 }

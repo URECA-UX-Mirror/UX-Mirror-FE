@@ -34,6 +34,18 @@ export interface RunRecord {
   replacementRunId?: string
 }
 
+// 진행 중인 UX Optimizer(`GET /api/health`의 `activeOptimization`). 기본은 없음이다.
+// 켜면 health가 값을 주고 `POST /api/runs`는 409 RUN_ALREADY_ACTIVE(BE 메시지 형식)를 돌려준다. 메모리에만 둔다.
+export interface MockActiveOptimization {
+  optimizationId: string
+  status: 'CREATED' | 'EVALUATING' | 'VERIFYING' | 'MODEL_CALL_PENDING'
+}
+let activeOptimization: MockActiveOptimization | null = null
+export const getMockActiveOptimization = () => activeOptimization
+export const setMockActiveOptimization = (value: MockActiveOptimization | null) => {
+  activeOptimization = value
+}
+
 const STORAGE_KEY = 'ux-mirror-mock-runs'
 const SEED_AT_MS = Date.parse('2026-11-01T09:00:00+09:00')
 

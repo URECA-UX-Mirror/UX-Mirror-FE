@@ -31,7 +31,7 @@
 - 기존 실험 키를 입력하고 조회 버튼을 눌러 서버의 실행 기록을 조회하고 첫 Run의 조건을 다음 Run에 재사용한다. 시작 후 진행 화면 주소에도 실험 키를 남긴다.
 - `+ 버전 추가`와 `v3` 행은 `P1`이라 비활성으로 둔다.
 - 비교 버튼은 두 버전에 종료된 유효 Run이 있을 때만 활성화하고, 같은 버전을 두 번 고르면 오류를 보인다. 최신 Run이 무효여도 이전 유효 Run을 비교 대상으로 쓴다. 재실행은 해당 버전의 모든 Run이 무효일 때만 허용한다.
-- 엔진 상태는 `GET /api/health`로 표시한다. 상태가 `READY`가 아니거나 `activeRun`이 있으면 새 분석 시작을 막는다. 상태 조회에 실패하면 시작을 막고 확인 불가를 안내하며 재확인을 제공한다.
+- 엔진 상태는 `GET /api/health`로 표시한다. 상태가 `READY`가 아니거나 `activeRun`이 있으면 새 분석 시작을 막는다. 상태 조회에 실패하면 시작을 막고 확인 불가를 안내하며 재확인을 제공한다. `activeOptimization`(UX Optimizer 진행 중)이 있으면 안내만 보이고 시작은 막지 않으며, 서버가 `409 RUN_ALREADY_ACTIVE`를 주면 `message`를 그대로 보인다.
 
 ### 2. AI 탐색 진행
 
@@ -144,7 +144,7 @@ src/
   mocks/                   # MSW. browser.ts, store.ts, errors.ts, fixtures/(run, scenario, runResult, comparison, sites), handlers/(endpoint별)
   features/
     new-analysis/, scenario/, run-progress/, run-result/, comparison/, replay/   # 화면별. 라우트는 App.tsx
-  shared/                  # Layout(상단 바·접이식 사이드바), SectionTitle(카드 제목 줄), RunGauge(탐색 진행 게이지), icons, ProbabilityGauge, SelectedAction, stepLabel, EngineStatus, ErrorNotice, ResultOriginBadge, useHealth
+  shared/                  # Layout(상단 바·접이식 사이드바), SectionTitle(카드 제목 줄), RunGauge(탐색 진행 게이지), icons, ProbabilityGauge, SelectedAction, stepLabel, EngineStatus, optimizationStatus, ErrorNotice, ResultOriginBadge, useHealth
     screenshot/            # boxStyle.ts(좌표 변환), ScreenshotViewer, CandidateProbabilityList
     polling/               # poller.ts(간격·backoff 규칙), usePolling(범용 폴링 훅)
 public/

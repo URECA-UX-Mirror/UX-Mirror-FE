@@ -1,4 +1,5 @@
 import { Link } from 'react-router'
+import { activeOptimizationLabel } from './optimizationStatus.ts'
 import { useHealth } from './useHealth.ts'
 
 interface EngineStatusProps {
@@ -41,6 +42,12 @@ export function EngineStatus({ refreshKey }: EngineStatusProps) {
           <Link to={`/runs/${encodeURIComponent(health.activeRunId)}`}>
             실행 중인 분석 보기
           </Link>
+        </>
+      ) : null}
+      {health.activeOptimization ? (
+        <>
+          {' · '}
+          Optimizer {activeOptimizationLabel(health.activeOptimization.status)}
         </>
       ) : null}
     </span>

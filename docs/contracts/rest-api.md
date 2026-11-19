@@ -54,6 +54,7 @@
 - 준비 성공이 탐색 성공을 보장하지 않는다(`계약 §17.8`). "엔진 준비 완료"로만 표시하고 "분석 성공 가능"으로 표시하지 않는다.
 - `status`가 `READY`가 아니면 분석 시작을 막고 다시 확인할 수 있게 한다. 상태 조회가 실패한 경우에는 분석 시작을 막고 확인 불가를 안내한다.
 - `activeRun`은 실행 중인 Run의 `runId` 문자열이고(없으면 `null`), 값이 있으면 다른 Run이 실행 중이므로 새 분석 시작을 막고 해당 Run으로 이동하는 링크를 보인다.
+- `activeOptimization`(`{optimizationId, status}` 또는 `null`)은 UX Optimizer가 후보를 평가·검증하는 동안 값이 있다(계약 v1.3.8 §17.8, 이 저장소의 나머지 문서는 v1.3.5 기준이며 반영은 [#43](https://github.com/UX-Mirror/UX-Mirror-FE/issues/43)에서 한다). 필드가 없는 응답은 `null`로 읽고 모르는 `status`는 "진행 중"으로 보인다. 이 동안 `POST /api/runs`는 `409 RUN_ALREADY_ACTIVE`이고 `activeRun`은 비어 있을 수 있다. 엔진 상태에 "Optimizer ○○ 중"을 표시하고, 새 UX 분석·시나리오 테스트는 시작 버튼을 막지 않고 안내만 보인다(막는 판단은 서버의 `409`에 맡긴다). `409`의 `message`가 있으면 그대로 보인다.
 - 호출이 실패하면 엔진 상태를 "확인 불가"로 표시하고 나머지 화면은 계속 쓸 수 있다.
 
 ### POST /api/runs
@@ -75,7 +76,7 @@
 
 | 오류 | `code` | 프론트 처리 |
 | --- | --- | --- |
-| 409 | `RUN_ALREADY_ACTIVE` | 다른 분석이 실행 중이라는 안내와 해당 Run 이동 링크 |
+| 409 | `RUN_ALREADY_ACTIVE` | 다른 분석이 실행 중이라는 안내. `activeRun`이 있으면 해당 Run 이동 링크, 없으면(Optimizer 진행 중 등) 서버 `message`를 그대로 보인다 |
 | 409 | `EXPERIMENT_RUN_EXISTS` | 같은 키와 버전에 진행 중이거나 유효한 Run이 이미 있다는 안내와 결과 보기 링크. 기존 Run이 모두 `INVALID`일 때만 같은 키로 다시 실행할 수 있다 |
 | 422 | `CONTRACT_VALIDATION_ERROR` | 서버 `message`(키 형식, `maxSteps` 범위, 없는 목표·사용자 유형, 직접 입력 문장의 빈 값·길이·금지 문자열, 성공 조건 오류, 첫 Run과 다른 입력)를 그대로 보이고 입력 수정을 안내한다. 재시도 버튼은 두지 않는다 |
 | 503 | `BROWSER_ERROR` | FE는 서버 `message`를 보이고 Run이 생성되지 않았음을 안내한다. 직접 입력한 목표의 도착 화면 사전 검사에서 Before·After 어느 화면이든 열지 못하거나 화면마다 10초(요청당 최대 약 20초) 안에 응답이 없을 때도 이 코드이며 백엔드에 구현됐다(UX-Mirror-BE #60, 계약서 반영 전, [OI-9](../operations/open_issue.md#oi-9)). 메시지가 비어 있으면 "도착 화면을 확인하지 못했습니다"를 보인다. `retryable`이면 같은 버전의 실행 재시도 버튼을 보인다 |

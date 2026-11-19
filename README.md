@@ -29,14 +29,14 @@ npm test           # 자동 테스트 1회 실행
 
 | 화면 | 하는 일 | 데이터 (백엔드 API) |
 | --- | --- | --- |
-| 첫 화면 (`/`) | 진단할 사이트(기본은 예시 쇼핑몰 MORO MARKET, 주소나 칩으로 등록 사이트)와 "무엇을 하려고 하나요?" 한 문장을 받아 진단을 시작한다. 찾아야 할 화면은 문장의 낱말로 고르고, 못 고르면 직접 고르게 한다 | `GET /api/health`, `GET /api/sites`, `POST /api/runs` |
+| 첫 화면 (`/`) | 진단할 사이트는 시연용 예시 쇼핑몰 MORO MARKET 하나로 고정이다(첫 화면 스크린샷 미리 보기·크게 보기, #103). "무엇을 하려고 하나요?" 한 문장(예시는 시연 시나리오 문장 하나)을 받아 진단을 시작한다. 찾아야 할 화면은 문장의 낱말로 고르고, 못 고르면 직접 고르게 한다 | `GET /api/health`, `POST /api/runs` |
 | 결과 (`/runs/:runId`) | ① 진행 중에는 AI가 누르는 화면, 끝나면 "N번 만에 찾았어요"/"못 찾았어요"와 지나간 길 ② 실제 값에서 나온 이유 한두 문장과 누를 가능성 막대 ③ "AI에게 개선안 받아 보기" → 그 자리에서 진행 단계 → 바꿀 이름 ④ 찾아올 가능성 전 → 후, 다른 목표, 개선안 화면에서 다시 해 본 결과, "화면별로 비교하기" | `GET /api/runs/{runId}`, `/steps`, `/screenshots/{stepId}`, `/issues`, `GET /api/improvements`, `POST /api/improvements`, `GET /api/improvements/{id}`(진행 중이면 3초마다) |
 | 지금 화면 vs 개선안 (`/comparisons/:experimentKey`) | 한 줄 결론, 양쪽 결과(몇 번 만에 도착 / 못 찾음), 지나간 길을 나란히 보인다. 화면별 상세는 접혀 있다 | `GET /api/comparisons/{experimentKey}`, `/api/runs/{runId}`, `/steps`, `/screenshots/{stepId}` |
 
 메뉴에 없고 주소로만 여는 화면: 받은 개선안 목록(`/improvements`), 메뉴 이름 후보 비교(`/optimizations`, `/optimizations/:id`), 지난 결과 다시 보기(`/replay`). `/improvements/:id`는 진단에서 받은 개선안이면 그 결과 화면으로 보내고, 진단 없이 만든 결과(사전 등록 공식 결과)만 ③④와 같은 모양으로 보인다. `/runs/:runId/result`는 결과 화면과 같고, `/scenario`는 첫 화면으로 보낸다.
 
 - 고객 유형은 화면에서 묻지 않는다. API가 `persona`를 요구해 고정값 하나를 숨겨서 보낸다(임시, [OI-9](docs/operations/open_issue.md#oi-9)).
-- 등록 사이트는 주소의 도메인이 `GET /api/sites`의 `allowedHosts`에 있는 사이트를 찾아 그 `siteId`로 진단한다(임시, [OI-11](docs/operations/open_issue.md#oi-11)). 등록되지 않은 주소는 시작할 수 없다. ③④는 예시 쇼핑몰 진단에만 있다.
+- 등록 사이트(`GET /api/sites`) 진단은 첫 화면에서 뺐다(#103, 개선안까지 되는 건 예시 쇼핑몰뿐). 서버 API는 그대로이고, 이미 있는 등록 사이트 진단 결과는 결과 화면에서 ①②까지 보인다(임시, [OI-11](docs/operations/open_issue.md#oi-11)).
 - ②의 이유는 서버 값에서 확인되는 것만 말한다(멈춘 이유, 더 누른 횟수, 목표로 가는 버튼 대신 누른 버튼과 두 버튼의 가능성). 규칙은 [프론트엔드 구조](docs/architecture/frontend-structure.md)의 "이유 문장"에 있다.
 - 문구는 짧은 해요체로 쓰고, 서버 코드값·Run ID·실험 키·영어는 화면에 보이지 않는다(`src/shared/runLabels.ts` 등이 사용자 말로 바꾼다).
 - 문장 검사는 BE와 같은 규칙(`src/shared/inputRules.ts`)으로 시작 전에 안내한다. 다른 진단·개선안 찾기·후보 비교가 돌고 있으면 시작을 막고 그 화면 링크를 보인다.

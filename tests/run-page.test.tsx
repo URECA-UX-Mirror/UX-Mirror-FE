@@ -127,7 +127,7 @@ describe('진행 중', () => {
     await tick()
     const live = step(FIND)
     expect(answerOf(FIND)).toBe('AI가 찾아보는 중이에요')
-    expect(within(live).getByText('2번째 클릭 중 · 최대 5번')).toBeTruthy()
+    expect(within(live).getByText('2번째 클릭 중')).toBeTruthy()
     expect(within(live).getByRole('img').getAttribute('src')).toMatch(/\/screenshots\/1\?kind=original$/)
     expect(within(live).getByRole('list', { name: '지금까지 누른 곳' }).textContent).toMatch(/^1\. '.+' 누름$/)
     // 진행 중에는 버튼이 없고, 전에 받은 개선안도 조회하지 않는다
@@ -270,8 +270,8 @@ describe('끝난 진단', () => {
     const rows = within(bars).getAllByRole('listitem')
     // 위에서 네 개 + AI가 이름을 바꿀 수 있는 메뉴(네 개 안에 없으면 한 줄 더)
     expect(rows).toHaveLength(5)
-    expect(rows[4].textContent).toBe('이용정보바꿀 수 있어요11%')
-    expect(within(bars).getAllByText('바꿀 수 있어요')).toHaveLength(1)
+    expect(rows[4].textContent).toBe('이용정보11%')
+    expect(within(bars).queryByText('바꿀 수 있어요')).toBeNull()
     const top = [...first.candidates].sort((a, b) => b.probability - a.probability)[0]
     expect(rows[0].textContent).toBe(`${top.label}${Math.round(top.probability * 100)}%`)
     expect(document.body.textContent).not.toMatch(/MAX_STEPS/)

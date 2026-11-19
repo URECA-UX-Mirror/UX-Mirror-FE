@@ -145,7 +145,7 @@ function Live({ run, steps }: { run: Run; steps: Step[] }) {
   return (
     <TimelineStep state="current" question={FIND_QUESTION} answer={run.status === 'RUNNING' ? 'AI가 찾아보는 중이에요' : '곧 시작해요'}>
       <p role="status" className="run-live-progress">
-        {latest ? `${clicking}번째 클릭 중 · 최대 ${run.maxSteps}번` : `첫 화면을 보고 있어요 · 최대 ${run.maxSteps}번`}
+        {latest ? `${clicking}번째 클릭 중` : '첫 화면을 보고 있어요'}
       </p>
       {latest ? (
         <ScreenshotViewer
@@ -253,7 +253,6 @@ function ChoiceBars({ why, pageName, markEditable }: { why: Why; pageName: (page
           <li key={c.optionId}>
             <span className="choice-label">
               {c.label}
-              {c === editable ? <span className="choice-tag">바꿀 수 있어요</span> : null}
             </span>
             <span className="choice-value">{Math.round(c.probability * 100)}%</span>
             <span className="choice-track" aria-hidden="true"><span style={{ width: `${Math.max(1, c.probability * 100)}%` }} /></span>

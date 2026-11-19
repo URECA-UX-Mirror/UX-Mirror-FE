@@ -50,3 +50,12 @@ mock 모드에서 ③ 결과 화면(`/runs/:runId/result`)은 시드 Run으로 �
 ## 브랜치
 
 `main`(제출용) ← `develop`(통합) ← `유형/이슈번호-간단한 내용`(각자 작업). PR은 1명 승인 후 머지. 브랜치·커밋·Issue·PR 규칙은 [AGENTS.md](AGENTS.md)를 따른다.
+
+## 배포 (Vercel)
+
+- `vercel.json`이 모든 경로를 `/index.html`로 보낸다. `BrowserRouter`를 쓰므로 `/scenario`, `/runs/:runId` 같은 경로에서 새로고침해도 404가 나지 않는다.
+- Production Branch는 `main`이다. `develop`에 push하면 Preview 배포가 만들어진다. 개발 중에는 `develop`의 Preview 주소(`<프로젝트>-git-develop-<팀>.vercel.app`)를 쓰고, 제출·심사 전에 `develop`을 `main`에 병합해 Production 주소를 쓴다.
+- Vercel의 Environment Variables에 `VITE_USE_MOCK=false`와 `VITE_API_BASE_URL`을 Production과 Preview 모두 넣는다. `VITE_` 변수는 빌드 때 번들에 들어가므로 값을 바꾸면 다시 배포해야 한다. `VITE_USE_MOCK`은 값이 정확히 `true`일 때만 켜지므로 넣지 않아도 꺼진다. 값이 없으면 `VITE_API_BASE_URL`은 기본값 `http://127.0.0.1:8000`으로 빌드된다.
+- 프론트는 HTTPS이므로 백엔드도 HTTPS여야 한다. 단, 백엔드를 `http://127.0.0.1`로 두면 백엔드를 띄운 PC의 브라우저에서만 동작한다. Chrome으로 열고 로컬 네트워크 접근 권한 팝업에서 허용해야 하며, 거부하면 API 요청이 모두 실패한다. Safari는 HTTPS 페이지의 `http://127.0.0.1` 요청을 혼합 콘텐츠로 막을 수 있다(브라우저 버전마다 다르므로 배포 뒤 직접 확인한다). 다른 PC에서 쓰려면 백엔드를 HTTPS 주소로 공개한다.
+- 백엔드 `.env`의 `UXM_CORS_ORIGINS`에 Vercel 주소를 추가한다. 주소가 정확히 일치해야 통과하므로 Production 주소와 `develop` 브랜치 별칭 주소(`-git-develop-`)만 넣는다. 커밋별 Preview 주소와 다른 브랜치의 Preview 주소는 허용되지 않는다. 환경변수 규칙은 [로컬 환경](docs/operations/local-environment.md)을 따른다.
+- 백엔드 없이 화면만 보여 줄 때는 `VITE_USE_MOCK=true`로 배포하면 mock 데이터가 나온다. Vercel은 환경변수를 Production과 Preview에 따로 둘 수 있으므로 한쪽만 `true`로 둘 수 있다.

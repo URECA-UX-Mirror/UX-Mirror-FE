@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { toImprovementView } from '../src/adapters/improvement.ts'
-import { formatScore, formatScoreDelta } from '../src/domain/improvementScore.ts'
+import { formatScore, formatScoreDelta, formatScoreMagnitude } from '../src/domain/improvementScore.ts'
 
 // 자동 개선 데이터 타입·검증기 (FE #77). 형식 정본은 public/improvements/imp_SAMPLE_0001.json(`_required` 규칙)
 
@@ -248,5 +248,11 @@ describe('점수 표시 헬퍼', () => {
     // 반올림하면 0이 되는 값에 `-0.0`이 붙지 않는다
     expect(formatScoreDelta(-0.0004)).toBe('0.0%p')
     expect(formatScoreDelta(null)).toBe('값 없음')
+  })
+
+  it('차이의 크기는 부호 없이 %p로 바꾼다', () => {
+    expect(formatScoreMagnitude(0.006)).toBe('0.6%p')
+    expect(formatScoreMagnitude(-0.006)).toBe('0.6%p')
+    expect(formatScoreMagnitude(null)).toBe('값 없음')
   })
 })

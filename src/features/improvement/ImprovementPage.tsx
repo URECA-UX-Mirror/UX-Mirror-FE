@@ -1,6 +1,8 @@
 import type { ReactNode } from 'react'
 import { Link, useParams } from 'react-router'
-import type { Area } from '../../domain/improvement.ts'
+import type { Area, ImprovementReport } from '../../domain/improvement.ts'
+import { OfficialSection } from './OfficialSection.tsx'
+import { SummarySection } from './SummarySection.tsx'
 import { VerificationSection } from './VerificationSection.tsx'
 import { useImprovement } from './useImprovement.ts'
 import './improvement.css'
@@ -78,12 +80,25 @@ function ImprovementView({ improvementId }: { improvementId: string }) {
         ) : null}
       </section>
 
-      <AreaSlot title="① 개선 효과" area={view.report} />
+      {/* 에이전트 예측과 실제 검증을 구분한다 */}
+      <AreaSlot title="① 개선 효과" tag="에이전트 예측" area={view.report}>
+        {view.report.ok ? (
+          <SummarySection
+            report={view.report.data}
+            guardMaxDrop={guardMaxDropOf(view.plan?.rules ?? null)}
+          />
+        ) : null}
+      </AreaSlot>
       <AreaSlot title="② 실제 브라우저 검증" area={view.verification}>
         {view.verification.ok ? <VerificationSection verification={view.verification.data} /> : null}
       </AreaSlot>
       <AreaSlot title="보조 정보" area={view.official}>
-        {/* 공식 평가·회차 상세는 보조 영역 이슈가 채운다 */}
+        {view.official.ok ? (
+          <OfficialSection
+            official={view.official.data}
+            goalNames={goalNamesOf(view.report.ok ? view.report.data : null)}
+          />
+        ) : null}
       </AreaSlot>
       {!view.rounds.ok ? <AreaSlot title="개선 회차" area={view.rounds} /> : null}
 
@@ -108,17 +123,42 @@ function statusMessage(status: string): string {
   }
 }
 
+/**
+ * 지킬 목표 허용 감소 범위. 백엔드 키 `plan.rules.maxGuardLoss`를 먼저 읽고, 없으면 옛 샘플 키
+ * `guardMaxDrop`을 읽는다. 둘 다 있으면 `maxGuardLoss`가 우선이다. 숫자가 아니면 건너뛰고 없으면 `null`.
+ */
+function guardMaxDropOf(rules: Record<string, unknown> | null): number | null {
+  for (const key of ['maxGuardLoss', 'guardMaxDrop']) {
+    const value = rules?.[key]
+    if (typeof value === 'number' && Number.isFinite(value)) return value
+  }
+  return null
+}
+
+function goalNamesOf(report: ImprovementReport | null): Record<string, string> {
+  const names: Record<string, string> = {}
+  for (const line of report ? [report.main, ...report.guards] : []) {
+    if (line.goalKey && line.name) names[line.goalKey] = line.name
+  }
+  return names
+}
+
 interface AreaSlotProps {
   title: string
+  /** 제목 옆에 붙는 작은 표시 */
+  tag?: string
   area: Area<unknown>
   children?: ReactNode
 }
 
 /** 영역 자리. 오류이면 그 영역에만 "데이터 오류"를 보이고, 정상이면 영역 이슈가 채우기 전까지 자리 표시를 둔다 */
-function AreaSlot({ title, area, children }: AreaSlotProps) {
+function AreaSlot({ title, tag, area, children }: AreaSlotProps) {
   return (
     <section className="card improvement-area" aria-label={title}>
-      <h2>{title}</h2>
+      <h2>
+        {title}
+        {tag ? <span className="area-tag">{tag}</span> : null}
+      </h2>
       {area.ok ? (
         (children ?? <p className="area-placeholder">이 영역은 준비 중입니다</p>)
       ) : (

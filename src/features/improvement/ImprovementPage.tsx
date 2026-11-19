@@ -79,7 +79,7 @@ function ImprovementView({ improvementId }: { improvementId: string }) {
       </section>
 
       <AreaSlot title="① 개선 효과" area={view.report} />
-      <AreaSlot title="② 실제 검증" area={view.verification}>
+      <AreaSlot title="② 실제 브라우저 검증" area={view.verification}>
         {view.verification.ok ? <VerificationSection verification={view.verification.data} /> : null}
       </AreaSlot>
       <AreaSlot title="보조 정보" area={view.official}>
@@ -118,7 +118,7 @@ interface AreaSlotProps {
 function AreaSlot({ title, area, children }: AreaSlotProps) {
   return (
     <section className="card improvement-area" aria-label={title}>
-      <h2>{title === '② 실제 검증' ? '② 실제 브라우저 검증' : title}</h2>
+      <h2>{title}</h2>
       {area.ok ? (
         (children ?? <p className="area-placeholder">이 영역은 준비 중입니다</p>)
       ) : (

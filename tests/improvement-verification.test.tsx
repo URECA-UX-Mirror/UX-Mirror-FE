@@ -56,3 +56,28 @@ it.each(['https://evil.test', '//evil.test', '/\\evil.test', '/bad\npath'])('외
   expect(screen.getAllByRole('link', { name: '결과 보기' })).toHaveLength(1)
   expect(screen.getAllByRole('link', { name: '진행 보기' })).toHaveLength(1)
 })
+
+it.each(['RUNNING', 'READY', 'UNKNOWN', null])('종료되지 않은 상태 %s에는 재생·비교 링크와 비교 요약을 표시하지 않는다', (status) => {
+  const data = sample()
+  data.verification.status = 'FAILED'
+  data.verification.error = { code: 'FAILED', message: '중단' }
+  data.verification.pairs = [data.verification.pairs[0]]
+  data.verification.pairs[0].before.status = status
+  show(data)
+  expect(screen.queryByRole('link', { name: '비교 보기' })).toBeNull()
+  expect(screen.getAllByRole('link', { name: '결과 보기' })).toHaveLength(1)
+  expect(screen.getAllByRole('link', { name: '진행 보기' })).toHaveLength(1)
+  expect(screen.queryByText('4단계 도달 실패 → 2단계 성공')).toBeNull()
+})
+
+it.each(['status', 'path', 'issues'])('단계와 도달이 같아도 %s가 다르면 변화 없다고 표시하지 않는다', (field) => {
+  const data = sample()
+  data.verification.pairs = [data.verification.pairs[1]]
+  const after = data.verification.pairs[0].after
+  if (field === 'status') after.status = 'BLOCKED'
+  if (field === 'path') after.path = ['home', 'other']
+  if (field === 'issues') after.issues = ['OTHER_ISSUE']
+  show(data)
+  expect(screen.queryByText('변화 없음')).toBeNull()
+  expect(screen.getByText('1단계 성공 → 1단계 성공')).toBeTruthy()
+})

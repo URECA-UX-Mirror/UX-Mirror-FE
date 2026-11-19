@@ -1,9 +1,14 @@
 import { Link } from 'react-router'
 import type { ImprovementVerification, VerificationPair, VerificationRun } from '../../domain/improvement.ts'
+import { isTerminalStatus } from '../../domain/runStatus.ts'
 
 // 프로토콜 상대 주소, 역슬래시, 제어 문자는 브라우저가 외부 주소로 해석할 수 있다.
 function internalPath(path: string | null): path is string {
   return path !== null && /^\/(?!\/)[^\\\s]*$/.test(path)
+}
+
+function canReplay(run: VerificationRun | null): run is VerificationRun {
+  return run !== null && run.validity === 'VALID' && run.status !== null && isTerminalStatus(run.status)
 }
 
 function outcome(run: VerificationRun): string {
@@ -14,7 +19,7 @@ function outcome(run: VerificationRun): string {
 
 function RunDetails({ title, run }: { title: string; run: VerificationRun | null }) {
   if (!run) return <div className="verification-run"><h4>{title}</h4><p>Run 없음</p></div>
-  const valid = run.validity === 'VALID'
+  const valid = canReplay(run)
   return (
     <div className="verification-run">
       <h4>{title} · {run.label ?? '라벨 없음'}</h4>
@@ -34,10 +39,12 @@ function RunDetails({ title, run }: { title: string; run: VerificationRun | null
 }
 
 function PairCard({ pair }: { pair: VerificationPair }) {
-  const comparable = pair.before?.validity === 'VALID' && pair.after?.validity === 'VALID'
+  const comparable = canReplay(pair.before) && canReplay(pair.after)
   const before = pair.before
   const after = pair.after
-  const same = comparable && before && after && before.stepCount === after.stepCount && before.goalReached === after.goalReached && before.stepCount !== null && before.goalReached !== null
+  const same = comparable && before && after && before.stepCount === after.stepCount && before.goalReached === after.goalReached && before.stepCount !== null && before.goalReached !== null && before.status === after.status &&
+    before.path.length === after.path.length && before.path.every((value, index) => value === after.path[index]) &&
+    before.issues.length === after.issues.length && before.issues.every((value, index) => value === after.issues[index])
   return (
     <article className="verification-pair">
       <h3>{pair.name ?? '목표 이름 없음'} {pair.goalKey ? `(${pair.goalKey})` : ''}</h3>

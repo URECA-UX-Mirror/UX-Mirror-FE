@@ -119,3 +119,14 @@ it('503 BROWSER_ERROR는 Run이 생성되지 않았음을 알리고 retryable이
   expect(screen.getByText('Run은 생성되지 않았습니다.')).toBeTruthy()
   expect(screen.getByRole('button', { name: '다시 시도' })).toBeTruthy()
 })
+
+it('재시도할 수 있는 일반 오류는 다시 시도 버튼을 보이고 알림이 중첩되지 않는다', async () => {
+  server.use(http.post(apiUrl('/api/runs'), () => errorResponse(500, 'STORAGE_ERROR', '서버 오류가 발생했습니다', true)))
+  renderPage()
+  await fillAndPick()
+  await waitFor(() => expect(startButton().disabled).toBe(false))
+  fireEvent.click(startButton())
+  expect(await screen.findByText('서버 오류가 발생했습니다')).toBeTruthy()
+  expect(screen.getByRole('button', { name: '다시 시도' })).toBeTruthy()
+  expect(document.querySelector('[role="alert"] [role="alert"]')).toBeNull()
+})

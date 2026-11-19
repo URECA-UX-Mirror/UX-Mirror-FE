@@ -29,6 +29,7 @@ function initialWidth(): number {
 /** 상단 바 브레드크럼에 보이는 화면 이름. 경로는 `App.tsx`의 라우트와 같다 */
 function pageTitle(pathname: string): string {
   if (pathname === '/') return '새 UX 분석'
+  if (pathname === '/scenario') return '시나리오 테스트'
   if (pathname === '/replay') return '저장된 결과 재생'
   if (pathname.startsWith('/comparisons/')) return '버전 비교'
   if (/^\/runs\/[^/]+\/result\/?$/.test(pathname)) return 'UX 탐색 분석 결과'

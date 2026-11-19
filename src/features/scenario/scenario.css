@@ -31,7 +31,7 @@
 
 .scenario .over,
 .scenario .field-error {
-  color: var(--um-danger, #c0392b);
+  color: var(--um-danger);
 }
 
 .scenario .steps-row {

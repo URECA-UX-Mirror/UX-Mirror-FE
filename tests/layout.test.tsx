@@ -63,3 +63,16 @@ it('사이드바에 새 UX 분석·시나리오 테스트·저장된 결과 재�
     ['저장된 결과 재생', '/replay'],
   ])
 })
+
+it('/scenario에서 상단 바에 화면 이름을 보인다', () => {
+  render(
+    <MemoryRouter initialEntries={['/scenario']}>
+      <Routes>
+        <Route element={<Layout />}>
+          <Route path="/scenario" element={<p>본문</p>} />
+        </Route>
+      </Routes>
+    </MemoryRouter>,
+  )
+  expect(screen.getAllByText('시나리오 테스트').length).toBeGreaterThan(1)
+})

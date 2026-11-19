@@ -345,6 +345,7 @@ export function toImprovementVerification(value: unknown): ImprovementVerificati
       code: stringOrNull(error.code),
       message: stringOrNull(error.message),
     },
+    reason: stringOrNull(verification.reason),
     method: stringOrNull(verification.method),
     pairs: reqArray(verification.pairs, 'verification.pairs').map((item, index) =>
       toPair(item, `verification.pairs[${index}]`),

@@ -6,10 +6,12 @@ import { apiUrl } from '../src/api/client.ts'
 import type { HealthDto } from '../src/api/dto/index.ts'
 import { NewAnalysisPage } from '../src/features/new-analysis/NewAnalysisPage.tsx'
 import { errorResponse } from '../src/mocks/errors.ts'
-import { GOAL_SCREENS, PERSONA_CHOICES } from '../src/shared/customerInput.ts'
+import { SITES } from '../src/mocks/fixtures/sites.ts'
+import { DEFAULT_PERSONA, GOAL_SCREENS } from '../src/shared/customerInput.ts'
+import { sentenceProblem } from '../src/shared/inputRules.ts'
 import { server } from './setup.ts'
 
-const BUSY = '지금 다른 진단이 진행 중이에요. 끝나면 시작할 수 있어요.'
+const BUSY = '다른 진단이 돌고 있어요. 끝나면 시작할 수 있어요.'
 const GOAL = '지난주에 산 운동화를 돌려보내고 싶어요'
 
 const health = (extra: Partial<HealthDto> = {}): HealthDto => ({
@@ -47,84 +49,222 @@ function captureRuns() {
 
 const startButton = () => screen.getByRole('button', { name: '진단 시작' }) as HTMLButtonElement
 // 안내 문구가 label 안에 붙으므로 앞부분으로 찾는다
-const goalInput = () => screen.getByLabelText(/^고객이 하려는 일/) as HTMLInputElement
-const pageSelect = () => screen.getByLabelText(/^도착하면 성공인 화면/) as HTMLSelectElement
-const chip = (name: string) => screen.getByRole('button', { name })
+const goalInput = () => screen.getByLabelText(/^무엇을 하려고/) as HTMLInputElement
+const pageSelect = () => screen.getByLabelText(/^어느 화면을 찾아야 하나요/) as HTMLSelectElement
+const noPageSelect = () => expect(screen.queryByLabelText(/^어느 화면을 찾아야 하나요/)).toBeNull()
+const linkInput = () => screen.getByLabelText('진단할 사이트') as HTMLInputElement
+const siteChips = () => within(screen.getByRole('group', { name: '진단할 수 있는 사이트' }))
+const siteChip = (name: string | RegExp) => siteChips().findByRole('button', { name })
+const exampleChips = () => within(screen.getByRole('group', { name: '예시' })).getAllByRole('button')
+const matchedLine = () => document.querySelector('.home-screen')?.textContent ?? null
+const CAFE24_LINK = 'https://ecudemo360127.cafe24.com'
+const UNREGISTERED = '아직 등록되지 않은 사이트예요. 지금은 등록된 사이트만 진단할 수 있어요.'
 const typeGoal = (value: string) => fireEvent.change(goalInput(), { target: { value } })
 
 /** 엔진 상태를 읽을 때까지 기다린다 (READY 전에는 시작 버튼이 열려 있어도 결과가 달라질 수 있다) */
 const settle = () => waitFor(() => expect(startButton().disabled).toBe(false))
 
-it('세 칸(고객·하려는 일·도착 화면)만 받고 개발자용 입력은 없다', async () => {
+it('진단할 사이트와 하려는 일만 받고, 고객 유형·찾을 화면·개발자용 입력은 처음에 없다', async () => {
   renderPage()
-  expect(screen.getByRole('region', { name: '진단하기' })).toBeTruthy()
-  expect(screen.getByRole('group', { name: '어떤 고객인가요?' })).toBeTruthy()
+  expect(screen.getByRole('form', { name: '새 진단' })).toBeTruthy()
+  // 글 칸은 사이트 주소와 하려는 일 두 개뿐이고, 화면을 고르는 칸은 아직 없다
+  expect(screen.getAllByRole('textbox')).toHaveLength(2)
+  expect(screen.queryByRole('combobox')).toBeNull()
+  expect(linkInput().value).toBe('')
+  expect(linkInput().placeholder).toBe('내 사이트 주소를 붙여 넣어 주세요')
   expect(goalInput().value).toBe('')
-  expect(Array.from(pageSelect().options).map((o) => o.textContent)).toEqual(GOAL_SCREENS.map((s) => s.label))
-  expect(pageSelect().value).toBe('refund')
-  expect(screen.queryByLabelText(/실험 키|최대 탐색 횟수|성공 조건|분석 사이트/)).toBeNull()
-  expect(screen.queryByRole('table')).toBeNull()
-  expect(screen.getByText('MORO MARKET')).toBeTruthy()
-  expect(screen.getByRole('link', { name: '다른 사이트 진단하기' }).getAttribute('href')).toBe('/scenario')
-  expect(screen.getByRole('link', { name: '지난 결과 다시 보기' }).getAttribute('href')).toBe('/replay')
+  // 예시 쇼핑몰이 기본으로 골라져 있고, 주소가 있는 등록 사이트가 칩으로 나온다
+  expect((await siteChip('ONS 공식몰 (cafe24 데모)')).getAttribute('aria-pressed')).toBe('false')
+  expect((await siteChip('예시 쇼핑몰로 해 보기 (MORO MARKET)')).getAttribute('aria-pressed')).toBe('true')
+  expect(siteChips().getAllByRole('button')).toHaveLength(1 + SITES.filter((s) => s.siteUrl).length)
+  // 누가(고객 유형)를 묻는 칸·문구가 없다
+  expect(screen.queryByText(/누가|고객 유형|직접 쓰기/)).toBeNull()
+  expect(document.body.textContent).not.toContain(DEFAULT_PERSONA)
+  expect(document.body.textContent).not.toMatch(/다른 사이트|남의 사이트/)
+  expect(screen.queryByLabelText(/실험 키|최대|성공 조건/)).toBeNull()
+  expect(screen.queryByRole('link')).toBeNull()
   await settle()
 })
 
-it('고객 유형 칩은 하나만 눌리고, 질문 문장에 고른 값이 들어간다', async () => {
-  renderPage()
-  const [first, second] = PERSONA_CHOICES
-  expect(chip(first).getAttribute('aria-pressed')).toBe('true')
-  expect(chip('직접 쓰기').getAttribute('aria-pressed')).toBe('false')
-  fireEvent.click(chip(second))
-  expect(chip(second).getAttribute('aria-pressed')).toBe('true')
-  expect(chip(first).getAttribute('aria-pressed')).toBe('false')
-  typeGoal(GOAL)
-  fireEvent.change(pageSelect(), { target: { value: 'orders' } })
-  const question = document.querySelector('.customer-question')!
-  expect(question.textContent).toBe(`${second} 고객이 ${GOAL} 때, 주문·배송 조회 화면까지 잘 찾아올까요?`)
-  await settle()
-})
-
-it('직접 쓰기를 누르면 고객 유형 칸이 열리고, 쓴 값이 질문과 요청에 들어간다', async () => {
+it('문장의 낱말로 찾아야 할 화면을 골라 한 줄로 보이고, "바꾸기"로 직접 고르면 그 뒤 문장을 고쳐도 바뀌지 않는다', async () => {
   const bodies = captureRuns()
   renderPage()
-  expect(screen.queryByLabelText('고객 유형 직접 쓰기')).toBeNull()
-  fireEvent.click(chip('직접 쓰기'))
-  const custom = screen.getByLabelText('고객 유형 직접 쓰기') as HTMLInputElement
-  expect(custom.value).toBe('')
-  expect(chip('직접 쓰기').getAttribute('aria-pressed')).toBe('true')
-  fireEvent.change(custom, { target: { value: '스마트폰이 익숙하지 않은 60대' } })
-  // 한 번 더 눌러도 쓴 값을 지우지 않는다
-  fireEvent.click(chip('직접 쓰기'))
-  expect((screen.getByLabelText('고객 유형 직접 쓰기') as HTMLInputElement).value).toBe('스마트폰이 익숙하지 않은 60대')
-  typeGoal(GOAL)
   await settle()
+  expect(matchedLine()).toBeNull()
+  typeGoal('배송이 어디쯤인지 궁금해요')
+  expect(matchedLine()).toBe('찾아야 할 화면: 주문·배송 조회 · 바꾸기')
+  noPageSelect()
+  // 문장을 고치면 따라 바뀐다
+  typeGoal(GOAL)
+  expect(matchedLine()).toBe('찾아야 할 화면: 환불 신청 · 바꾸기')
+
+  fireEvent.click(screen.getByRole('button', { name: '바꾸기' }))
+  expect(Array.from(pageSelect().options).map((o) => o.textContent)).toEqual(['화면을 골라 주세요', ...GOAL_SCREENS.map((s) => s.label)])
+  expect(pageSelect().value).toBe('refund')
+  fireEvent.change(pageSelect(), { target: { value: 'support' } })
+  expect(matchedLine()).toBe('찾아야 할 화면: 고객센터 · 바꾸기')
+  // 직접 고른 뒤에는 문장을 고쳐도 그대로다
+  typeGoal('배송이 어디쯤인지 궁금해요')
+  expect(matchedLine()).toBe('찾아야 할 화면: 고객센터 · 바꾸기')
   fireEvent.click(startButton())
   await screen.findByTestId('where')
-  expect(bodies[0]).toMatchObject({ persona: '스마트폰이 익숙하지 않은 60대' })
+  expect(bodies[0]).toMatchObject({ verification: { path: '/shop/support', text: '자주 묻는 질문', scope: 'page' } })
+})
+
+it.each([
+  ['맞는 낱말이 없으면', '사이트를 둘러보고 싶어요'],
+  ['두 화면이 똑같이 맞으면', '주문한 운동화를 환불하고 싶어요'],
+])('%s 짐작하지 않고 화면을 고르게 하며, 고르기 전에는 시작하지 않는다', async (_name, sentence) => {
+  const bodies = captureRuns()
+  renderPage()
+  await settle()
+  typeGoal(sentence)
+  expect(matchedLine()).toBeNull()
+  expect(pageSelect().value).toBe('')
+  fireEvent.click(startButton())
+  expect(screen.getByText('화면을 골라 주세요.')).toBeTruthy()
+  expect(bodies).toHaveLength(0)
+  fireEvent.change(pageSelect(), { target: { value: 'orders' } })
+  fireEvent.click(startButton())
+  await screen.findByTestId('where')
+  expect(bodies).toHaveLength(1)
+  expect(bodies[0]).toMatchObject({ goal: sentence, verification: { path: '/shop/orders' } })
+})
+
+it('예시를 누르면 문장 칸이 채워지고 찾아야 할 화면이 정해진다', async () => {
+  renderPage()
+  await settle()
+  expect(exampleChips().map((b) => b.textContent)).toEqual(['지난주에 산 운동화가 발에 안 맞아서 돌려보내고 돈을 돌려받고 싶다', '배송이 어디쯤인지 궁금해요', '쿠폰이 있는지 보고 싶어요'])
+  fireEvent.click(exampleChips()[2])
+  expect(goalInput().value).toBe('쿠폰이 있는지 보고 싶어요')
+  expect(matchedLine()).toBe('찾아야 할 화면: 마이페이지 · 바꾸기')
+})
+
+it('등록 사이트 칩을 누르면 주소가 채워지고, 그 사이트의 고를 수 있는 화면과 예시로 바뀐다', async () => {
+  renderPage()
+  await settle()
+  typeGoal(GOAL)
+  fireEvent.click(await siteChip('ONS 공식몰 (cafe24 데모)'))
+  expect(linkInput().value).toBe(CAFE24_LINK)
+  expect((await siteChip('ONS 공식몰 (cafe24 데모)')).getAttribute('aria-pressed')).toBe('true')
+  expect((await siteChip(/MORO MARKET/)).getAttribute('aria-pressed')).toBe('false')
+  // 예시 쇼핑몰의 화면("환불 신청")은 이 사이트에 없어 고르게 한다. 서버가 고를 수 있다고 한 화면만 나온다
+  expect(matchedLine()).toBeNull()
+  expect(Array.from(pageSelect().options).map((o) => o.textContent)).toEqual(['화면을 골라 주세요', '제품 목록', '상품 리뷰', '이벤트', '장바구니'])
+  expect(exampleChips().map((b) => b.textContent)).toEqual(['제품 목록을 보고 싶어요', '상품 리뷰를 보고 싶어요', '이벤트를 보고 싶어요'])
+  fireEvent.click(exampleChips()[1])
+  expect(matchedLine()).toBe('찾아야 할 화면: 상품 리뷰 · 바꾸기')
+})
+
+it('등록 사이트는 siteId와 그 화면의 경로·확인 글자, 숨긴 고객 유형으로 한 번 시작한다', async () => {
+  const bodies = captureRuns()
+  renderPage()
+  await settle()
+  await siteChip('ONS 공식몰 (cafe24 데모)')
+  fireEvent.change(linkInput(), { target: { value: 'ecudemo360127.cafe24.com/product/list.html' } })
+  typeGoal('마음에 드는 제품을 담을 화면 찾기')
+  expect(matchedLine()).toBe('찾아야 할 화면: 제품 목록 · 바꾸기')
+  fireEvent.click(startButton())
+  expect((await screen.findByTestId('where')).textContent).toBe('/runs/run_new')
+  expect(bodies).toEqual([{
+    experimentKey: expect.stringMatching(/^exp_[0-9a-f]{32}$/),
+    variant: 'before',
+    siteId: 'cafe24-ons',
+    goal: '마음에 드는 제품을 담을 화면 찾기',
+    verification: { path: '/product/list.html', text: '제품' },
+    persona: DEFAULT_PERSONA,
+    maxSteps: 8,
+  }])
+})
+
+it('사이트를 바꾸면 직접 고른 화면을 지운다', async () => {
+  renderPage()
+  await settle()
+  fireEvent.click(await siteChip('ONS 공식몰 (cafe24 데모)'))
+  typeGoal('둘러보고 싶어요')
+  fireEvent.change(pageSelect(), { target: { value: 'basket' } })
+  expect(matchedLine()).toBe('찾아야 할 화면: 장바구니 · 바꾸기')
+  fireEvent.click(await siteChip(/MORO MARKET/))
+  expect(linkInput().value).toBe('')
+  expect(matchedLine()).toBeNull()
+  expect(pageSelect().value).toBe('')
+})
+
+it('등록되지 않은 사이트 주소는 안내하고 시작할 수 없다', async () => {
+  const bodies = captureRuns()
+  renderPage()
+  await settle()
+  await siteChip('ONS 공식몰 (cafe24 데모)')
+  fireEvent.change(linkInput(), { target: { value: 'https://www.example.org' } })
+  typeGoal(GOAL)
+  expect(screen.getByRole('alert').textContent).toBe(UNREGISTERED)
+  expect(startButton().disabled).toBe(true)
+  expect(matchedLine()).toBeNull()
+  noPageSelect()
+  expect(bodies).toHaveLength(0)
+})
+
+it.each(['링크 아님 입니다', 'ftp://ecudemo360127.cafe24.com'])('주소 형식이 아니면(%s) 형식 안내를 보인다', async (link) => {
+  renderPage()
+  await settle()
+  fireEvent.change(linkInput(), { target: { value: link } })
+  expect(screen.getByRole('alert').textContent).toBe('사이트 링크를 확인해 주세요. 예: https://www.example.com')
+  expect(startButton().disabled).toBe(true)
+})
+
+it('고를 수 있는 화면이 없는 등록 사이트는 안내하고 시작할 수 없다', async () => {
+  server.use(http.get(apiUrl('/api/sites'), () => HttpResponse.json({
+    items: [{ ...SITES[0], pages: SITES[0].pages.map((p) => ({ ...p, goalSelectable: false })) }],
+  })))
+  renderPage()
+  fireEvent.click(await siteChip('ONS 공식몰 (cafe24 데모)'))
+  expect(screen.getByText('이 사이트에는 찾을 화면이 아직 없어요.')).toBeTruthy()
+  expect(startButton().disabled).toBe(true)
+})
+
+it('등록 사이트 목록을 불러오지 못해도 예시 쇼핑몰은 진단할 수 있고, 다시 시도할 수 있다', async () => {
+  server.use(http.get(apiUrl('/api/sites'), () => errorResponse(500, 'STORAGE_ERROR', '오류', true)))
+  const bodies = captureRuns()
+  renderPage()
+  expect(await screen.findByText(/등록된 사이트 목록을 불러오지 못했어요/)).toBeTruthy()
+  expect(siteChips().getAllByRole('button')).toHaveLength(1)
+  server.resetHandlers()
+  const more = captureRuns()
+  fireEvent.click(screen.getByRole('button', { name: '다시 시도' }))
+  expect(await siteChip('ONS 공식몰 (cafe24 데모)')).toBeTruthy()
+  expect(screen.queryByText(/불러오지 못했어요/)).toBeNull()
+  await settle()
+  typeGoal(GOAL)
+  fireEvent.click(startButton())
+  await screen.findByTestId('where')
+  expect(bodies.length + more.length).toBe(1)
+})
+
+it('숨겨서 보내는 고객 유형은 서버와 같은 문장 검사를 통과한다', () => {
+  expect(sentenceProblem(DEFAULT_PERSONA, '고객 유형')).toBeNull()
 })
 
 it('비운 채로 시작을 누르면 칸 아래에 안내하고 요청하지 않는다', async () => {
   const bodies = captureRuns()
   renderPage()
-  fireEvent.click(chip('직접 쓰기'))
   await settle()
   // 시작을 누르기 전에는 안내하지 않는다
   expect(screen.queryByRole('alert')).toBeNull()
   fireEvent.click(startButton())
-  expect(screen.getByText('고객 유형을(를) 적어 주세요.')).toBeTruthy()
-  expect(screen.getByText('고객이 하려는 일을(를) 적어 주세요.')).toBeTruthy()
+  expect(screen.getAllByText('내용을 적어 주세요.')).toHaveLength(1)
+  expect(screen.getByText('화면을 골라 주세요.')).toBeTruthy()
   typeGoal(GOAL)
-  expect(screen.queryByText('고객이 하려는 일을(를) 적어 주세요.')).toBeNull()
+  expect(screen.queryByText('내용을 적어 주세요.')).toBeNull()
+  expect(screen.queryByText('화면을 골라 주세요.')).toBeNull()
   expect(bodies).toHaveLength(0)
 })
 
 it.each([
-  ['찾기', '고객이 하려는 일을(를) 조금 더 구체적으로 적어 주세요 (4자 이상).'],
-  ['?!?! 1234 ...', '고객이 하려는 일은(는) 글자로 적어 주세요 (기호·숫자만으로는 안 돼요).'],
-  ['아아아아아아아아', '고객이 하려는 일을(를) 뜻이 있는 문장으로 적어 주세요.'],
-  ['가'.repeat(201), '고객이 하려는 일은(는) 200자 이하로 적어 주세요.'],
-  ['after 화면에서 환불 신청하기', '고객이 하려는 일에 쓸 수 없는 단어가 있어요: after'],
+  ['찾기', '조금 더 자세히 적어 주세요. (4자 이상)'],
+  ['?!?! 1234 ...', '기호나 숫자 말고 글로 적어 주세요.'],
+  ['아아아아아아아아', '알아볼 수 있는 문장으로 적어 주세요.'],
+  ['가'.repeat(201), '200자까지 쓸 수 있어요.'],
+  ['after 화면에서 환불 신청하기', '쓸 수 없는 단어가 있어요: after'],
 ])('하려는 일 "%s"는 안내 후 요청하지 않는다', async (value, message) => {
   const bodies = captureRuns()
   renderPage()
@@ -135,10 +275,11 @@ it.each([
   expect(bodies).toHaveLength(0)
 })
 
-it('입력을 마치면 도착 화면의 경로·확인 글자와 새 실험 키로 한 번 시작하고 진행 화면으로 이동한다', async () => {
+it('입력을 마치면 찾을 화면의 경로·확인 글자, 숨긴 고객 유형, 새 실험 키로 한 번 시작하고 결과 화면으로 이동한다', async () => {
   const bodies = captureRuns()
   renderPage()
   typeGoal(`  ${GOAL}  `)
+  fireEvent.click(screen.getByRole('button', { name: '바꾸기' }))
   fireEvent.change(pageSelect(), { target: { value: 'orders' } })
   await settle()
   fireEvent.click(startButton())
@@ -150,11 +291,11 @@ it('입력을 마치면 도착 화면의 경로·확인 글자와 새 실험 키
     variant: 'before',
     goal: GOAL,
     verification: { path: '/shop/orders', text: '주문 / 배송 조회', scope: 'page' },
-    persona: PERSONA_CHOICES[0],
+    persona: DEFAULT_PERSONA,
     maxSteps: 8,
   })
   expect(body).not.toHaveProperty('siteId')
-  expect(where).toBe(`/runs/run_new?experimentKey=${String(body.experimentKey)}`)
+  expect(where).toBe('/runs/run_new')
 })
 
 it('시작할 때마다 실험 키를 새로 만든다', async () => {
@@ -175,7 +316,7 @@ it('다른 진단이 진행 중이면 안내와 진행 화면 링크를 보이�
   serveHealth({ activeRun: 'run_busy' })
   renderPage()
   const notice = await screen.findByText(new RegExp(BUSY))
-  expect(within(notice).getByRole('link', { name: '진행 중인 것 보기' }).getAttribute('href')).toBe('/runs/run_busy')
+  expect(within(notice).getByRole('link', { name: '보러 가기' }).getAttribute('href')).toBe('/runs/run_busy')
   expect(startButton().disabled).toBe(true)
 })
 
@@ -183,14 +324,14 @@ it('AI 개선이 진행 중이면 그 개선 화면으로 연결한다', async (
   serveHealth({ activeRun: 'run_v', activeRunOwner: { kind: 'IMPROVEMENT_VERIFICATION', runId: 'run_v', improvementId: 'imp_1' } })
   renderPage()
   const notice = await screen.findByText(new RegExp(BUSY))
-  expect(within(notice).getByRole('link', { name: '진행 중인 것 보기' }).getAttribute('href')).toBe('/improvements/imp_1')
+  expect(within(notice).getByRole('link', { name: '보러 가기' }).getAttribute('href')).toBe('/improvements/imp_1')
   expect(startButton().disabled).toBe(true)
 })
 
-it('AI 고객이 준비되지 않았으면 안내하고 시작할 수 없다', async () => {
+it('AI가 준비되지 않았으면 안내하고 시작할 수 없다', async () => {
   serveHealth({ status: 'NOT_READY' })
   renderPage()
-  expect(await screen.findByText(/AI 고객이 아직 준비되지 않았어요/)).toBeTruthy()
+  expect(await screen.findByText(/AI가 아직 준비 중이에요/)).toBeTruthy()
   expect(startButton().disabled).toBe(true)
 })
 
@@ -229,4 +370,35 @@ it('그 밖의 오류는 서버 안내를 보이고, 안내가 비어 있으면 
   fireEvent.click(startButton())
   expect(await screen.findByText('진단을 시작하지 못했어요. 잠시 뒤 다시 시도해 주세요.')).toBeTruthy()
   expect(screen.queryByText('BROWSER_ERROR')).toBeNull()
+})
+
+it('서버 안내에 경로나 영문 이름이 섞여 있으면 그대로 보이지 않고 짧은 안내로 바꾼다', async () => {
+  server.use(http.post(apiUrl('/api/runs'), () => errorResponse(422, 'CONTRACT_VALIDATION_ERROR', 'startPath는 /shop/{home,orders} 중 하나여야 합니다.', false)))
+  const view = renderPage()
+  typeGoal(GOAL)
+  await settle()
+  fireEvent.click(startButton())
+  expect(await screen.findByText('입력을 다시 확인해 주세요.')).toBeTruthy()
+  expect(document.body.textContent).not.toMatch(/startPath|\/shop\//)
+  view.unmount()
+
+  server.use(http.post(apiUrl('/api/runs'), () => errorResponse(503, 'SITE_NOT_CONFIGURED', '서버의 SHOP_AFTER_URL·SHOP_AFTER_LABEL을 확인해 주세요.', false)))
+  renderPage()
+  typeGoal(GOAL)
+  await settle()
+  fireEvent.click(startButton())
+  expect(await screen.findByText('사이트가 아직 준비되지 않았어요. 잠시 뒤 다시 해 주세요.')).toBeTruthy()
+  expect(document.body.textContent).not.toContain('SHOP_AFTER')
+})
+
+it('화면을 직접 고른 뒤에도 예시를 누르면 그 예시에 맞는 화면으로 바뀐다', async () => {
+  renderPage()
+  await settle()
+  typeGoal(GOAL)
+  fireEvent.click(screen.getByRole('button', { name: '바꾸기' }))
+  fireEvent.change(pageSelect(), { target: { value: 'support' } })
+  expect(matchedLine()).toBe('찾아야 할 화면: 고객센터 · 바꾸기')
+  fireEvent.click(exampleChips()[1])
+  expect(goalInput().value).toBe('배송이 어디쯤인지 궁금해요')
+  expect(matchedLine()).toBe('찾아야 할 화면: 주문·배송 조회 · 바꾸기')
 })

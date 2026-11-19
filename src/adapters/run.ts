@@ -11,6 +11,7 @@ import type {
   CreatedRun,
   Open,
   PathVisit,
+  ReferencePath,
   Run,
   RunListItem,
   RunSummary,
@@ -65,6 +66,17 @@ export function toReferenceBasis(
   return config.basis ?? 'ALLOWED_PATHS'
 }
 
+/** 경로 기준의 내용. 형식이 다르면 `null`(추측하지 않는다) */
+export function toReferencePath(config: ReferencePathConfigDto | null | undefined): ReferencePath | null {
+  if (config == null) return null
+  if (config.basis === 'SITE_MAP') {
+    const distances = config.distances
+    return distances && typeof distances === 'object' ? { kind: 'SITE_MAP', distances } : null
+  }
+  if (config.basis !== undefined && config.basis !== 'ALLOWED_PATHS') return null
+  return Array.isArray(config.allowedPaths) ? { kind: 'ALLOWED_PATHS', allowedPaths: config.allowedPaths } : null
+}
+
 export function toRun(dto: RunDto): Run {
   return {
     runId: dto.runId,
@@ -77,6 +89,7 @@ export function toRun(dto: RunDto): Run {
     persona: dto.persona,
     verification: dto.verification ?? null,
     referenceBasis: toReferenceBasis(dto.referencePathConfig),
+    referencePath: toReferencePath(dto.referencePathConfig),
     viewport: dto.viewport,
     maxSteps: dto.limits.maxSteps,
     status: dto.status,

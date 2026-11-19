@@ -166,6 +166,8 @@ export interface ImprovementVerification {
   status: VerificationStatus
   /** 실패가 아니면 `null` */
   error: { code: string | null; message: string | null } | null
+  /** `NOT_RUN`인 까닭(`NOT_FINALIZED`·`NO_IMPROVEMENT`·`OFFICIAL_REJECTED`·`SKIPPED_BY_OPTION`, BE `uxm/improve_loop.py`). 없으면 `null` */
+  reason: string | null
   method: string | null
   pairs: VerificationPair[]
 }

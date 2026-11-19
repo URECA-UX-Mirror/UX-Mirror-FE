@@ -1,78 +1,80 @@
 import { readFileSync } from 'node:fs'
-import { render, screen, within, fireEvent } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import { expect, it } from 'vitest'
 import { toImprovementView } from '../src/adapters/improvement.ts'
 import { RoundsSection } from '../src/features/improvement/RoundsSection.tsx'
 import { describeReason } from '../src/features/improvement/reasons.ts'
 
-function setup() {
-  const improved = JSON.parse(readFileSync('tests/fixtures/improvement.improved.json', 'utf8'))
-  improved.rounds[2].candidates[0].reason = 'UNKNOWN_REASON'
-  improved.rounds[2].proposal.filtered[0].rejectedReason = 'UNKNOWN_FILTER'
-  const view = toImprovementView(improved)
+// "어떻게 골랐는지 보기" 안의 시험한 이름 (RoundsSection)
+
+function show(path: string, change?: (data: any) => void) { // eslint-disable-line @typescript-eslint/no-explicit-any
+  const data = JSON.parse(readFileSync(path, 'utf8'))
+  change?.(data)
+  const view = toImprovementView(data)
   if (!view.rounds.ok) throw new Error(view.rounds.reason)
   render(<RoundsSection rounds={view.rounds.data} stop={view.stop} goals={view.plan?.guardGoals ?? []} />)
 }
+const round = (n: number) => screen.getByRole('region', { name: `${n}번째 시도` })
+const rowOf = (area: HTMLElement, label: string) => within(area).getByText(`'${label}'`, { exact: false }).closest('li') as HTMLElement
 
-it('기본 접힘 요약과 회차별 판정, 누락 점수 및 알 수 없는 사유를 표시한다', () => {
-  setup()
-  const details = screen.getByText(/3회차 진행/).closest('details')!
-  expect(details.open).toBe(false)
-  expect(details.querySelector('summary')?.textContent).toContain('채택 안: 주문내역')
-  fireEvent.click(details.querySelector('summary')!)
-  expect(details.open).toBe(true)
-  const c2 = screen.getByRole('heading', { name: /R1-H2/ }).closest('article')!
-  expect(c2.textContent).toContain('지킬 목표 문의(S4) 하락으로 탈락')
-  expect(c2.textContent).toContain('사람')
-  expect(within(c2).getByText('주 점수').nextElementSibling?.textContent).toBe('61.6%')
-  expect(within(c2).getByText('지킬 점수').nextElementSibling?.textContent).toContain('문의(S4) 63.3%')
-  const firstRound = screen.getByRole('heading', { name: '1회차' }).closest('section')!
-  expect(within(firstRound).getByText(/고칠 버튼:/).textContent).toContain('19.5%')
-  expect(within(firstRound).getByText('현재 기준').nextElementSibling?.textContent).toContain('38.5%')
-  const skipped = screen.getByRole('heading', { name: /R1-A3/ }).closest('article')!
-  expect(within(skipped).getByText('주 점수').nextElementSibling?.textContent).toBe('미실행')
-  expect(within(skipped).getByText('지킬 점수').nextElementSibling?.textContent).toBe('미실행')
-  expect(skipped.textContent).toContain('AI')
-  const failed = screen.getByRole('heading', { name: /R1-A4/ }).closest('article')!
-  expect(within(failed).getByText('주 점수').nextElementSibling?.textContent).toBe('평가 실패')
-  expect(within(failed).getByText('지킬 점수').nextElementSibling?.textContent).toBe('평가 실패')
-  expect(screen.getByText('이 회차는 채택 없음')).toBeTruthy()
-  expect(screen.getByText('UNKNOWN_REASON')).toBeTruthy()
-  expect(screen.getByText(/UNKNOWN_FILTER/)).toBeTruthy()
-  expect(screen.getByText(/최대 회차 도달/)).toBeTruthy()
-  expect(screen.getAllByText(/막힌 화면/)).toHaveLength(3)
+it('시도마다 막힌 곳·시작 이름·후보별 찾아올 가능성과 결과를 사람 말로 보인다', () => {
+  show('tests/fixtures/improvement.improved.json')
+  expect(screen.getByRole('heading', { name: '시험한 이름 (3번 시도)' })).toBeTruthy()
+  const first = round(1)
+  expect(first.textContent).toContain("AI가 '이용정보' 대신 '고객센터'를 더 많이 눌렀어요.")
+  expect(first.textContent).toContain("시작 이름 '이용정보' · 38.5%")
+  expect(rowOf(first, '주문 관리').dataset.adopted).toBe('true')
+  expect(rowOf(first, '주문 관리').textContent).toBe("'주문 관리' · 사람이 낸 이름54.0%골랐어요")
+  expect(rowOf(first, '주문·환불').textContent).toContain('문의 쪽이 많이 떨어졌어요')
+  expect(rowOf(first, '주문·서비스').textContent).toContain('안 해 봄')
+  expect(rowOf(first, '주문·서비스').textContent).toContain('쓸 수 없는 후보예요 (글자가 화면 밖으로 나가요)')
+  expect(rowOf(first, '주문·지원').textContent).toContain('점수 못 냄')
+  expect(first.textContent).toContain("미리 걸러낸 이름: '주문·환' (글자가 잘려요)")
+  expect(round(3).textContent).toContain('이번 시도에서는 고른 이름이 없어요.')
+  expect(screen.getByText('멈춘 이유: 정한 횟수를 다 해 봤어요')).toBeTruthy()
+  // 코드·후보 id·BE 설명 원문은 보이지 않는다
+  const text = document.body.textContent ?? ''
+  for (const code of ['R1-H', 'GUARD_LOSS', 'MAX_ROUNDS', 'S4', '0.695', 'HUMAN']) expect(text).not.toContain(code)
 })
 
-it('백엔드 정책과 루프의 사유 코드를 목표 이름 및 원문과 함께 표시한다', () => {
-  const fixture = JSON.parse(readFileSync('tests/fixtures/improvement.policy-reasons.json', 'utf8'))
-  const view = toImprovementView(fixture)
-  if (!view.rounds.ok) throw new Error(view.rounds.reason)
-  render(<RoundsSection rounds={view.rounds.data} stop={view.stop} goals={view.plan?.guardGoals ?? []} />)
-  fireEvent.click(screen.getByText(/1회차 진행/))
-  expect(screen.getByText('지킬 목표 문의(S4) 하락으로 탈락 (GUARD_LOSS_EXCEEDED:S4)')).toBeTruthy()
-  expect(screen.getByText('지킬 목표 배송(S2), 문의(S4) 하락으로 탈락 (GUARD_LOSS_EXCEEDED:S2,S4)')).toBeTruthy()
-  expect(screen.getByText('주 목표 개선이 최소 기준 미달 (MAIN_GAIN_INSUFFICIENT)')).toBeTruthy()
-  expect(screen.getByText(/단어가 잘림 \(TRUNCATED_LABEL\)/)).toBeTruthy()
-  expect(screen.getByText(/연속 회차 채택 없음 \(NO_ADOPTION_STREAK\)/)).toBeTruthy()
+it('모르는 사유 코드는 원문 대신 "다른 이유가 있었어요"로 보인다', () => {
+  show('tests/fixtures/improvement.improved.json', (data) => {
+    data.rounds[2].candidates[0].reason = 'UNKNOWN_REASON'
+    data.rounds[2].proposal.filtered[0].rejectedReason = 'UNKNOWN_FILTER'
+  })
+  expect(rowOf(round(3), '내 주문').textContent).toContain('다른 이유가 있었어요')
+  expect(round(3).textContent).toContain("'주문·반품내역' (다른 이유가 있었어요)")
+  expect(document.body.textContent).not.toContain('UNKNOWN')
+})
+
+it('BE 정책 사유를 목표 이름으로 풀어 쓴다', () => {
+  show('tests/fixtures/improvement.policy-reasons.json')
+  const first = round(1)
+  expect(rowOf(first, '주문·환불').textContent).toContain('문의 쪽이 많이 떨어졌어요')
+  expect(rowOf(first, '주문·반품').textContent).toContain('배송·문의 쪽이 많이 떨어졌어요')
+  expect(rowOf(first, '주문·배송').textContent).toContain('나아진 폭이 작았어요')
+  expect(screen.getByText('멈춘 이유: 여러 번 연달아 고를 이름이 없었어요')).toBeTruthy()
 })
 
 it.each([
-  ['EMPTY_LABEL', '빈 이름'],
-  ['LABEL_TOO_LONG', '라벨이 너무 김'],
-  ['DUPLICATE_LABEL', '중복된 이름'],
-  ['EXISTING_LABEL', '기존 또는 이미 시도한 이름'],
-  ['DANGEROUS_LABEL', '위험 동작이 포함된 이름'],
-  ['TRUNCATED_LABEL', '단어가 잘림'],
-  ['INVALID_FORMAT', '이름 형식이 올바르지 않음'],
-  ['CANDIDATE_LIMIT_EXCEEDED', '후보 수 제한 초과'],
-  ['EVALUATION_FAILED', '평가 실패'],
-  ['SCORE_MISSING', '점수가 없거나 올바르지 않음'],
-  ['INVALID_CANDIDATE', '유효하지 않은 후보'],
-  ['GUARD_LOSS_EXCEEDED', '지킬 목표 하락으로 탈락'],
-  ['MAIN_GAIN_INSUFFICIENT', '주 목표 개선이 최소 기준 미달'],
-  ['GUARD_LOSS_EXCEEDED:S4,S9', '지킬 목표 문의(S4), S9 하락으로 탈락'],
-  ['INVALID_CANDIDATE:LABEL_OVERFLOW,UNKNOWN', '유효하지 않은 후보: 라벨이 화면을 벗어남, UNKNOWN'],
-  ['UNKNOWN:DETAIL', 'UNKNOWN:DETAIL'],
-])('정책 사유 %s를 안전하게 표시한다', (code, expected) => {
+  ['EMPTY_LABEL', '이름이 비었어요'],
+  ['LABEL_TOO_LONG', '이름이 너무 길어요'],
+  ['DUPLICATE_LABEL', '겹치는 이름이에요'],
+  ['EXISTING_LABEL', '이미 써 본 이름이에요'],
+  ['DANGEROUS_LABEL', '위험한 동작이 들어 있어요'],
+  ['TRUNCATED_LABEL', '글자가 잘려요'],
+  ['INVALID_FORMAT', '이름 모양이 맞지 않아요'],
+  ['CANDIDATE_LIMIT_EXCEEDED', '후보가 너무 많았어요'],
+  ['EVALUATION_FAILED', '점수를 내지 못했어요'],
+  ['SCORE_MISSING', '점수가 없어요'],
+  ['INVALID_CANDIDATE', '쓸 수 없는 후보예요'],
+  ['GUARD_LOSS_EXCEEDED', '다른 목표가 많이 떨어졌어요'],
+  ['MAIN_GAIN_INSUFFICIENT', '나아진 폭이 작았어요'],
+  ['GUARD_LOSS_EXCEEDED:S4,S9', '문의 쪽이 많이 떨어졌어요'],
+  ['GUARD_LOSS_EXCEEDED:S9', '다른 목표가 많이 떨어졌어요'],
+  ['INVALID_CANDIDATE:LABEL_OVERFLOW,UNKNOWN', '쓸 수 없는 후보예요 (글자가 화면 밖으로 나가요)'],
+  ['EVALUATION_FAILED:UNKNOWN', '점수를 내지 못했어요'],
+  ['UNKNOWN:DETAIL', '다른 이유가 있었어요'],
+])('사유 %s → %s', (code, expected) => {
   expect(describeReason(code, { S4: '문의' })).toBe(expected)
 })

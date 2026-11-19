@@ -8,5 +8,5 @@ export const improvementsHandlers = [
   http.get(apiUrl('/api/improvements/:improvementId'), () =>
     errorResponse(404, 'IMPROVEMENT_NOT_FOUND', 'AI 개선 결과를 찾을 수 없습니다.')),
   http.post(apiUrl('/api/improvements'), () =>
-    errorResponse(503, 'IMPROVEMENTS_DISABLED', '예시 데이터 모드에서는 AI 개선을 시작할 수 없어요.')),
+    errorResponse(503, 'IMPROVEMENTS_DISABLED', '예시 데이터로는 개선안을 받아 볼 수 없어요.')),
 ]

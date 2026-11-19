@@ -15,9 +15,9 @@
 | ID | 항목 | 담당 | 임시 결정 | 2번 답변 (11-18) |
 | --- | --- | --- | --- | --- |
 | [OI-3](#oi-3) | 도착 화면 스크린샷 조회 | 정자비, 장근창 | 별도 API `GET /api/runs/{runId}/screenshots/goal`로 표시, 없으면 "도착 화면 이미지 없음" | 구현됨, 실제 서버 연동 확인 대기(UX-Mirror-BE #56 머지됨) |
-| [OI-8](#oi-8) | 분석 대상 사이트 입력 | 장근창 | 진단하기는 MORO MARKET 고정(입력 칸 없음), 다른 사이트는 링크로 등록 사이트를 찾음([OI-11](#oi-11)), 등록 안 된 URL은 미해결 | (장근창 담당) |
+| [OI-8](#oi-8) | 분석 대상 사이트 입력 | 장근창 | 첫 화면에서 사이트를 고름: 기본은 예시 쇼핑몰(MORO MARKET), 주소·칩으로 등록 사이트를 찾음([OI-11](#oi-11)), 등록 안 된 URL은 시작을 막음(미해결) | (장근창 담당) |
 | [OI-7](#oi-7) | 저장된 실측 데이터 시연 | 정자비 | `/replay`에서 원본 `LIVE` Run을 조회해 재생, 서버 없는 시연은 P0 제외 | 임시 결정대로. 고정 키는 E 실행 키 4개로 반영 |
-| [OI-9](#oi-9) | 목표·사용자 유형 직접 입력 | 정자비, 장근창 | 백엔드 구현 기준으로 요청·표시, 도착 화면은 목록에서 고름 | 화면 글자 사전 검사(`422`·`503`)는 BE #60으로 구현됨. 도착 경로 없음 `422`·지도 오류 처리도 구현됨 |
+| [OI-9](#oi-9) | 목표·사용자 유형 직접 입력 | 정자비, 장근창 | 백엔드 구현 기준으로 요청·표시, 찾을 화면은 문장의 낱말로 고르고 못 고르면 목록에서 고름, 고객 유형은 고정값 하나를 숨겨 보냄 | 화면 글자 사전 검사(`422`·`503`)는 BE #60으로 구현됨. 도착 경로 없음 `422`·지도 오류 처리도 구현됨 |
 | [OI-10](#oi-10) | 경로 지표 기준(basis)·우회 이동 | 정자비, 장근창 | 설계 v2.1 기준으로 optional로 받고, 설정의 `basis`가 없으면 `ALLOWED_PATHS`, 설정이 없으면 기준 없음으로 읽음 | 서버 동작과 대조 완료 |
 | [OI-11](#oi-11) | 시나리오 테스트(외부 사이트) | 장근창, 정자비, 권혁준 | 등록 사이트 선택, mock과 Adapter로 선행 | API 세부 사항 확정 대기 |
 | [OI-12](#oi-12) | UX Optimizer 응답 형식·이유 코드 | 정윤희, 장근창, 권혁준 | BE 코드·README 기준으로 DTO·mock 선행, 이유 코드는 원문 문자열로 받음 | 계약 v1.3.8 반영(#43)과 정책 모듈 값 목록 확정 대기 |
@@ -55,7 +55,7 @@
 ### OI-8 분석 대상 사이트 입력
 
 - 계약서: `POST /api/runs` 요청 본문은 `experimentKey`, `variant`, `goalId`, `personaId`, `maxSteps`다. 사이트(주소)를 받는 필드는 없고 대상은 `variant`에 따라 백엔드가 정한다.
-- 임시 결정: 진단하기는 MORO MARKET 고정이라 사이트 입력 칸이 없다. 다른 사이트는 "다른 사이트 진단"에서 링크를 붙여 넣어 등록 사이트(`allowedHosts`)로 찾는다([OI-11](#oi-11)).
+- 임시 결정: 첫 화면(`/`)의 "진단할 사이트"에서 고른다. 아무것도 넣지 않으면 예시 쇼핑몰(MORO MARKET, `siteId` 없이 실행)이고, 주소를 붙여 넣거나 칩을 누르면 등록 사이트(`allowedHosts`)를 찾아 그 `siteId`로 실행한다([OI-11](#oi-11)). 등록되지 않은 주소는 안내하고 시작을 막는다. 따로 있던 "다른 사이트 진단" 화면(`/scenario`)은 없애고 첫 화면으로 보낸다.
 - 부분 해결: 등록된 외부 사이트 선택 방안으로 범위상 부분 해결했다. API 확정과 구현은 [OI-11](#oi-11)에서 진행 중이며 임의 URL 입력은 미해결이다.
 - 확인할 것: 임의 사이트를 분석할지, 요청 필드(예: 사이트 주소·버전별 주소)와 검증 규칙을 어떻게 둘지. 확정되면 계약서를 고치고 입력값을 요청에 싣는다.
 - 담당: 장근창(API).
@@ -65,13 +65,14 @@
 
 - 상태: 백엔드 구현은 끝났다(UX-Mirror-BE #39·#42·#44). 요청·응답·비교 동작은 [REST API](../contracts/rest-api.md)와 [데이터 모델](../contracts/data-model.md)로 옮겼고, 이 항목에는 계약서에 아직 반영되지 않은 부분만 남긴다.
 - 계약서(v1.3.5): `POST /api/runs`는 `goalId`·`personaId`만 받는다(`§5.1`, `§17.2`). 직접 입력 필드, Run `verification`, 비교 조건 변경은 계약 v1.3.6(초안)에 있다.
-- 임시 결정: 프론트는 백엔드 구현 기준으로 요청을 보내고 표시한다. 직접 입력 목표의 사이트 지도 기준은 [OI-10](#oi-10)을 따른다. 성공 조건의 도착 화면은 화면에서 목록으로 고르고, 실제 화면의 글자 검사는 서버가 실행 전에 한다.
+- 임시 결정: 프론트는 백엔드 구현 기준으로 요청을 보내고 표시한다. 직접 입력 목표의 사이트 지도 기준은 [OI-10](#oi-10)을 따른다. 실제 화면의 글자 검사는 서버가 실행 전에 한다.
+- 임시 결정(찾을 화면): 첫 화면은 찾을 화면을 먼저 묻지 않는다. 하려는 일 문장의 낱말로 화면 하나를 고르고(`features/new-analysis/matchScreen.ts`. 예시 쇼핑몰은 화면별 낱말 표, 등록 사이트는 화면 이름·확인 글자의 낱말. AI는 쓰지 않는다), 맞는 낱말이 없거나 두 화면이 똑같이 맞으면 짐작하지 않고 목록에서 고르게 한다. 직접 고른 화면은 문장을 고쳐도 바뀌지 않는다. 요청의 `verification`은 고른 화면의 경로·확인 글자다.
+- 임시 결정(고객 유형): 화면에서는 고객 유형을 묻지 않는다. `POST /api/runs`는 `persona`(또는 `personaId`)가 필수라 프론트가 고정값 하나(`shared/customerInput.ts`의 `DEFAULT_PERSONA`)를 숨겨서 보낸다. 값은 공식 계획(BE `results/improvement_plan_1119b.json`)의 고객 유형과 같다. AI 개선의 다른 고객 목표 점수가 이 값으로 계산돼서, 같게 두어야 공식 결과와 같은 조건이 된다. 값은 서버 문장 검사(`api/input_rules.py`)를 통과해야 한다. 결과 화면·비교 화면에도 고객 유형을 보이지 않는다. 고객 유형을 요청에서 뺄지, 서버 기본값을 둘지는 정하지 않았다.
 - 실행 전 화면 글자 검사(UX-Mirror-BE #60 머지): 직접 입력한 목표만 검사하며, 요청의 `variant`와 관계없이 Before·After 두 쇼핑몰을 모두 연다(After 실행 요청에도 Before 화면 오류가 올 수 있다). 도착 화면이 쇼핑몰에 없거나 다른 화면으로 이동하거나 글자가 없으면 `422 CONTRACT_VALIDATION_ERROR`, 화면을 열지 못하거나 화면마다 10초(요청당 최대 약 20초) 안에 응답이 없으면 재시도 가능한 `503 BROWSER_ERROR`이며 두 경우 모두 Run을 만들지 않는다. 완성된 지도에서 도착 경로가 없을 때 `422`를 반환하는 검사도 백엔드에 반영됐다. 지도 오류 처리는 [OI-10](#oi-10)을 따른다.
 - 확인할 것: 계약 v1.3.6이 확정되면 `docs/contracts/`를 고친다. 계약서에 아직 반영되지 않은 위 검사의 오류 코드·메시지는 계약 확정 뒤 [#43](https://github.com/UX-Mirror/UX-Mirror-FE/issues/43)에서 처리하며, 미결정 사항이 모두 해소되면 이 항목을 지운다.
 - 2번 답변 (11-18): 화면을 열어 글자를 확인하는 사전 검사(`422`·`503 BROWSER_ERROR`)는 BE #60 머지로 구현됐다. 그 전에 구현된 것은 두 가지다.
   - 지도는 정상인데 시작 화면에서 도착 화면으로 가는 경로가 없으면 `422 CONTRACT_VALIDATION_ERROR`, Run을 만들지 않는다.
   - 지도 오류(파일 없음·검증 실패·조건 불일치·도착 화면이 지도에 없음)면 실행은 하고 `referencePathConfig: null`로 저장한다.
-  - FE: 성공 조건 도착 화면은 지금처럼 목록에서 고른다.
 - 담당: 정자비(루프), 장근창(API).
 
 <a id="oi-10"></a>
@@ -99,7 +100,7 @@
 <a id="oi-11"></a>
 ### OI-11 시나리오 테스트(외부 사이트)
 
-- 범위: 서버에 등록된 사이트만 선택한다. 임의 URL을 이용한 범용 분석은 [OI-8](#oi-8)에 남긴다. MORO MARKET 버전 비교는 기존 방식을 유지한다.
+- 범위: 서버에 등록된 사이트만 선택한다. 사이트는 첫 화면(`/`)에서 주소나 칩으로 고르고, 실행 요청은 그 사이트의 `siteId`와 서버가 고를 수 있다고 한 화면(`goalSelectable`)의 경로·확인 글자로 보낸다. 등록 사이트 진단의 결과 화면에는 AI에게 개선안을 받는 단계가 없다(서버가 MORO MARKET 진단만 받는다). 임의 URL을 이용한 범용 분석은 [OI-8](#oi-8)에 남긴다. MORO MARKET 버전 비교는 기존 방식을 유지한다.
 - 계약서 v1.3.5에 없는 항목: Run 요청의 `siteId`, `GET /api/sites`, 시나리오 Run의 `variant`와 구분 값 `mode`, 사이트 이름과 화면 목록 필드.
 - 확정(계약서 미반영): 시나리오 Run은 `variant: before`와 `mode: SCENARIO`를 사용한다. `GET /api/sites` 응답과 Run의 `siteId`·`mode`는 장근창 님 답변을 기준으로 정한 mock 형식이다. 프론트는 mock과 Adapter로 먼저 만들었고, [UX-Mirror-BE #75](https://github.com/UX-Mirror/UX-Mirror-BE/pull/75) 머지 뒤 실서버와 대조했다. `GET /api/sites`와 Run 상세·목록의 `siteId`·`mode`는 이 mock 형식과 일치했고 DTO·Adapter·mock 수정은 필요 없었다.
 - 임시 mock 형식([FE #53](https://github.com/UX-Mirror/UX-Mirror-FE/issues/53)): `GET /api/sites`는 `{items: [{siteId, name, mode, startPage, pages: [{pageKey, path, label, goalText, goalSelectable}], siteMap: {available}}]}` 형식이다. `goalText`는 `null`일 수 있다. `POST /api/runs`는 `siteId`를 선택적으로 받으며, Run 상세와 목록 항목은 `siteId`·`mode`를 선택적으로 받는다. 기존 버전 비교 Run의 두 필드는 `null`이거나 없을 수 있다. 상세 형식과 mock 처리 규칙은 FE #53을 따른다.
@@ -130,7 +131,7 @@
 - 임시: 검증 Run의 빈 `issues`만으로 분석 대기·실패·정상 빈 결과를 구분할 수 없다. 무효 Run은 "판단 불가", 그 밖에는 "저장된 Issue 없음 (분석 상태 확인 불가)"로 표시한다. BE PR #110의 `_run_view`는 분석 상태 없이 목록만 저장하므로 상태 필드와 값이 확정되면 표시를 구분한다.
 - 공식 결과가 정본이다. 탈락 사유 코드는 BE 실제 코드 기준 이름(`GUARD_LOSS_EXCEEDED:<목표>`, `MAIN_GAIN_INSUFFICIENT`, `TRUNCATED_LABEL`, `LABEL_TOO_LONG`, `EXISTING_LABEL` 등)을 쓰고 모르는 코드는 원문으로 보인다. 검증 쌍 키(`goalKey` `S1`, experimentKey `imp-1119b-S1` 형식)는 2차 공식 결과(BE #125)로 확인됐다. 검증 쌍의 `path`·`stepCount`·`issues`·`goalReached`는 `improvement.json`을 만드는 쪽이 Run을 읽어 채운다. 공식 결과(`imp-1119.json`)는 `NO_IMPROVEMENT`(개선안 미채택, 검증 `NOT_RUN`, `official: null`)이고, 연습 실행(개선안 채택 예시)은 공식이 아니라 아직 화면에 반영하지 않았다.
 - 결과 출처(`kind`): `LIVE`(서버에서 시작한 심사·시연 실행, 공식 기록 아님) "심사위원 실행 (공식 기록 아님)", `OFFICIAL`(사전 등록 공식 결과) "사전 등록 공식 결과", `UNKNOWN`(연습 실행처럼 출처를 확인할 수 없는 결과 파일)과 모르는 값 "출처 확인 안 된 결과"(`kindLabel`). 원문은 화면에 보이지 않는다.
-- 시작 조건: 서버는 끝났고 `VALID`인 MORO MARKET `before` 진단에서만 AI 개선을 시작한다(그 밖은 `422`와 한국어 `message`). 진단 결과 화면은 같은 조건(`isTerminalStatus`, `validity=VALID`, `variant=before`, `siteId`·`optimizationContext`·`improvementContext` 없음)일 때만 "AI에게 고쳐 달라고 하기"를 보인다.
+- 시작 조건: 서버는 끝났고 `VALID`인 MORO MARKET `before` 진단에서만 AI 개선을 시작한다(그 밖은 `422`와 한국어 `message`). 진단 결과 화면은 같은 조건(`isTerminalStatus`, `validity=VALID`, `variant=before`, `siteId`·`optimizationContext`·`improvementContext` 없음)일 때만 "AI에게 개선안 받아 보기"를 보인다.
 - 전달 방식: `GET /api/improvements/{id}`가 실행 상태(`status`·`phase`·`kind`·`input`)와 보고서(`improvement`, 끝나기 전에는 `null`)를 함께 준다. 정적 파일은 더 이상 쓰지 않는다. 시작은 `POST /api/improvements`(`{sourceRunId}` 또는 `{goal, persona, goalPage}`)이고, 다른 Run이 있으면 `409`, 서버가 꺼 두면(`UXM_IMPROVEMENTS_ENABLED=0`) `503`, 입력 오류는 `422`다. 엔진 상태의 `activeRunOwner`(`kind`·`improvementId`)로 진행 중인 AI 개선 화면을 연다.
 - 형식을 바꿔야 하면 정자비(생성 담당)와 먼저 합의한다. 계약서 갱신은 통합 후 정자비가 한 번에 한다.
 - 담당: 정자비(생성·계약서), 권혁준(프론트). 관련 FE 이슈: #77, #82.

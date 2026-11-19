@@ -132,6 +132,8 @@ export interface Run {
    * `referencePathConfig`가 없거나 `null`이면 기준 없음이며, 설정에 `basis`가 없으면 `ALLOWED_PATHS`다.
    */
   referenceBasis: Open<ReferenceBasis> | null
+  /** 경로 기준의 내용(화면별 목표까지 거리 또는 허용 경로). 기준이 없거나 모르는 형식이면 `null` */
+  referencePath: ReferencePath | null
   viewport: Size
   maxSteps: number
   status: Open<RunStatus>
@@ -156,6 +158,15 @@ export interface Run {
   /** 임시(OI-14). 자동 개선 검증 Run이면 연결 정보, 일반 Run이면 `null` */
   improvementContext: ImprovementContext | null
 }
+
+/**
+ * 서버가 Run에 저장한 경로 기준. "목표 쪽으로 가는 버튼"을 서버와 같은 규칙으로 가려낼 때만 쓴다.
+ * - `SITE_MAP`: 화면(`pageKey`)별 목표까지의 클릭 수. 닿을 수 없는 화면은 `null`
+ * - `ALLOWED_PATHS`: 허용 경로(화면 `pageKey`의 나열)
+ */
+export type ReferencePath =
+  | { kind: 'SITE_MAP'; distances: Record<string, number | null> }
+  | { kind: 'ALLOWED_PATHS'; allowedPaths: string[][] }
 
 /** Run 목록의 한 줄 (`GET /api/runs`). 전체 Run은 `getRun`으로 조회한다 */
 export interface RunListItem {

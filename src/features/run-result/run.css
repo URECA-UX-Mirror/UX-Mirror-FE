@@ -1,0 +1,148 @@
+/* 진단 결과 화면(RunPage)의 ①② 단계 */
+
+.run-live-progress {
+  color: var(--um-text);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.run-clicks {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--um-text-muted);
+}
+
+.run-clicks li:last-child {
+  color: var(--um-text);
+  font-weight: 600;
+}
+
+/* 지나간 길: 화면 이름을 화살표로 이은 한 줄 */
+.run-path {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px var(--um-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--um-text);
+}
+
+.run-path li + li::before {
+  content: '→';
+  margin-right: var(--um-space-2);
+  color: var(--um-text-muted);
+}
+
+.run-path li[data-goal='true'] {
+  font-weight: 700;
+}
+
+.run-path-note {
+  color: var(--um-text-muted);
+  font-size: 13px;
+}
+
+/* 누를 가능성: 이름 왼쪽, % 오른쪽, 아래에 가는 막대 */
+.choice {
+  display: flex;
+  flex-direction: column;
+  gap: var(--um-space-3);
+}
+
+.choice-bars {
+  display: flex;
+  flex-direction: column;
+  gap: var(--um-space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.choice-bars li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 6px var(--um-space-3);
+  align-items: baseline;
+}
+
+.choice-label {
+  color: var(--um-text);
+  overflow-wrap: anywhere;
+}
+
+.choice-tag {
+  margin-left: var(--um-space-2);
+  padding: 0 var(--um-space-2);
+  border: 1px solid var(--um-brand-border);
+  border-radius: var(--um-radius-pill);
+  color: var(--um-accent-strong);
+  font-size: 12px;
+  line-height: 18px;
+  white-space: nowrap;
+}
+
+.choice-value {
+  color: var(--um-text);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.choice-track {
+  grid-column: 1 / -1;
+  height: 6px;
+  border-radius: var(--um-radius-pill);
+  background: var(--um-surface-raised);
+  overflow: hidden;
+}
+
+.choice-track > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--um-text);
+}
+
+/* 클릭별 자세히 */
+.run-steps,
+.run-issues {
+  display: flex;
+  flex-direction: column;
+  gap: var(--um-space-8);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.run-steps > li {
+  display: flex;
+  flex-direction: column;
+  gap: var(--um-space-3);
+}
+
+.run-steps h3 {
+  margin: 0;
+  color: var(--um-text);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.run-issues {
+  gap: var(--um-space-4);
+}
+
+.run-issue-tag {
+  margin-left: var(--um-space-2);
+  color: var(--um-warning-text);
+  font-size: 12px;
+}
+
+/* 핵심 흐름의 스크린샷 */
+.report-page .screenshot-viewer {
+  border-radius: 12px;
+  box-shadow: var(--um-shadow-card);
+}

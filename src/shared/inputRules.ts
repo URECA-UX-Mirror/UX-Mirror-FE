@@ -10,16 +10,16 @@ export const MAX_SENTENCE = 200
 const FORBIDDEN = ['variant', 'before', 'after', 'testMode', 'testmode', 'nochange', 'deadend', 'experimentKey', 'data-test-goal', 'refund-entry', 'semanticKey', 'menu_', 'goalId']
 const LETTER = /[A-Za-z가-힣ㄱ-ㆎ]/g
 
-export function sentenceProblem(text: string, field: string): string | null {
-  if (!text.trim()) return `${field}을(를) 적어 주세요.`
+export function sentenceProblem(text: string, _field: string): string | null {
+  if (!text.trim()) return '내용을 적어 주세요.'
   const compact = text.replace(/\s+/g, '')
-  if (compact.length > MAX_SENTENCE) return `${field}은(는) ${MAX_SENTENCE}자 이하로 적어 주세요.`
-  if (compact.length < MIN_CHARS) return `${field}을(를) 조금 더 구체적으로 적어 주세요 (${MIN_CHARS}자 이상).`
-  if ((compact.match(LETTER) ?? []).length < MIN_LETTERS) return `${field}은(는) 글자로 적어 주세요 (기호·숫자만으로는 안 돼요).`
+  if (compact.length > MAX_SENTENCE) return `${MAX_SENTENCE}자까지 쓸 수 있어요.`
+  if (compact.length < MIN_CHARS) return `조금 더 자세히 적어 주세요. (${MIN_CHARS}자 이상)`
+  if ((compact.match(LETTER) ?? []).length < MIN_LETTERS) return '기호나 숫자 말고 글로 적어 주세요.'
   const counts = new Map<string, number>()
   for (const ch of compact) counts.set(ch, (counts.get(ch) ?? 0) + 1)
-  if (Math.max(...counts.values()) / compact.length > MAX_SAME_CHAR_RATIO) return `${field}을(를) 뜻이 있는 문장으로 적어 주세요.`
+  if (Math.max(...counts.values()) / compact.length > MAX_SAME_CHAR_RATIO) return '알아볼 수 있는 문장으로 적어 주세요.'
   const words = FORBIDDEN.filter((w) => text.includes(w))
-  if (words.length) return `${field}에 쓸 수 없는 단어가 있어요: ${words.join(', ')}`
+  if (words.length) return `쓸 수 없는 단어가 있어요: ${words.join(', ')}`
   return null
 }

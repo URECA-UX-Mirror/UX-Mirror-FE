@@ -19,6 +19,12 @@ export interface RunSnapshot {
  */
 export const MAX_STEPS_RETRIES = 5
 
+/**
+ * 서버는 종료 상태를 먼저 쓰고 `validity`를 조금 뒤에 채운다. 그 사이에 조회하면 `validity`가 `null`이라
+ * 종료 상태여도 이 횟수까지는 더 조회한다(`임시`). 넘으면 `null`인 채로 멈춘다.
+ */
+export const MAX_VALIDITY_WAITS = 10
+
 /** 같은 `stepId`가 다시 오면 내용을 덮어쓰고, 순서는 서버가 준 그대로 둔다(다시 정렬하지 않는다). */
 export function mergeSteps(items: ReadonlyArray<Step>): Step[] {
   const byId = new Map<number, Step>()
@@ -36,6 +42,7 @@ export function mergeSteps(items: ReadonlyArray<Step>): Step[] {
 export function useRunProgress(runId: string) {
   const steps = useRef<Step[]>([])
   const stepsFailures = useRef(0)
+  const validityWaits = useRef(0)
   const polling = usePolling<RunSnapshot>({
     resetKey: runId,
     fetch: async (signal) => {
@@ -49,17 +56,20 @@ export function useRunProgress(runId: string) {
         stepsError = error
         stepsFailures.current += 1
       }
+      if (isTerminalStatus(run.status) && run.validity === null) validityWaits.current += 1
       return { run, steps: steps.current, stepsError }
     },
     // 종료돼도 마지막 `/steps`를 받지 못했으면 한도까지 `/steps`를 다시 조회한다.
     isDone: (data) =>
       isTerminalStatus(data.run.status) &&
-      (data.stepsError === null || stepsFailures.current >= MAX_STEPS_RETRIES),
+      (data.stepsError === null || stepsFailures.current >= MAX_STEPS_RETRIES) &&
+      (data.run.validity !== null || validityWaits.current > MAX_VALIDITY_WAITS),
   })
 
   const { retry: retryPolling } = polling
   const retry = useCallback(() => {
     stepsFailures.current = 0
+    validityWaits.current = 0
     retryPolling()
   }, [retryPolling])
   return { ...polling, retry }

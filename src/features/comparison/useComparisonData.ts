@@ -2,8 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { isAbortError } from '../../api/client.ts'
 import { getComparison } from '../../api/comparisons.ts'
 import { getRun, getRunSteps } from '../../api/runs.ts'
-import type { ReferenceBasis } from '../../api/dto/run.ts'
-import type { Comparison, ImprovementContext, Open, OptimizationContext, Step } from '../../domain/types.ts'
+import type { Comparison, Step } from '../../domain/types.ts'
 
 interface Loaded {
   token: string
@@ -88,15 +87,11 @@ export function useRunSteps(runId: string): RunStepsState {
   }
 }
 
-/** 한 Run의 경로 지표 기준. `undefined`는 아직 받지 못했거나 조회에 실패한 경우이고, `null`은 기준 없음이다 */
-export type RunBasis = Open<ReferenceBasis> | null | undefined
-
 export interface RunMeta {
-  basis: RunBasis
-  /** Optimizer 검증 Run이면 연결 정보. 일반 Run이거나 아직 받지 못했거나 조회에 실패하면 `null`이라 기존 표시를 유지한다 */
-  optimizationContext: OptimizationContext | null
-  /** 자동 개선 검증 Run이면 연결 정보(OI-14). 아니면 `null`이라 기존 표시를 유지한다 */
-  improvementContext: ImprovementContext | null
+  /** 하려는 일. 아직 받지 못했거나 조회에 실패하면 `null` */
+  goal: string | null
+  /** 자동 개선·메뉴 이름 후보 검증 Run이면 그 메뉴 이름. 일반 Run이면 `null` */
+  menuLabel: string | null
 }
 
 interface MetaLoaded {
@@ -104,12 +99,12 @@ interface MetaLoaded {
   meta: RunMeta
 }
 
-const UNKNOWN_META: RunMeta = { basis: undefined, optimizationContext: null, improvementContext: null }
+const UNKNOWN_META: RunMeta = { goal: null, menuLabel: null }
 
 /**
- * 비교 응답에는 경로 지표 기준(`basis`)과 Optimizer 연결 정보(`optimizationContext`)가 없으므로
- * 각 Run의 `GET /api/runs/{runId}`를 한 번 읽어 둘을 함께 얻는다. 어느 라벨 사이트인지는 `variant`가 아니라 `optimizationContext`로만 안다.
- * 실패해도 비교 값은 계속 보이도록 알 수 없음으로 두고 기존 표시를 유지한다.
+ * 비교 응답에는 하려는 일과 메뉴 이름이 없으므로 각 Run의 `GET /api/runs/{runId}`를 한 번 읽는다.
+ * 어느 메뉴 이름 사이트인지는 `variant`가 아니라 `improvementContext`·`optimizationContext`로만 안다.
+ * 실패해도 비교 값은 계속 보이도록 알 수 없음으로 둔다.
  */
 export function useRunMeta(runId: string): RunMeta {
   const [loaded, setLoaded] = useState<MetaLoaded | null>(null)
@@ -120,7 +115,10 @@ export function useRunMeta(runId: string): RunMeta {
       .then((run) =>
         setLoaded({
           runId,
-          meta: { basis: run.referenceBasis, optimizationContext: run.optimizationContext, improvementContext: run.improvementContext },
+          meta: {
+            goal: run.goal || null,
+            menuLabel: run.improvementContext?.label ?? run.optimizationContext?.label ?? null,
+          },
         }),
       )
       .catch((error: unknown) => {

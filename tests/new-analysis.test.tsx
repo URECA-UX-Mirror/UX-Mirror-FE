@@ -12,7 +12,7 @@ import { server } from './setup.ts'
 /** 최종 자동 개선 결과(public/improvements/imp-1119b.json) */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const finalJson = (): any => JSON.parse(readFileSync(resolve(process.cwd(), 'public/improvements/imp-1119b.json'), 'utf-8'))
-const useFinal = (body: unknown) => server.use(http.get('/improvements/imp-1119b.json', () => HttpResponse.json(body)))
+const serveFinal = (body: unknown) => server.use(http.get('/improvements/imp-1119b.json', () => HttpResponse.json(body)))
 
 const startButtons = () => screen.getAllByRole('button', { name: '분석 시작' }) as HTMLButtonElement[]
 
@@ -48,7 +48,7 @@ it('성공 조건 안내는 사이트 지도 기준 경로 지표를 설명한�
 })
 
 it('버전별 분석 표는 v1·에이전트 최종안 행과 비활성 v3 행을 보이고 v3는 시작할 수 없다', async () => {
-  useFinal(finalJson())
+  serveFinal(finalJson())
   renderAt('/?experimentKey=mock-done')
   const table = await screen.findByRole('table')
   const rows = within(table).getAllByRole('row')
@@ -252,7 +252,7 @@ it('직접 입력한 기존 실험은 입력이 첫 Run 값으로 잠기고 v1�
 })
 
 it('에이전트 최종안 행은 자동 개선 결과의 이름과 점수 변화를 보이고 저장된 비교 화면으로 연결한다', async () => {
-  useFinal(finalJson())
+  serveFinal(finalJson())
   renderAt('/')
   await screen.findByText('상단 메뉴: 이용정보 → 주문 환불')
   const row = screen.getByRole('rowheader', { name: '에이전트 최종안' }).closest('tr')!
@@ -270,7 +270,7 @@ it('개선안이 없는 결과는 비교 링크 없이 개선안 없음을 안�
   const json = finalJson()
   json.summary.result = 'NO_IMPROVEMENT'; json.summary.afterLabel = null; json.summary.afterSource = null
   json.verification.status = 'NOT_RUN'; json.verification.pairs = []
-  useFinal(json)
+  serveFinal(json)
   renderAt('/')
   await screen.findByText('개선안 없음')
   const row = screen.getByRole('rowheader', { name: '에이전트 최종안' }).closest('tr')!
@@ -278,11 +278,21 @@ it('개선안이 없는 결과는 비교 링크 없이 개선안 없음을 안�
   expect(within(row).queryByText(/비교할 수 있습니다/)).toBeNull()   // 비교할 최종안이 없다는 안내와 모순되는 문구를 붙이지 않는다
 })
 
+it('개선안은 있는데 검증이 진행되지 않았으면 검증 미진행을 안내한다', async () => {
+  const json = finalJson()
+  json.verification.status = 'NOT_RUN'; json.verification.pairs = []
+  serveFinal(json)
+  renderAt('/')
+  await screen.findByText('검증 미진행')
+  const row = screen.getByRole('rowheader', { name: '에이전트 최종안' }).closest('tr')!
+  expect(within(row).queryByText(/비교할 수 있습니다/)).toBeNull()
+})
+
 it('Run이 없거나 무효인 쌍은 비교 링크를 보이지 않는다', async () => {
   const json = finalJson()
   json.verification.pairs[0].after = null
   json.verification.pairs[1].before.validity = 'INVALID'
-  useFinal(json)
+  serveFinal(json)
   renderAt('/')
   await screen.findByText('상단 메뉴: 이용정보 → 주문 환불')
   const row = screen.getByRole('rowheader', { name: '에이전트 최종안' }).closest('tr')!

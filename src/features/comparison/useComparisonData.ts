@@ -3,7 +3,7 @@ import { isAbortError } from '../../api/client.ts'
 import { getComparison } from '../../api/comparisons.ts'
 import { getRun, getRunSteps } from '../../api/runs.ts'
 import type { ReferenceBasis } from '../../api/dto/run.ts'
-import type { Comparison, Open, OptimizationContext, Step } from '../../domain/types.ts'
+import type { Comparison, ImprovementContext, Open, OptimizationContext, Step } from '../../domain/types.ts'
 
 interface Loaded {
   token: string
@@ -95,6 +95,8 @@ export interface RunMeta {
   basis: RunBasis
   /** Optimizer 검증 Run이면 연결 정보. 일반 Run이거나 아직 받지 못했거나 조회에 실패하면 `null`이라 기존 표시를 유지한다 */
   optimizationContext: OptimizationContext | null
+  /** 자동 개선 검증 Run이면 연결 정보(OI-14). 아니면 `null`이라 기존 표시를 유지한다 */
+  improvementContext: ImprovementContext | null
 }
 
 interface MetaLoaded {
@@ -102,7 +104,7 @@ interface MetaLoaded {
   meta: RunMeta
 }
 
-const UNKNOWN_META: RunMeta = { basis: undefined, optimizationContext: null }
+const UNKNOWN_META: RunMeta = { basis: undefined, optimizationContext: null, improvementContext: null }
 
 /**
  * 비교 응답에는 경로 지표 기준(`basis`)과 Optimizer 연결 정보(`optimizationContext`)가 없으므로
@@ -118,7 +120,7 @@ export function useRunMeta(runId: string): RunMeta {
       .then((run) =>
         setLoaded({
           runId,
-          meta: { basis: run.referenceBasis, optimizationContext: run.optimizationContext },
+          meta: { basis: run.referenceBasis, optimizationContext: run.optimizationContext, improvementContext: run.improvementContext },
         }),
       )
       .catch((error: unknown) => {

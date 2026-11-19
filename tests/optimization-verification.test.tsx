@@ -390,3 +390,36 @@ it('비교·결과 화면: 검증 Run은 라벨 사이트와 역할을 보이고
   await screen.findByText('run_mock_done_before', { selector: '.run-id' })
   expect(screen.queryByText(/Optimizer 검증/)).toBeNull()
 })
+
+const IMPROVEMENT_CONTEXT = { improvementId: 'imp-1119b', goalId: 'S1', label: '주문 환불', siteInstanceId: 'site-final', executionRole: 'CANDIDATE' }
+
+it('Run 변환: improvementContext가 있으면 읽고 없거나 형식이 다르면 일반 Run이다', async () => {
+  const { toRun } = await import('../src/adapters/run.ts')
+  const base = (await (await fetch(apiUrl('/api/runs/run_mock_done_before'))).json()) as Parameters<typeof toRun>[0]
+  expect(toRun(base).improvementContext).toBeNull()
+  expect(toRun({ ...base, improvementContext: IMPROVEMENT_CONTEXT }).improvementContext).toEqual(IMPROVEMENT_CONTEXT)
+  expect(toRun({ ...base, improvementContext: { ...IMPROVEMENT_CONTEXT, label: 1 as unknown as string } }).improvementContext).toBeNull()
+})
+
+it('비교·결과·진행 화면: 자동 개선 검증 Run은 고정 변경 문구 대신 최종안 이름을 보인다', async () => {
+  const runDto = async (runId: string) => (await (await fetch(apiUrl(`/api/runs/${runId}`))).json()) as Record<string, unknown>
+  const after = { ...(await runDto('run_mock_done_before')), variant: 'after', improvementContext: IMPROVEMENT_CONTEXT }
+  server.use(http.get(apiUrl('/api/runs/run_mock_done_before'), () => HttpResponse.json(after)))
+  const { RunResultPage } = await import('../src/features/run-result/RunResultPage.tsx')
+  const { RunProgressPage } = await import('../src/features/run-progress/RunProgressPage.tsx')
+  const { ComparisonPage } = await import('../src/features/comparison/ComparisonPage.tsx')
+  const view = (path: string, route: string, element: React.ReactElement) =>
+    render(<MemoryRouter initialEntries={[path]}><Routes><Route path={route} element={element} /></Routes></MemoryRouter>)
+  const result = view('/runs/run_mock_done_before/result', '/runs/:runId/result', <RunResultPage />)
+  expect(await screen.findByText('자동 개선 검증 · 후보 주문 환불', {}, { timeout: 3000 })).toBeTruthy()
+  expect(screen.queryByText(/상단 메뉴:/)).toBeNull()
+  result.unmount()
+  const progress = view('/runs/run_mock_done_before', '/runs/:runId', <RunProgressPage />)
+  expect(await screen.findByText('자동 개선 검증 · 후보 주문 환불', {}, { timeout: 3000 })).toBeTruthy()
+  expect(screen.queryByText(/상단 메뉴:/)).toBeNull()
+  progress.unmount()
+  const comparison = view('/comparisons/mock-done', '/comparisons/:experimentKey', <ComparisonPage />)
+  const setup = await screen.findByRole('region', { name: '비교 대상' })
+  expect(await within(setup).findAllByText('자동 개선 검증 · 후보 주문 환불')).not.toHaveLength(0)
+  comparison.unmount()
+})

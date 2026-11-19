@@ -3,8 +3,17 @@ export const VERSIONS = [
   { variant: 'before', name: 'v1 (변경 전)', change: '상단 메뉴: 이용정보' },
   { variant: 'after', name: 'v2 (변경 후)', change: '상단 메뉴: 주문·환불' },
 ] as const
+/**
+ * Run의 버전 표시. Optimizer·자동 개선 검증 Run은 라벨 사이트가 `VERSIONS.change`와 다를 수 있어 고정 변경 문구를 붙이지 않는다.
+ * 연결 정보가 없는 일반 Run만 변경 문구를 붙인다. 모르는 `variant`는 원문이다.
+ */
+export function versionName(variant: string, hasContext: boolean): string {
+  const version = VERSIONS.find((item) => item.variant === variant)
+  if (!version) return variant
+  return hasContext ? version.name : `${version.name} · ${version.change}`
+}
 /** "새 UX 분석"에서 직접 분석하는 버전은 v1뿐이다. 변경 후 버전은 자동 개선 최종안 행이 맡는다(`FinalVariantRow`) */
-export const ANALYZED_VERSIONS = VERSIONS.filter((item) => item.variant === 'before')
+export const BASELINE_VERSION = VERSIONS[0]
 export const STEPS = { min: 1, max: 15, default: 8 } as const
 /** 직접 입력 길이 제한 (UX-Mirror-BE #42: 목표·사용자 유형 200자, 성공 조건 글자 100자) */
 export const INPUT_LIMITS = { sentence: 200, verificationText: 100 } as const

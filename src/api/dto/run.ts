@@ -51,6 +51,17 @@ export interface RunDto {
   mode?: string | null
   /** 임시(OI-12). UX Optimizer 검증 Run이면 연결 정보. 일반 Run은 필드가 없거나 `null`이다 */
   optimizationContext?: OptimizationContextDto | null
+  /** 임시(OI-14). 자동 개선 검증 Run이면 연결 정보(BE `api/improvement.py`). 일반 Run은 필드가 없거나 `null`이다 */
+  improvementContext?: ImprovementContextDto | null
+}
+
+/** 자동 개선 검증 Run의 연결 정보. 어느 라벨 사이트인지는 `variant`가 아니라 `label`로 구분한다 */
+export interface ImprovementContextDto {
+  improvementId: string
+  goalId: string
+  label: string
+  siteInstanceId: string
+  executionRole: string
 }
 
 export interface RunProgressDto {

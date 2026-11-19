@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate, useSearchParams } from 'react-router'
 import { isAbortError, isApiError } from '../../api/client.ts'
 import { createRun, getRun, listRuns } from '../../api/runs.ts'
 import { isTerminalStatus } from '../../domain/runStatus.ts'
-import type { GoalInput, PersonaInput, Run, RunListItem, Variant } from '../../domain/types.ts'
+import type { GoalInput, PersonaInput, Run, RunListItem } from '../../domain/types.ts'
 import { ErrorNotice } from '../../shared/ErrorNotice.tsx'
 import { activeOptimizationLabel } from '../../shared/optimizationStatus.ts'
 import { ResultOriginBadge } from '../../shared/ResultOriginBadge.tsx'
@@ -11,7 +11,7 @@ import { useHealth } from '../../shared/useHealth.ts'
 import { SectionTitle } from '../../shared/SectionTitle.tsx'
 import { CompareIcon, GlobeIcon, LayersIcon, SettingsIcon } from '../../shared/icons.tsx'
 import { statusLabel } from '../run-progress/statusLabel.ts'
-import { createExperimentKey, GOAL_PAGES, INPUT_LIMITS, SCOPES, SITE, STEPS, ANALYZED_VERSIONS } from './constants.ts'
+import { createExperimentKey, GOAL_PAGES, INPUT_LIMITS, SCOPES, SITE, STEPS, BASELINE_VERSION } from './constants.ts'
 import { FinalVariantRow } from './FinalVariantRow.tsx'
 import './new-analysis.css'
 
@@ -63,7 +63,6 @@ function NewAnalysisContent() {
   const [runResult, setRunResult] = useState<{ token: string; run: Run | null; error: boolean } | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<unknown>(null)
-  const [attemptedVariant, setAttemptedVariant] = useState<Variant | null>(null)
   // 분석 사이트 입력. 실행 요청 계약에 사이트 필드가 없어 요청에는 싣지 않는다(OI-8)
   const [site, setSite] = useState<string>(SITE.name)
   const health = useHealth()
@@ -134,15 +133,14 @@ function NewAnalysisContent() {
     else setParams(key ? { experimentKey: key } : {})
   }
 
-  async function start(variant: Variant) {
+  async function start() {
     if (!ready) return
     const key = experimentKey || createExperimentKey()
-    setAttemptedVariant(variant)
     setSubmitting(true)
     setSubmitError(null)
     try {
       if (!goalInput || !personaInput) return
-      const run = await createRun({ experimentKey: key, variant, goal: goalInput, persona: personaInput, maxSteps: firstRun?.maxSteps ?? (maxSteps === '' ? undefined : maxSteps) })
+      const run = await createRun({ experimentKey: key, variant: 'before', goal: goalInput, persona: personaInput, maxSteps: firstRun?.maxSteps ?? (maxSteps === '' ? undefined : maxSteps) })
       navigate(`/runs/${encodeURIComponent(run.runId)}?experimentKey=${encodeURIComponent(key)}`)
     } catch (error) {
       setSubmitError(error)
@@ -153,6 +151,8 @@ function NewAnalysisContent() {
 
   const code = isApiError(submitError) ? submitError.code : null
   const stepValue = firstRun?.maxSteps ?? maxSteps
+  const run = runs[0]
+  const canCreate = runs.every((item) => item.validity === 'INVALID')
   function adjustSteps(delta: number) {
     const base = typeof stepValue === 'number' ? stepValue : STEPS.default
     setMaxSteps(Math.min(STEPS.max, Math.max(STEPS.min, base + delta)))
@@ -168,7 +168,7 @@ function NewAnalysisContent() {
       {activeRun && <p role="alert">다른 분석이 실행 중입니다. <Link to={`/runs/${encodeURIComponent(activeRun)}`}>진행 중인 Run 보기</Link></p>}
       {activeOptimization && <p role="status">Optimizer가 {activeOptimizationLabel(activeOptimization.status)}입니다. 끝난 뒤에 새 분석을 시작할 수 있습니다.</p>}
       {!!health.error && <p role="status">엔진 상태를 확인할 수 없습니다. <button type="button" onClick={health.reload}>다시 확인</button></p>}
-      {submitError ? <div role="alert">{code === 'RUN_ALREADY_ACTIVE' ? <p>{activeRun || !isApiError(submitError) || !submitError.message.trim() ? '다른 분석이 실행 중입니다.' : submitError.message} {activeRun && <Link to={`/runs/${encodeURIComponent(activeRun)}`}>진행 중인 Run 보기</Link>}</p> : code === 'EXPERIMENT_RUN_EXISTS' ? <p>같은 버전의 실행이 이미 있습니다. {runs.filter((r) => r.validity === 'VALID').map((r) => <Link key={r.runId} to={`/runs/${encodeURIComponent(r.runId)}/result`}>{r.runId} 결과 보기 </Link>)}</p> : code === 'CONTRACT_VALIDATION_ERROR' ? <><p>{isApiError(submitError) && submitError.message ? submitError.message : '입력한 분석 조건을 확인해 주세요.'}</p><p>입력을 고친 뒤 다시 시작해 주세요.</p></> : code === 'BROWSER_ERROR' && isApiError(submitError) ? <><p>{submitError.message.trim() || '도착 화면을 확인하지 못했습니다'}</p><p>Run은 생성되지 않았습니다.</p>{submitError.retryable && attemptedVariant && <button type="button" disabled={!ready} onClick={() => void start(attemptedVariant)}>다시 시도</button>}</> : isApiError(submitError) && submitError.status === 503 ? <><p>{submitError.message.trim() || '실행 환경을 준비하지 못했습니다.'}</p>{submitError.retryable && attemptedVariant && <button type="button" disabled={!ready} onClick={() => void start(attemptedVariant)}>다시 시도</button>}</> : <ErrorNotice error={submitError} />}</div> : null}
+      {submitError ? <div role="alert">{code === 'RUN_ALREADY_ACTIVE' ? <p>{activeRun || !isApiError(submitError) || !submitError.message.trim() ? '다른 분석이 실행 중입니다.' : submitError.message} {activeRun && <Link to={`/runs/${encodeURIComponent(activeRun)}`}>진행 중인 Run 보기</Link>}</p> : code === 'EXPERIMENT_RUN_EXISTS' ? <p>같은 버전의 실행이 이미 있습니다. {runs.filter((r) => r.validity === 'VALID').map((r) => <Link key={r.runId} to={`/runs/${encodeURIComponent(r.runId)}/result`}>{r.runId} 결과 보기 </Link>)}</p> : code === 'CONTRACT_VALIDATION_ERROR' ? <><p>{isApiError(submitError) && submitError.message ? submitError.message : '입력한 분석 조건을 확인해 주세요.'}</p><p>입력을 고친 뒤 다시 시작해 주세요.</p></> : code === 'BROWSER_ERROR' && isApiError(submitError) ? <><p>{submitError.message.trim() || '도착 화면을 확인하지 못했습니다'}</p><p>Run은 생성되지 않았습니다.</p>{submitError.retryable && <button type="button" disabled={!ready} onClick={() => void start()}>다시 시도</button>}</> : isApiError(submitError) && submitError.status === 503 ? <><p>{submitError.message.trim() || '실행 환경을 준비하지 못했습니다.'}</p>{submitError.retryable && <button type="button" disabled={!ready} onClick={() => void start()}>다시 시도</button>}</> : <ErrorNotice error={submitError} />}</div> : null}
     </>
   )
 
@@ -288,39 +288,31 @@ function NewAnalysisContent() {
               </tr>
             </thead>
             <tbody>
-              {ANALYZED_VERSIONS.map(({ variant, name, change }) => {
-                const run = runs[0]
-                const validRun = validBefore
-                const canCreate = runs.every((item) => item.validity === 'INVALID')
-                const state = listState
-                return (
-                  <tr key={variant} data-variant={variant}>
-                    <th scope="row"><span className="version-dot" data-variant={variant} />{name}</th>
-                    <td><span className="change-chip" data-variant={variant}>{change}</span></td>
-                    {state === 'loading' ? (
-                      <td colSpan={4} className="muted">실행 기록 조회 중</td>
-                    ) : state === 'error' ? (
-                      <td colSpan={4} className="muted">실행 기록: 확인 불가</td>
-                    ) : run ? (
-                      <>
-                        <td><Link to={`/runs/${encodeURIComponent(run.runId)}`} className="run-id">{run.runId}</Link> <ResultOriginBadge origin={run.resultOrigin} /></td>
-                        <td>{statusLabel({ status: run.status, error: null })}</td>
-                        <td>
-                          {run.validity ?? '확인 중'}
-                          {run.validity === 'INVALID' && (validRun ? <small className="cell-note">이전 유효 Run: <Link to={`/runs/${encodeURIComponent(validRun.runId)}/result`}>{validRun.runId}</Link></small> : <small className="cell-note">유효한 실행이 없습니다. 재분석해 주세요.</small>)}
-                        </td>
-                        <td>{run.goalReached === null ? '확인 불가' : run.goalReached ? '도달' : '미도달'}</td>
-                      </>
-                    ) : (
-                      <td colSpan={4} className="muted">실행 기록 없음</td>
-                    )}
-                    <td className="col-action">
-                      {run && state === 'ready' ? <Link to={isTerminalStatus(run.status) ? `/runs/${encodeURIComponent(run.runId)}/result` : `/runs/${encodeURIComponent(run.runId)}`}>{isTerminalStatus(run.status) ? '결과 보기' : '진행 보기'}</Link> : null}
-                      <button type="button" className="primary" disabled={!ready || !canCreate} onClick={() => void start(variant)}>분석 시작</button>
+              <tr data-variant="before">
+                <th scope="row"><span className="version-dot" data-variant="before" />{BASELINE_VERSION.name}</th>
+                <td><span className="change-chip" data-variant="before">{BASELINE_VERSION.change}</span></td>
+                {listState === 'loading' ? (
+                  <td colSpan={4} className="muted">실행 기록 조회 중</td>
+                ) : listState === 'error' ? (
+                  <td colSpan={4} className="muted">실행 기록: 확인 불가</td>
+                ) : run ? (
+                  <>
+                    <td><Link to={`/runs/${encodeURIComponent(run.runId)}`} className="run-id">{run.runId}</Link> <ResultOriginBadge origin={run.resultOrigin} /></td>
+                    <td>{statusLabel({ status: run.status, error: null })}</td>
+                    <td>
+                      {run.validity ?? '확인 중'}
+                      {run.validity === 'INVALID' && (validBefore ? <small className="cell-note">이전 유효 Run: <Link to={`/runs/${encodeURIComponent(validBefore.runId)}/result`}>{validBefore.runId}</Link></small> : <small className="cell-note">유효한 실행이 없습니다. 재분석해 주세요.</small>)}
                     </td>
-                  </tr>
-                )
-              })}
+                    <td>{run.goalReached === null ? '확인 불가' : run.goalReached ? '도달' : '미도달'}</td>
+                  </>
+                ) : (
+                  <td colSpan={4} className="muted">실행 기록 없음</td>
+                )}
+                <td className="col-action">
+                  {run && listState === 'ready' ? <Link to={isTerminalStatus(run.status) ? `/runs/${encodeURIComponent(run.runId)}/result` : `/runs/${encodeURIComponent(run.runId)}`}>{isTerminalStatus(run.status) ? '결과 보기' : '진행 보기'}</Link> : null}
+                  <button type="button" className="primary" disabled={!ready || !canCreate} onClick={() => void start()}>분석 시작</button>
+                </td>
+              </tr>
               <FinalVariantRow />
               <tr className="row-future">
                 <th scope="row"><span className="version-dot" />v3 (예정)</th>

@@ -54,10 +54,12 @@ function ResultRow({ id, report, verification }: { id: string; report: Improveme
             ))}
           </ul>
         ) : <span className="muted">채택한 개선안이 없어 비교할 최종안이 없습니다.</span>}
-        {improved ? (
+        {improved && pairs.length ? (
           <small className="cell-note">
-            Run은 자동 개선 실행이 만든 저장 결과이며, {pairs.length ? `${pairs.map((pair) => pair.name ?? pair.goalKey ?? '목표').join('·')} 목표만 ` : '고정 목표만 '}비교할 수 있습니다. 직접 입력한 목표에는 최종안 비교가 없습니다.
+            Run은 자동 개선 실행이 만든 저장 결과이며, {pairs.map((pair) => pair.name ?? pair.goalKey ?? '목표').join('·')} 목표만 비교할 수 있습니다. 직접 입력한 목표에는 최종안 비교가 없습니다.
           </small>
+        ) : improved ? (
+          <small className="cell-note">{verification?.status === 'NOT_RUN' ? '검증 미진행' : '비교할 수 있는 검증 Run이 없습니다'}</small>
         ) : null}
       </td>
       <td className="col-action">

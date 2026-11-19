@@ -128,7 +128,7 @@
 - 범위: 자동 개선 에이전트가 만드는 `improvement.json`(`schemaVersion: improvement-v1`). 1단계(해커톤)에서는 백엔드 API 없이 정적 JSON을 읽는다. 계약서에 없는 형식이다.
 - 임시 결정: 팀이 확정한 공식 결과(`public/improvements/imp-1119b.json`, 2차 공식 실행. 1차 `imp-1119.json`도 함께 둔다)를 정본으로 삼는다. `src/adapters/improvement.ts`가 필수 필드 규칙에 따라 report·official·rounds·verification 네 영역을 각각 `{ ok, data | reason }`로 검증하고, 한 영역이 오류여도 다른 영역은 정상 변환한다. `null`은 "값 없음"이라 0으로 바꾸지 않고, 모르는 enum 값은 원문 문자열로 둔다. 점수 표시 변환(`%`·`%p`)은 `src/domain/improvementScore.ts` 한 곳에 둔다.
 - 임시: 검증 Run의 빈 `issues`만으로 분석 대기·실패·정상 빈 결과를 구분할 수 없다. 무효 Run은 "판단 불가", 그 밖에는 "저장된 Issue 없음 (분석 상태 확인 불가)"로 표시한다. BE PR #110의 `_run_view`는 분석 상태 없이 목록만 저장하므로 상태 필드와 값이 확정되면 표시를 구분한다.
-- 공식 결과가 정본이다. 탈락 사유 코드는 BE 실제 코드 기준 이름(`GUARD_LOSS_EXCEEDED:<목표>`, `MAIN_GAIN_INSUFFICIENT`, `TRUNCATED_LABEL`, `LABEL_TOO_LONG`, `EXISTING_LABEL` 등)을 쓰고 모르는 코드는 원문으로 보인다. 검증 쌍 키(`goalKey` `S1`, experimentKey `imp-1119-s1` 형식)는 BE #102와 다를 수 있어 정자비가 확인한다. 검증 쌍의 `path`·`stepCount`·`issues`·`goalReached`는 `improvement.json`을 만드는 쪽이 Run을 읽어 채운다. 공식 결과(`imp-1119.json`)는 `NO_IMPROVEMENT`(개선안 미채택, 검증 `NOT_RUN`, `official: null`)이고, 연습 실행(개선안 채택 예시)은 공식이 아니라 아직 화면에 반영하지 않았다.
+- 공식 결과가 정본이다. 탈락 사유 코드는 BE 실제 코드 기준 이름(`GUARD_LOSS_EXCEEDED:<목표>`, `MAIN_GAIN_INSUFFICIENT`, `TRUNCATED_LABEL`, `LABEL_TOO_LONG`, `EXISTING_LABEL` 등)을 쓰고 모르는 코드는 원문으로 보인다. 검증 쌍 키(`goalKey` `S1`, experimentKey `imp-1119b-S1` 형식)는 2차 공식 결과(BE #125)로 확인됐다. 검증 쌍의 `path`·`stepCount`·`issues`·`goalReached`는 `improvement.json`을 만드는 쪽이 Run을 읽어 채운다. 공식 결과(`imp-1119.json`)는 `NO_IMPROVEMENT`(개선안 미채택, 검증 `NOT_RUN`, `official: null`)이고, 연습 실행(개선안 채택 예시)은 공식이 아니라 아직 화면에 반영하지 않았다.
 - 전달 방식: 1단계는 `public/improvements/<id>.json` 정적 파일이다(반영 절차는 [자동 개선 JSON 반영 절차](improvement-release.md)). 2단계에서 `GET /api/improvements/{id}`로 바꿀 예정이며, 바뀌면 `useImprovement`의 읽기 부분만 교체한다.
 - 형식을 바꿔야 하면 정자비(생성 담당)와 먼저 합의한다. 계약서 갱신은 통합 후 정자비가 한 번에 한다.
 - 담당: 정자비(생성·계약서), 권혁준(프론트). 관련 FE 이슈: #77, #82.
@@ -139,5 +139,5 @@
 
 - 계약서: `POST /api/runs`의 `variant`는 `before` 또는 `after`다(`§4.2`). 고정 v2 사이트를 없애는 BE 변경(UX-Mirror-BE #124·#128)은 `variant=after`를 막지 않고 서버 설정 `SHOP_AFTER_URL` 사이트로 보내며, 설정이 없으면 `503 SITE_NOT_CONFIGURED`다. 계약서에는 아직 반영되지 않았다.
 - 임시 결정: 팀 결정(안 2)에 따라 "새 UX 분석"은 v2 카드를 `에이전트 최종안` 행으로 바꾸고 `variant=after` Run을 만들지 않는다. 이 행은 자동 개선 결과의 `verification.pairs[].comparisonPath`(`/comparisons/imp-1119b-S1`·`-S4`)만 연결한다. 직접 입력한 목표에는 최종안 비교가 없다.
-- 확인할 것: 배포 서버의 `results/runs/`에 `imp-1119b` 검증 Run 4개가 있어야 비교 화면이 열린다(정자비 → 장근창 복사). #128 머지 뒤 다른 화면의 "v2 (변경 후) · 상단 메뉴: 주문·환불" 표시 문구를 최종안 이름에 맞춘다. 계약서 갱신은 BE 통합 뒤 정자비가 한다.
+- 확인할 것: 배포 서버의 `results/runs/`에 `imp-1119b` 검증 Run 4개가 있어야 비교 화면이 열린다(정자비 → 장근창 복사). 검증 Run의 `improvementContext`(`improvementId`·`goalId`·`label`·`siteInstanceId`·`executionRole`, BE `api/improvement.py`)가 있으면 비교·결과·진행 화면은 고정 변경 문구(`VERSIONS.change`) 대신 '자동 개선 검증 · 후보 주문 환불'처럼 라벨을 보인다. 이 필드가 없는 일반 Run은 기존 표시다. #128 머지 뒤 `SHOP_AFTER_URL` 사이트로 돈 일반 `after` Run의 문구는 BE가 이름을 Run에 남기면 같은 방식으로 맞춘다. 계약서 갱신은 BE 통합 뒤 정자비가 한다.
 - 담당: 이성집, 정자비.

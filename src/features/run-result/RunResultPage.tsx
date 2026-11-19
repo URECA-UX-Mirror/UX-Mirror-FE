@@ -11,9 +11,10 @@ import { ResultOriginBadge } from '../../shared/ResultOriginBadge.tsx'
 import { formatDateTime } from '../../shared/stepLabel.ts'
 import { useRunSite } from '../../shared/useRunSite.ts'
 import { ReplayNotice } from '../replay/ReplayNotice.tsx'
-import { VERSIONS } from '../new-analysis/constants.ts'
+import { versionName } from '../new-analysis/constants.ts'
 import { statusLabel } from '../run-progress/statusLabel.ts'
 import { IssuePanel } from './IssuePanel.tsx'
+import { improvementRunText } from '../../shared/improvementRun.ts'
 import { OptimizerRunTag } from '../../shared/OptimizerRunTag.tsx'
 import { OtherRuns } from './OtherRuns.tsx'
 import { PathPanel } from './PathPanel.tsx'
@@ -82,7 +83,6 @@ function ResultBody({ run }: { run: Run }) {
   const [selected, setSelected] = useState(0)
   const site = useRunSite(run)
   const scenario = isScenarioRun(run)
-  const version = VERSIONS.find((item) => item.variant === run.variant)
   const steps = usePolling({
     fetch: (signal) => getRunSteps(run.runId, signal),
     isDone: () => true,
@@ -128,8 +128,14 @@ function ResultBody({ run }: { run: Run }) {
           </div>
           <div>
             <dt>버전</dt>
-            <dd>{scenario ? `시나리오 테스트 · ${site?.name ?? run.siteId ?? '-'}` : version ? (run.optimizationContext ? version.name : `${version.name} · ${version.change}`) : run.variant}</dd>
+            <dd>{scenario ? `시나리오 테스트 · ${site?.name ?? run.siteId ?? '-'}` : versionName(run.variant, !!(run.optimizationContext || run.improvementContext))}</dd>
           </div>
+          {run.improvementContext ? (
+            <div>
+              <dt>자동 개선 검증</dt>
+              <dd>{improvementRunText(run.improvementContext)}</dd>
+            </div>
+          ) : null}
           {run.optimizationContext ? (
             <div>
               <dt>Optimizer 검증</dt>

@@ -1,9 +1,11 @@
 import type {
   Comparison,
+  ImprovementContext,
   OptimizationContext,
   PathVisit,
   RunOutcome,
 } from '../../domain/types.ts'
+import { improvementRunText } from '../../shared/improvementRun.ts'
 import { optimizerRunText } from '../../shared/optimizerRun.ts'
 import { ResultOriginBadge } from '../../shared/ResultOriginBadge.tsx'
 import { SectionTitle } from '../../shared/SectionTitle.tsx'
@@ -14,7 +16,7 @@ import {
   RouteIcon,
   SettingsIcon,
 } from '../../shared/icons.tsx'
-import { VERSIONS } from '../new-analysis/constants.ts'
+import { versionName } from '../new-analysis/constants.ts'
 import { formatDelta, formatMetric, NULL_TEXT } from './format.ts'
 
 const STATUS_TEXT: Record<string, string> = {
@@ -30,6 +32,7 @@ function VersionPanel({
   origin,
   outcome,
   context,
+  improvement,
 }: {
   side: 'before' | 'after'
   runId: string
@@ -37,8 +40,9 @@ function VersionPanel({
   outcome: RunOutcome
   /** Optimizer 검증 Run이면 연결 정보. 어느 라벨 사이트인지는 `variant`(side)가 아니라 이 값으로 알므로 고정 변경 문구(`VERSIONS.change`)는 붙이지 않는다 */
   context?: OptimizationContext | null
+  /** 자동 개선 검증 Run이면 연결 정보(OI-14). 이 경우도 고정 변경 문구는 붙이지 않고 최종안 이름을 보인다 */
+  improvement?: ImprovementContext | null
 }) {
-  const version = VERSIONS.find((item) => item.variant === side)
   return (
     <div className="version-panel" data-side={side}>
       <div className="version-panel-head">
@@ -48,8 +52,11 @@ function VersionPanel({
         <ResultOriginBadge origin={origin} />
       </div>
       <p className="version-panel-name">
-        {version ? (context ? version.name : `${version.name} · ${version.change}`) : side}
+        {versionName(side, !!(context || improvement))}
       </p>
+      {improvement ? (
+        <p className="version-panel-optimizer">{improvementRunText(improvement)}</p>
+      ) : null}
       {context ? (
         <p className="version-panel-optimizer">{optimizerRunText(context)}</p>
       ) : null}
@@ -72,10 +79,14 @@ export function ComparisonSetup({
   comparison,
   beforeContext = null,
   afterContext = null,
+  beforeImprovement = null,
+  afterImprovement = null,
 }: {
   comparison: Comparison
   beforeContext?: OptimizationContext | null
   afterContext?: OptimizationContext | null
+  beforeImprovement?: ImprovementContext | null
+  afterImprovement?: ImprovementContext | null
 }) {
   return (
     <section className="card" aria-label="비교 대상">
@@ -91,6 +102,7 @@ export function ComparisonSetup({
           origin={comparison.beforeResultOrigin}
           outcome={comparison.runComparison.before}
           context={beforeContext}
+          improvement={beforeImprovement}
         />
         <span className="version-vs" aria-hidden="true">
           <ArrowRightIcon size={18} />
@@ -101,6 +113,7 @@ export function ComparisonSetup({
           origin={comparison.afterResultOrigin}
           outcome={comparison.runComparison.after}
           context={afterContext}
+          improvement={afterImprovement}
         />
       </div>
     </section>

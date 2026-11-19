@@ -2,8 +2,9 @@ import { useEffect, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation } from 'react-router'
 import { useMock } from '../config/env.ts'
 import { mockRuntime } from '../config/runtime.ts'
+import { finalImprovementPath } from '../features/improvement/constants.ts'
 import { EngineStatus } from './EngineStatus.tsx'
-import { CompareIcon, GlobeIcon, HistoryIcon, MenuIcon, PlusCircleIcon } from './icons.tsx'
+import { CompareIcon, GlobeIcon, HistoryIcon, ListChecksIcon, MenuIcon, PlusCircleIcon } from './icons.tsx'
 
 const SIDEBAR_KEY = 'um.sidebar.open'
 const WIDTH_KEY = 'um.sidebar.width'
@@ -62,6 +63,7 @@ export function Layout() {
   // 라우트가 바뀔 때마다 엔진 상태(activeRun)를 다시 조회한다.
   const { pathname } = useLocation()
   const title = pageTitle(pathname)
+  const improvementPath = finalImprovementPath()
   const [open, setOpen] = useState(initialOpen)
   const [width, setWidth] = useState(initialWidth)
   const [dragging, setDragging] = useState(false)
@@ -157,6 +159,12 @@ export function Layout() {
               <CompareIcon />
               UX Optimizer
             </NavLink>
+            {improvementPath ? (
+              <NavLink to={improvementPath} onClick={closeOnMobile} tabIndex={open ? 0 : -1}>
+                <ListChecksIcon />
+                자동 개선 리포트
+              </NavLink>
+            ) : null}
             <NavLink to="/replay" onClick={closeOnMobile} tabIndex={open ? 0 : -1}>
               <HistoryIcon />
               저장된 결과 재생

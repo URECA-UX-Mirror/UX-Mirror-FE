@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router'
-import { beforeEach, expect, it } from 'vitest'
+import { beforeEach, expect, it, vi } from 'vitest'
 import { Layout } from '../src/shared/Layout.tsx'
 
 function renderLayout() {
@@ -76,4 +76,29 @@ it('/scenario에서 상단 바에 화면 이름을 보인다', () => {
     </MemoryRouter>,
   )
   expect(screen.getByLabelText('현재 위치').textContent).toContain('시나리오 테스트')
+})
+
+it('최종 리포트 id가 없으면 자동 개선 리포트 메뉴를 보이지 않는다(샘플로 연결하지 않는다)', () => {
+  renderLayout()
+  expect(screen.queryByRole('link', { name: '자동 개선 리포트' })).toBeNull()
+})
+
+it('최종 리포트 id가 있으면 자동 개선 리포트 메뉴가 그 화면으로 연결된다', async () => {
+  vi.resetModules()
+  vi.doMock('../src/features/improvement/constants.ts', async (importOriginal) => {
+    const actual = await importOriginal<typeof import('../src/features/improvement/constants.ts')>()
+    return { ...actual, finalImprovementPath: () => actual.finalImprovementPath('imp_FINAL_0001') }
+  })
+  const { Layout: FreshLayout } = await import('../src/shared/Layout.tsx')
+  render(
+    <MemoryRouter initialEntries={['/']}>
+      <Routes>
+        <Route element={<FreshLayout />}>
+          <Route index element={<p>본문</p>} />
+        </Route>
+      </Routes>
+    </MemoryRouter>,
+  )
+  expect(screen.getByRole('link', { name: '자동 개선 리포트' }).getAttribute('href')).toBe('/improvements/imp_FINAL_0001')
+  vi.doUnmock('../src/features/improvement/constants.ts')
 })

@@ -9,7 +9,6 @@ import { errorResponse } from '../errors.ts'
 import {
   buildOptimization,
   buildReport,
-  verificationRuns,
 } from '../fixtures/optimization.ts'
 import { getTiming } from '../fixtures/run.ts'
 import {
@@ -117,14 +116,13 @@ export const optimizationsHandlers = [
     }
 
     markOptimizationVerifying(record.optimizationId, now)
-    // 사이트가 바뀌는 시나리오는 Run을 만들지 않으므로 Run ID가 없다
-    const [baseline, candidate] = verificationRuns({ ...record, verifyAtMs: now })
+    // 실서버처럼 Run ID는 Run을 만든 뒤에야 생기므로 시작 응답에는 없다(`null`). `GET`으로 받는다
     const body: StartVerificationResponseDto = {
       optimizationId: record.optimizationId,
       status: 'VERIFYING',
       verificationPhase: 'BASELINE',
-      baselineRunId: baseline?.runId ?? null,
-      validationRunId: candidate?.runId ?? null,
+      baselineRunId: null,
+      validationRunId: null,
     }
     return HttpResponse.json(body, { status: 202 })
   }),

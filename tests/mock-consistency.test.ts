@@ -219,7 +219,7 @@ it('Optimizer mock: 검증은 기준 Run → 후보 Run → COMPLETED로 진행�
   expect(buildReport(rec, candidate.createdAtMs + 1)).toBeNull()
   expect(buildReport(rec, end)).toMatchObject({ status: 'COMPLETED', runs: { baseline: { runId: baseline.runId, goalReached: true }, candidate: { runId: candidate.runId, goalReached: true } } })
   // 검증 Run 응답은 optimizationContext를 담는다
-  expect(buildRun(candidate, end).optimizationContext).toMatchObject({ optimizationId: rec.optimizationId, siteInstanceId: 'moro-after' })
+  expect(buildRun(candidate, end).optimizationContext).toMatchObject({ optimizationId: rec.optimizationId, siteInstanceId: 'site-c2' })
 })
 
 it('Optimizer mock: 검증 중 사이트가 바뀌면 SITE_INSTANCE_CHANGED로 FAILED이고 Run은 만들지 않는다', () => {
@@ -306,9 +306,10 @@ it('Optimizer mock API: 평가가 끝난 시드를 검증하면 202와 Run ID를
     const started = await post('/opt_mock_evaluated/verify')
     expect(started.status).toBe(202)
     const body = (await started.json()) as Record<string, unknown>
+    // 실서버처럼 시작 응답에는 아직 만들지 않은 Run의 ID가 없다
     expect(body).toEqual({
       optimizationId: 'opt_mock_evaluated', status: 'VERIFYING', verificationPhase: 'BASELINE',
-      baselineRunId: 'run_opt_mock_evaluated_baseline', validationRunId: 'run_opt_mock_evaluated_candidate',
+      baselineRunId: null, validationRunId: null,
     })
     // 시작 직후 다시 시작하면 이미 진행 중이다
     const again = await post('/opt_mock_evaluated/verify')

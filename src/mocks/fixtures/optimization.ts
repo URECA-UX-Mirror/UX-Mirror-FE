@@ -24,7 +24,7 @@ import { buildRun, getTiming } from './run.ts'
 //   mock-opt-policy-unavailable  생성이 503 OPTIMIZER_POLICY_UNAVAILABLE
 //   mock-opt-condition-mismatch  생성이 422 EXPERIMENT_CONDITION_MISMATCH
 // 처음부터 있는 시드(고정 ID): opt_mock_evaluated(검증 전), opt_mock_completed(보고서), opt_mock_partial, opt_mock_eval_timeout,
-//   opt_mock_site_changed, opt_mock_interrupted. 시나리오 값은 임시이며 이유 코드·최종 판단 값은 정책 모듈이 정하기 전의 자리표시다.
+//   opt_mock_site_changed, opt_mock_interrupted. 이유 코드·최종 판단 값 중 `TOP_TARGET_PROBABILITY`·`IMPROVEMENT_OBSERVED`·`NAVIGATION_COST`는 실서버(UX-Mirror-BE develop d318ee5) 응답에서 확인한 값이고, 제외·무효 이유(`EVALUATION_FAILED` 등)는 자리표시다.
 // 검증 Run은 `experimentKey = optimizationId`이고 기준은 `variant=before`, 후보는 `after`다. 이 Run들은 기록에서 만들어져
 // `GET /api/runs`·`/api/comparisons/{optimizationId}`로도 보인다. 한 시간에 Optimization 하나만 진행한다.
 
@@ -53,11 +53,11 @@ interface CandidateSpec {
 }
 
 const CANDIDATES: CandidateSpec[] = [
-  { candidateId: 'C0', label: '이용정보', role: 'BASELINE', rank: null, siteInstanceId: 'moro-before', target: 0.12, goalPath: 0.3 },
-  { candidateId: 'C1', label: '주문·배송', role: 'CANDIDATE', rank: 4, siteInstanceId: 'moro-c1', target: 0.31, goalPath: 0.55 },
-  { candidateId: 'C2', label: '주문·환불', role: 'CANDIDATE', rank: 1, siteInstanceId: 'moro-after', target: 0.62, goalPath: 0.88 },
-  { candidateId: 'C3', label: '주문·반품', role: 'CANDIDATE', rank: 2, siteInstanceId: 'moro-c3', target: 0.55, goalPath: 0.82 },
-  { candidateId: 'C4', label: '주문 관리', role: 'CANDIDATE', rank: 3, siteInstanceId: 'moro-c4', target: 0.41, goalPath: 0.7 },
+  { candidateId: 'C0', label: '이용정보', role: 'BASELINE', rank: null, siteInstanceId: 'site-c0', target: 0.12, goalPath: 0.3 },
+  { candidateId: 'C1', label: '주문·배송', role: 'CANDIDATE', rank: 4, siteInstanceId: 'site-c1', target: 0.31, goalPath: 0.55 },
+  { candidateId: 'C2', label: '주문·환불', role: 'CANDIDATE', rank: 1, siteInstanceId: 'site-c2', target: 0.62, goalPath: 0.88 },
+  { candidateId: 'C3', label: '주문·반품', role: 'CANDIDATE', rank: 2, siteInstanceId: 'site-c3', target: 0.55, goalPath: 0.82 },
+  { candidateId: 'C4', label: '주문 관리', role: 'CANDIDATE', rank: 3, siteInstanceId: 'site-c4', target: 0.41, goalPath: 0.7 },
 ]
 
 const round4 = (value: number) => Math.round(value * 10000) / 10000
@@ -185,7 +185,7 @@ function selectionOf(rec: OptimizationRecord): OptimizationSelectionDto {
     verificationCandidateId: 'C2',
     recommendationStatus: 'RECOMMENDED',
     selectionPolicyVersion: 'selection-v1',
-    selectionReasonCode: 'HIGHEST_TARGET_OPTION_PROBABILITY',
+    selectionReasonCode: 'TOP_TARGET_PROBABILITY',
     excludedCandidates: excluded,
   }
 }
@@ -343,12 +343,12 @@ export function buildOptimization(rec: OptimizationRecord, nowMs: number): Optim
     validationRunId: candidateRun?.runId ?? null,
     verification: completed
       ? {
-          finalDecision: 'IMPROVEMENT_CONFIRMED',
-          reasonCode: 'GOAL_REACHED_WITH_LOWER_COST',
+          finalDecision: 'IMPROVEMENT_OBSERVED',
+          reasonCode: 'NAVIGATION_COST',
           verificationPolicyVersion: 'verification-v1',
         }
       : null,
-    finalDecision: completed ? 'IMPROVEMENT_CONFIRMED' : null,
+    finalDecision: completed ? 'IMPROVEMENT_OBSERVED' : null,
     resultOrigin: 'MOCK',
     error,
     createdAt: iso(rec.createdAtMs),
@@ -415,7 +415,7 @@ export function buildReport(
       baselineRunCount: 1,
       candidateRunCount: 1,
       repeated: false,
-      note: 'MOCK 데이터입니다. 기준·후보를 각각 한 번 실행한 결과라 반복 실행으로 확인하지 않았습니다.',
+      note: '기준과 검증 후보를 각각 1회만 실행한 단일 관찰값이다. 실행 간 변동성은 검증하지 않았다. IMPROVEMENT_OBSERVED는 사전 정의한 개선 조건이 관찰됐다는 뜻이며 UX 개선을 입증하지 않는다.',
     },
     createdAt: dto.createdAt,
     updatedAt: dto.updatedAt,

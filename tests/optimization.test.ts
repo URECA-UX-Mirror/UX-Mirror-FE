@@ -120,7 +120,7 @@ const evaluation = (patch: Partial<CandidateEvaluationDto> = {}): CandidateEvalu
   label: '주문·환불',
   role: 'CANDIDATE',
   semanticClarityRank: 1,
-  siteInstanceId: 'moro-after',
+  siteInstanceId: 'site-c2',
   candidateValidity: 'VALID',
   invalidReasons: [],
   evaluationStatus: 'COMPLETED',
@@ -250,7 +250,7 @@ it('Adapter: Run의 optimizationContext는 있으면 옮기고 없으면 null(�
     optimizationId: 'opt_mock_completed',
     candidateId: 'C2',
     label: '주문·환불',
-    siteInstanceId: 'moro-after',
+    siteInstanceId: 'site-c2',
     executionRole: 'CANDIDATE',
   })
   // 어느 라벨 사이트인지는 variant가 아니라 context로 구분한다. 후보 Run도 variant는 after다
